@@ -344,7 +344,7 @@ var Api = (function () {
         html.push("</div>", "</body>", "</html>");
         return html.join('\n');
     };
-    Api.VERSION = "1.1.4";
+    Api.VERSION = "1.1.5";
     return Api;
 }());
 Object.defineProperty(exports, "__esModule", { value: true });

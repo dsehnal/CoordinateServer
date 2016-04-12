@@ -223,7 +223,7 @@ let queryMap: { [id: string]: QueryMapEntry } = {
 
 export default class Api {
 
-    static VERSION = "1.1.4";
+    static VERSION = "1.1.5";
 
     private static makePath(p: string) {
         return ServerConfig.appPrefix + '/' + p;

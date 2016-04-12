@@ -1,4 +1,7 @@
-﻿== 1.1.4 ==
+﻿== 1.1.5 ==
+* Fixed a CifWriter bug (regarding secondary structure).
+
+== 1.1.4 ==
 * Updated _entity_poly generation.
 
 == 1.1.3 ==
