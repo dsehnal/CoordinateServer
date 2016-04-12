@@ -1025,9 +1025,10 @@ declare namespace LiteMol.Core.Structure {
     enum SecondaryStructureType {
         None = 0,
         Helix = 1,
-        Sheet = 2,
-        AminoSeq = 3,
-        Strand = 4,
+        Turn = 2,
+        Sheet = 3,
+        AminoSeq = 4,
+        Strand = 5,
     }
     class SecondaryStructureElement {
         type: SecondaryStructureType;

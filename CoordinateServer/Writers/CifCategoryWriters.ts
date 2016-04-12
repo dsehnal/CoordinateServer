@@ -203,12 +203,13 @@ namespace CifCategoryWriters {
         writer.write('#\n');
     }
 
-    function findSecondary(type: Core.Structure.SecondaryStructureType, content: CifWriterContents) {
+    function findSecondary(test: (t: Core.Structure.SecondaryStructureType) => boolean, content: CifWriterContents) {
         if (!content.model.secondaryStructure) return;
 
-        let starts: number[] = [], ends: number[] = [], lengths: number[] = [], ssIndices: number[] = [];
+        let starts: number[] = [], ends: number[] = [], lengths: number[] = [],
+            ssIndices: number[] = [];
 
-        let struct = content.model.secondaryStructure.filter(s => s.type === type);
+        let struct = content.model.secondaryStructure.filter(s => test(s.type));
 
         if (!struct.length) return;
 
@@ -270,14 +271,16 @@ namespace CifCategoryWriters {
 
         //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
 
-        let ssIndices = findSecondary(Core.Structure.SecondaryStructureType.Helix, content);
-        if (!ssIndices.starts.length) return;
+        let helix = Core.Structure.SecondaryStructureType.Helix, turn = Core.Structure.SecondaryStructureType.Turn;
+
+        let ssIndices = findSecondary(t => t === helix || t === turn, content);
+        if (!ssIndices || !ssIndices.starts.length) return;
 
         let rs = content.model.residues;
-        let ctx = { indices: ssIndices, residues: rs, index: content.fragment.residueIndices };
+        let ctx = { indices: ssIndices, residues: rs, index: content.fragment.residueIndices, helixCounter: 0, turnCounter: 0, helix, turn };
         let fields: FieldDesc<typeof ctx> = [
-            { name: '_struct_conf.conf_type_id', src: (ctx, i) => 'HELX_P' },
-            { name: '_struct_conf.id', src: (ctx, i) => 'HELX_P' + (i + 1) },
+            { name: '_struct_conf.conf_type_id', src: (ctx, i) => ctx.indices.struct[ctx.indices.ssIndices[i]].type === ctx.helix ? 'HELX_P' : 'TURN_P' },
+            { name: '_struct_conf.id', src: (ctx, i) => ctx.indices.struct[ctx.indices.ssIndices[i]].type === ctx.helix ? 'HELX_P' + (++ctx.helixCounter) : 'TURN_P' + (++ctx.turnCounter) },
             { name: '_struct_conf.pdbx_PDB_helix_id', src: (ctx, i) => (i + 1).toString() },
 
             { name: '_struct_conf.beg_label_comp_id', src: (ctx, i) => ctx.residues.name[ctx.indices.starts[i]] },
@@ -313,8 +316,9 @@ namespace CifCategoryWriters {
 
         //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
 
-        let ssIndices = findSecondary(Core.Structure.SecondaryStructureType.Sheet, content);
-        if (!ssIndices.starts.length) return;
+        let sheet = Core.Structure.SecondaryStructureType.Sheet;
+        let ssIndices = findSecondary(t => t === sheet, content);
+        if (!ssIndices || !ssIndices.starts.length) return;
 
         let rs = content.model.residues;
         let ctx = { indices: ssIndices, residues: rs, index: content.fragment.residueIndices };

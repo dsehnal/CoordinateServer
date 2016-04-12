@@ -199,11 +199,11 @@ var CifCategoryWriters;
         }
         writer.write('#\n');
     }
-    function findSecondary(type, content) {
+    function findSecondary(test, content) {
         if (!content.model.secondaryStructure)
             return;
         var starts = [], ends = [], lengths = [], ssIndices = [];
-        var struct = content.model.secondaryStructure.filter(function (s) { return s.type === type; });
+        var struct = content.model.secondaryStructure.filter(function (s) { return test(s.type); });
         if (!struct.length)
             return;
         var currentStructure = 0, currentStart = struct[0].startResidueIndex, currentEnd = struct[0].endResidueIndex;
@@ -256,14 +256,15 @@ var CifCategoryWriters;
     }
     function writeHelices(content, writer) {
         //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
-        var ssIndices = findSecondary(Core.Structure.SecondaryStructureType.Helix, content);
-        if (!ssIndices.starts.length)
+        var helix = Core.Structure.SecondaryStructureType.Helix, turn = Core.Structure.SecondaryStructureType.Turn;
+        var ssIndices = findSecondary(function (t) { return t === helix || t === turn; }, content);
+        if (!ssIndices || !ssIndices.starts.length)
             return;
         var rs = content.model.residues;
-        var ctx = { indices: ssIndices, residues: rs, index: content.fragment.residueIndices };
+        var ctx = { indices: ssIndices, residues: rs, index: content.fragment.residueIndices, helixCounter: 0, turnCounter: 0, helix: helix, turn: turn };
         var fields = [
-            { name: '_struct_conf.conf_type_id', src: function (ctx, i) { return 'HELX_P'; } },
-            { name: '_struct_conf.id', src: function (ctx, i) { return 'HELX_P' + (i + 1); } },
+            { name: '_struct_conf.conf_type_id', src: function (ctx, i) { return ctx.indices.struct[ctx.indices.ssIndices[i]].type === ctx.helix ? 'HELX_P' : 'TURN_P'; } },
+            { name: '_struct_conf.id', src: function (ctx, i) { return ctx.indices.struct[ctx.indices.ssIndices[i]].type === ctx.helix ? 'HELX_P' + (++ctx.helixCounter) : 'TURN_P' + (++ctx.turnCounter); } },
             { name: '_struct_conf.pdbx_PDB_helix_id', src: function (ctx, i) { return (i + 1).toString(); } },
             { name: '_struct_conf.beg_label_comp_id', src: function (ctx, i) { return ctx.residues.name[ctx.indices.starts[i]]; } },
             { name: '_struct_conf.beg_label_asym_id', src: function (ctx, i) { return ctx.residues.asymId[ctx.indices.starts[i]]; } },
@@ -288,8 +289,9 @@ var CifCategoryWriters;
     }
     function writeSheets(content, writer) {
         //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
-        var ssIndices = findSecondary(Core.Structure.SecondaryStructureType.Sheet, content);
-        if (!ssIndices.starts.length)
+        var sheet = Core.Structure.SecondaryStructureType.Sheet;
+        var ssIndices = findSecondary(function (t) { return t === sheet; }, content);
+        if (!ssIndices || !ssIndices.starts.length)
             return;
         var rs = content.model.residues;
         var ctx = { indices: ssIndices, residues: rs, index: content.fragment.residueIndices };
