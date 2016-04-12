@@ -1,0 +1,14 @@
+###################
+*.suo
+*.xap
+*.user
+*.ntvs_analysis.dat
+.ntvs_analysis.dat
+ntvs_analysis.dat
+CoordinateServer/.ntvs_analysis.dat
+.vs/
+obj/
+bin/
+AppsBin/
+ClientBin/
+packages/

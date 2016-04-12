@@ -1,0 +1,29 @@
+﻿== 1.1.4 ==
+* Updated _entity_poly generation.
+
+== 1.1.3 ==
+* Secondary structure support for assemblies and symmetry mates.
+
+== 1.1.2 ==
+* Fix to entity poly.
+
+== 1.1.1 ==
+* Bug fix in writing entities for computed molecules (symmetry and assembly)
+
+== 1.1.0 ==
+* Various bug fixes
+* Rewrote the CIF writer
+* Categories in the output CIF should now be consistent with what's in the _atom_site category
+* Added support for additional categories in the output
+* Added support for symmetry mates and assemblies 
+* Added coordinate server specific categories to the output CIF (_entity_poly, _struct_asym, _pdbx_struct_mod_residue)
+* Better error reporting
+
+== 1.0.2 ==
+* Experimental support for widePDB
+* Optimized CIF writer
+* Added optional multi-core support using 'cluster'
+* Added simple logging
+
+== 1.0.1 ==
+* Added /documentation

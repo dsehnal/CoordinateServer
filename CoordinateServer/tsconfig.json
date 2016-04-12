@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es5",
+    "noImplicitAny": true,
+    "sourceMap": false,
+    "noEmitOnError": true,
+    "rootDir": "."
+  },
+  "files": [
+    "Scripts/typings/compression.d.ts",
+    "Scripts/typings/es6-collections.d.ts",
+    "Scripts/typings/express.d.ts",
+    "Scripts/typings/node.d.ts",
+    "Scripts/typings/LiteMol-core.d.ts",
+
+    "server.ts"
+  ]
+}
