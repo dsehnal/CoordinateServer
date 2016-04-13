@@ -1,4 +1,8 @@
-﻿== 1.1.5 ==
+﻿== 1.1.6 ==
+* Better error reporting when parsing CIF failed.
+* Updated Core that fixes a CIF parser bug.
+
+== 1.1.5 ==
 * Fixed a CifWriter bug (regarding secondary structure).
 
 == 1.1.4 ==

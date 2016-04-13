@@ -6,6 +6,7 @@ var CoordinateServer_1 = require('./CoordinateServer');
 var CifWriters = require('./Writers/CifWriter');
 var Queries = Core.Structure.Queries;
 var Generators = Queries.Generators;
+var Version_1 = require('./Version');
 var QueryParamType;
 (function (QueryParamType) {
     QueryParamType[QueryParamType["String"] = 0] = "String";
@@ -206,7 +207,7 @@ var Api = (function () {
             config.atomSitesOnly = !!req.query.atomSitesOnly,
                 config.includedCategories = entry.includedCategories ? entry.includedCategories : defaultCategories;
             config.writer = entry.writer ? entry.writer : new CifWriters.DefaultCifWriter();
-            config.apiVersion = Api.VERSION;
+            config.apiVersion = Version_1.default;
             var performance = new Core.Utils.PerformanceMonitor();
             var params, modelTransform = entry.modelTransform ? entry.modelTransform : function (p, m) { return m; };
             try {
@@ -220,7 +221,7 @@ var Api = (function () {
                 });
                 Logger_1.default.log(reqId + ": Query params error: " + e);
                 var wcfg = new CifWriters.CifWriterConfig();
-                wcfg.apiVersion = Api.VERSION;
+                wcfg.apiVersion = Version_1.default;
                 wcfg.atomSitesOnly = config.atomSitesOnly;
                 wcfg.type = type;
                 var msg = config.writer.writeError(req.params.id, '' + e, wcfg);
@@ -309,10 +310,10 @@ var Api = (function () {
     });
     Api.createDocumentationHTML = function () {
         var html = [];
-        html.push("<!DOCTYPE html>", "<html xmlns=\"http://www.w3.org/1999/xhtml\">", "<head>", "<meta charset=\"utf-8\" />", "<title>LiteMol Coordinate Server (" + Api.VERSION + ", core " + Core.VERSION.number + " - " + Core.VERSION.date + ", node " + process.version + ")</title>", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css\" integrity=\"sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7\" crossorigin=\"anonymous\">", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css\" integrity=\"sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r\" crossorigin=\"anonymous\">", 
+        html.push("<!DOCTYPE html>", "<html xmlns=\"http://www.w3.org/1999/xhtml\">", "<head>", "<meta charset=\"utf-8\" />", "<title>LiteMol Coordinate Server (" + Version_1.default + ", core " + Core.VERSION.number + " - " + Core.VERSION.date + ", node " + process.version + ")</title>", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css\" integrity=\"sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7\" crossorigin=\"anonymous\">", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css\" integrity=\"sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r\" crossorigin=\"anonymous\">", 
         //`<style> h2 { margin-bottom: 5px } </style>`,
         "</head>", "<body>", "<div class=\"container\">");
-        html.push("<h1>LiteMol Coordinate Server <small>" + Api.VERSION + ", core " + Core.VERSION.number + " - " + Core.VERSION.date + ", node " + process.version + "</small></h1>");
+        html.push("<h1>LiteMol Coordinate Server <small>" + Version_1.default + ", core " + Core.VERSION.number + " - " + Core.VERSION.date + ", node " + process.version + "</small></h1>");
         html.push("<hr>");
         html.push(Object.keys(queryMap).map(function (k) { return ("<a href=\"#" + k + "\">" + k + "</a>"); }).join(" | "));
         html.push("<hr>");
@@ -344,7 +345,6 @@ var Api = (function () {
         html.push("</div>", "</body>", "</html>");
         return html.join('\n');
     };
-    Api.VERSION = "1.1.5";
     return Api;
 }());
 Object.defineProperty(exports, "__esModule", { value: true });

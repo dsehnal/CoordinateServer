@@ -71,9 +71,24 @@ export class CoordinateServer {
 
                 performance.start('parse');
 
-                let dict = Cif.Parser.parse(data),
-                    block = dict.result.dataBlocks[0],
-                    mol = Cif.mmCif.ofDataBlock(block);
+                let dict = Cif.Parser.parse(data);
+
+                if (dict.error) {
+                    let error = dict.error.toString();
+                    next({ is404: false, error, cif: config.writer.writeError(moleculeId, error, writerConfig) }, undefined);
+                    return;
+                }
+
+                if (!dict.result.dataBlocks.length) {
+                    let error = 'The input contains no data blocks.';
+                    next({ is404: false, error, cif: config.writer.writeError(moleculeId, error, writerConfig) }, undefined);
+                    return;
+                }
+                
+
+                let block = dict.result.dataBlocks[0];
+
+                let mol = Cif.mmCif.ofDataBlock(block);
 
                 performance.end('parse');
                 performance.start('query');

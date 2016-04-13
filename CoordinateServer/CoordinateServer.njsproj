@@ -45,6 +45,7 @@
     <TypeScriptCompile Include="Scripts\typings\LiteMol-core.d.ts" />
     <TypeScriptCompile Include="Api.ts" />
     <TypeScriptCompile Include="Experimental.ts" />
+    <TypeScriptCompile Include="Version.ts" />
     <TypeScriptCompile Include="Utils\Logger.ts" />
     <TypeScriptCompile Include="Writers\CifCategoryWriters.ts" />
     <TypeScriptCompile Include="Writers\CifStringWriter.ts" />

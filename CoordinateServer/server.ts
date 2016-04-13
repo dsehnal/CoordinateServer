@@ -22,6 +22,7 @@ import ServerConfig from './ServerConfig'
 import * as Core from 'LiteMol-core'
 import Api from './Api'
 import ExperimentalApi from './Experimental'
+import ApiVersion from './Version'
 
 let port = process.env.port || ServerConfig.defaultPort;
 
@@ -74,7 +75,7 @@ if (ServerConfig.useCluster) {
             cluster.fork();
         }
 
-        console.log(`LiteMol Coordinate Server (${Api.VERSION}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
+        console.log(`LiteMol Coordinate Server (${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
         console.log(`(c) 2016 David Sehnal`);
         console.log(``);
         console.log(`The server is running on port ${port}, using ${numCPUs} core(s).`);
@@ -87,7 +88,7 @@ if (ServerConfig.useCluster) {
 } else {
 
     startServer();
-    console.log(`LiteMol Coordinate Server (${Api.VERSION}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
+    console.log(`LiteMol Coordinate Server (${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
     console.log(`(c) 2016 David Sehnal`);
     console.log(``);
     console.log(`The server is running on port ${port}.`);

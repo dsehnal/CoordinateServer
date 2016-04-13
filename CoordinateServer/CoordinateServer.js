@@ -47,7 +47,19 @@ var CoordinateServer = (function () {
             writerConfig.includedCategories = config.includedCategories;
             try {
                 performance.start('parse');
-                var dict = Cif.Parser.parse(data), block = dict.result.dataBlocks[0], mol = Cif.mmCif.ofDataBlock(block);
+                var dict = Cif.Parser.parse(data);
+                if (dict.error) {
+                    var error = dict.error.toString();
+                    next({ is404: false, error: error, cif: config.writer.writeError(moleculeId, error, writerConfig) }, undefined);
+                    return;
+                }
+                if (!dict.result.dataBlocks.length) {
+                    var error = 'The input contains no data blocks.';
+                    next({ is404: false, error: error, cif: config.writer.writeError(moleculeId, error, writerConfig) }, undefined);
+                    return;
+                }
+                var block = dict.result.dataBlocks[0];
+                var mol = Cif.mmCif.ofDataBlock(block);
                 performance.end('parse');
                 performance.start('query');
                 var models = [];

@@ -10,6 +10,8 @@ import CifStringWriter from './Writers/CifStringWriter'
 import Queries = Core.Structure.Queries;
 import Generators = Queries.Generators;
 
+import ApiVersion from './Version'
+
 import * as express from 'express';
 
 enum QueryParamType {
@@ -223,8 +225,6 @@ let queryMap: { [id: string]: QueryMapEntry } = {
 
 export default class Api {
 
-    static VERSION = "1.1.5";
-
     private static makePath(p: string) {
         return ServerConfig.appPrefix + '/' + p;
     }
@@ -279,7 +279,7 @@ export default class Api {
             config.atomSitesOnly = !!req.query.atomSitesOnly,
             config.includedCategories = entry.includedCategories ? entry.includedCategories : defaultCategories;
             config.writer = entry.writer ? entry.writer : new CifWriters.DefaultCifWriter();
-            config.apiVersion = Api.VERSION;
+            config.apiVersion = ApiVersion;
 
             let performance = new Core.Utils.PerformanceMonitor();
 
@@ -298,7 +298,7 @@ export default class Api {
                 Logger.log(`${reqId}: Query params error: ${e}`);
 
                 let wcfg = new CifWriters.CifWriterConfig();
-                wcfg.apiVersion = Api.VERSION;
+                wcfg.apiVersion = ApiVersion;
                 wcfg.atomSitesOnly = config.atomSitesOnly;
                 wcfg.type = type;
                 let msg = config.writer.writeError(req.params.id, '' + e, wcfg);
@@ -419,7 +419,7 @@ export default class Api {
             `<html xmlns="http://www.w3.org/1999/xhtml">`,
             `<head>`,
             `<meta charset="utf-8" />`,
-            `<title>LiteMol Coordinate Server (${Api.VERSION}, core ${Core.VERSION.number} - ${Core.VERSION.date}, node ${process.version})</title>`,
+            `<title>LiteMol Coordinate Server (${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date}, node ${process.version})</title>`,
             `<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">`,
             `<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">`,
             //`<style> h2 { margin-bottom: 5px } </style>`,
@@ -428,7 +428,7 @@ export default class Api {
             `<div class="container">`
         );
 
-        html.push(`<h1>LiteMol Coordinate Server <small>${Api.VERSION}, core ${Core.VERSION.number} - ${Core.VERSION.date}, node ${process.version}</small></h1>`);
+        html.push(`<h1>LiteMol Coordinate Server <small>${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date}, node ${process.version}</small></h1>`);
         html.push("<hr>");
 
         html.push(Object.keys(queryMap).map(k => `<a href="#${k}">${k}</a>`).join(` | `));
