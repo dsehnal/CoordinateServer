@@ -522,7 +522,7 @@ declare namespace LiteMol.Core.Formats.CCP4 {
     /**
      * Represents electron density data from the CCP4 format.
      */
-    class ElectronDensityData {
+    class DensityData {
         /**
          * Crystal cell size.
          */
@@ -583,32 +583,9 @@ declare namespace LiteMol.Core.Formats.CCP4 {
             sigma: number;
         });
     }
-    class ParserResult {
-        hasError: boolean;
-        errorMessage: string;
-        errorLine: number;
-        warnings: string[];
-        result: ElectronDensityData;
-        static error(message: string, line?: number): ParserResult;
-        static success(result: ElectronDensityData, warnings?: string[]): ParserResult;
-        constructor(hasError: boolean, errorMessage: string, errorLine: number, warnings: string[], result: ElectronDensityData);
-    }
-    /**
-     * Parses CCP4 files.
-     */
-    class Parser {
-        private static getArray(r, offset, count);
-        /**
-         * Parse CCP4 file according to spec at http://www.ccp4.ac.uk/html/maplib.html
-         * Inspired by PyMOL implementation of the parser.
-         */
-        static parse(buffer: ArrayBuffer, options?: {
-            normalize: boolean;
-        }): ParserResult;
-        private static normalizeData(data, mean, stddev);
-        private static readRawData1(view, endian, extent, headerExtent, indices, mean);
-        private static readRawData(view, endian, extent, headerExtent, indices, mean);
-    }
+    function parse(buffer: ArrayBuffer, options?: {
+        normalize: boolean;
+    }): ParserResult<DensityData>;
 }
 declare namespace LiteMol.Core.Geometry.LinearAlgebra {
     type ObjectVec3 = {
@@ -1545,11 +1522,14 @@ declare namespace LiteMol.Core.Utils {
     class PerformanceMonitor {
         private starts;
         private ends;
+        static currentTime(): number;
         start(name: string): void;
         end(name: string): void;
-        private format(t);
-        measure(name: string): string;
-        sum(...names: string[]): string;
+        static format(t: number): string;
+        formatTime(name: string): string;
+        formatTimeSum(...names: string[]): string;
+        time(name: string): number;
+        timeSum(...names: string[]): number;
     }
 }
 declare module 'LiteMol-core' {

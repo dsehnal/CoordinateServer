@@ -42,14 +42,20 @@
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="Api\WebApi.ts" />
+    <TypeScriptCompile Include="Api\Api.ts" />
+    <TypeScriptCompile Include="Api\CoordinateServer.ts" />
+    <TypeScriptCompile Include="Api\Queries.ts" />
+    <TypeScriptCompile Include="Api\Version.ts" />
+    <TypeScriptCompile Include="Data\Provider.ts" />
+    <TypeScriptCompile Include="Data\Cache.ts" />
+    <TypeScriptCompile Include="Data\Molecule.ts" />
     <TypeScriptCompile Include="Scripts\typings\LiteMol-core.d.ts" />
     <TypeScriptCompile Include="Api.ts" />
     <TypeScriptCompile Include="Experimental.ts" />
-    <TypeScriptCompile Include="Version.ts" />
     <TypeScriptCompile Include="Utils\Logger.ts" />
     <TypeScriptCompile Include="Writers\CifCategoryWriters.ts" />
     <TypeScriptCompile Include="Writers\CifStringWriter.ts" />
-    <TypeScriptCompile Include="Writers\PdbWriter.ts" />
     <TypeScriptCompile Include="Scripts\typings\compression.d.ts" />
     <TypeScriptCompile Include="ServerConfig.ts" />
     <TypeScriptCompile Include="Scripts\typings\es6-collections.d.ts" />
@@ -66,6 +72,8 @@
     <TypeScriptCompile Include="Writers\WidePDBWriter.ts" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Api\" />
+    <Folder Include="Data\" />
     <Folder Include="Scripts\" />
     <Folder Include="Utils\" />
     <Folder Include="Writers\" />

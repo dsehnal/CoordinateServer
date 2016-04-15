@@ -18,35 +18,26 @@ var express = require('express');
 var compression = require('compression');
 var ServerConfig_1 = require('./ServerConfig');
 var Core = require('LiteMol-core');
-var Api_1 = require('./Api');
+var WebApi = require('./Api/WebApi');
 var Experimental_1 = require('./Experimental');
-var Version_1 = require('./Version');
+var Version_1 = require('./Api/Version');
+var Queries = require('./Api/Queries');
 var port = process.env.port || ServerConfig_1.default.defaultPort;
 function startServer() {
     var app = express();
     app.use(compression());
-    var api = new Api_1.default(app);
     app.get(ServerConfig_1.default.appPrefix + '/documentation', function (req, res) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.write(api.documentationHTML);
+        res.write(Queries.getHTMLDocs(ServerConfig_1.default.appPrefix));
         res.end();
     });
-    api.init();
+    WebApi.init(app);
     var experimental = new Experimental_1.default(app);
     experimental.init();
     app.get('*', function (req, res) {
-        //fs.readFile('./default.html', 'binary', function (err, file) {
-        //if (err) {
-        //    res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-        //    res.write(err + '\n');
-        //    res.end();
-        //    return;
-        //}
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        //res.write(file, 'binary');
-        res.write(api.documentationHTML);
+        res.write(Queries.getHTMLDocs(ServerConfig_1.default.appPrefix));
         res.end();
-        //});
     });
     app.listen(port);
 }

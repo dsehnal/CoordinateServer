@@ -1,19 +1,24 @@
-﻿namespace ServerConfig {
-    
-    export var defaultPort = 1337;
+﻿const config = {
+
+    cacheParams: {
+        useCache: true,
+        maxApproximateSizeInBytes: 2 * 1014 * 1024 * 1024, // 2 GB
+        entryTimeoutInMs: 10 * 60 * 1000 // 10 minutes
+    },
+    defaultPort: 1337,
 
     // enable/disable multicore support using cluster library
-    export var useCluster = false;
+    useCluster: false,
 
-    export var appPrefix = '/CoordinateServer';
-    export function mapPdbIdToFilename(id: string) {
+    appPrefix: '/CoordinateServer',
+
+    mapPdbIdToFilename(id: string) {
         return `E:/databases/PDB/updated/${id}.cif`;
     }
 
-    //export var appPrefix = '/CoordinateServer';
-    //export function mapPdbIdToFilename(id: string) {
+    //mapPdbIdToFilename(id: string) {
     //    return `c:/test/quick/${id}_updated.cif`;
     //}
-}
+};
 
-export default ServerConfig;
+export default config;

@@ -20,44 +20,32 @@ import * as compression from 'compression'
 
 import ServerConfig from './ServerConfig'
 import * as Core from 'LiteMol-core'
-import Api from './Api'
+import * as WebApi from './Api/WebApi'
 import ExperimentalApi from './Experimental'
-import ApiVersion from './Version'
+import ApiVersion from './Api/Version'
+import * as Queries from './Api/Queries'
 
 let port = process.env.port || ServerConfig.defaultPort;
 
 function startServer() {
     let app = express();
     app.use(compression());
-
-    let api = new Api(app);
-
+    
     app.get(ServerConfig.appPrefix + '/documentation', (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.write(api.documentationHTML);
+        res.write(Queries.getHTMLDocs(ServerConfig.appPrefix));
         res.end();
     });
 
-    api.init();
+    WebApi.init(app);
 
     let experimental = new ExperimentalApi(app);
     experimental.init();
 
     app.get('*', (req, res) => {
-
-        //fs.readFile('./default.html', 'binary', function (err, file) {
-        //if (err) {
-        //    res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-        //    res.write(err + '\n');
-        //    res.end();
-        //    return;
-        //}
-
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        //res.write(file, 'binary');
-        res.write(api.documentationHTML);
+        res.write(Queries.getHTMLDocs(ServerConfig.appPrefix));
         res.end();
-        //});
     });
 
     app.listen(port);

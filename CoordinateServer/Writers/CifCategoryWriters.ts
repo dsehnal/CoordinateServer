@@ -713,7 +713,7 @@ namespace CifCategoryWriters {
             }
         }
 
-        writer.write('\n#');
+        writer.write('\n#\n');
     }
 }
 

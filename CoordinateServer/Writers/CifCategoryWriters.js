@@ -551,7 +551,7 @@ var CifCategoryWriters;
                 writeAtomSitesProper(first.data, model.model, model.fragments.unionAtomIndices(), writer);
             }
         }
-        writer.write('\n#');
+        writer.write('\n#\n');
     }
     CifCategoryWriters.writeAtomSites = writeAtomSites;
 })(CifCategoryWriters || (CifCategoryWriters = {}));

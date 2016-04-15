@@ -17,6 +17,7 @@
 var Core = require('LiteMol-core');
 var CifStringWriter_1 = require('./CifStringWriter');
 var CifCategoryWriters_1 = require('./CifCategoryWriters');
+var Version_1 = require('../Api/Version');
 var CifWriterConfig = (function () {
     function CifWriterConfig() {
         this.atomSitesOnly = false;
@@ -34,7 +35,6 @@ var CifWriterConfig = (function () {
             '_chem_comp_bond'
         ];
         this.type = '?';
-        this.apiVersion = '?';
         this.params = [];
     }
     return CifWriterConfig;
@@ -67,7 +67,7 @@ var DefaultCifWriter = (function () {
         writer.newline();
         writer.write("_coordinate_server_result.atom_sites_only    " + (config.atomSitesOnly ? 'yes' : 'no'));
         writer.newline();
-        writer.write("_coordinate_server_result.api_version        " + config.apiVersion);
+        writer.write("_coordinate_server_result.api_version        " + Version_1.default);
         writer.newline();
         writer.write("_coordinate_server_result.core_version       " + Core.VERSION.number);
         writer.newline();

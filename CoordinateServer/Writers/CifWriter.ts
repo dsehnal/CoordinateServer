@@ -19,6 +19,8 @@ import StringWriter from './StringWriter'
 import CifStringWriter from './CifStringWriter'
 import CifCategoryWriters from './CifCategoryWriters'
 
+import ApiVersion from '../Api/Version'
+
 export class CifWriterConfig {
 
     atomSitesOnly = false;
@@ -37,7 +39,6 @@ export class CifWriterConfig {
     ];
 
     type = '?';
-    apiVersion = '?';
     params: { name: string, value: any }[] = [];
 }
 
@@ -75,11 +76,11 @@ export class DefaultCifWriter implements ICifWriter {
         writer.write(`_coordinate_server_result.is_empty           ${isEmpty ? 'yes' : 'no'}`); writer.newline();
         writer.write(`_coordinate_server_result.has_error          ${hasError ? 'yes' : 'no'}`); writer.newline();
         writer.write(`_coordinate_server_result.atom_sites_only    ${config.atomSitesOnly ? 'yes' : 'no'}`); writer.newline();
-        writer.write(`_coordinate_server_result.api_version        ${config.apiVersion}`); writer.newline();
+        writer.write(`_coordinate_server_result.api_version        ${ApiVersion}`); writer.newline();
         writer.write(`_coordinate_server_result.core_version       ${Core.VERSION.number}`); writer.newline();
         writer.write(`#\n`);
     }
-
+    
     writeError(header: string, message: string, config: CifWriterConfig) {
 
         let writer = new CifStringWriter();
