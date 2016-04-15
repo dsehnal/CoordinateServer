@@ -12,13 +12,13 @@
 
     appPrefix: '/CoordinateServer',
 
-    //mapPdbIdToFilename(id: string) {
-    //    return `E:/databases/PDB/updated/${id}.cif`;
-    //}
-
     mapPdbIdToFilename(id: string) {
-        return `c:/test/quick/${id}_updated.cif`;
+        return `E:/databases/PDB/updated/${id}.cif`;
     }
+
+    //mapPdbIdToFilename(id: string) {
+    //    return `c:/test/quick/${id}_updated.cif`;
+    //}
 };
 
 export default config;

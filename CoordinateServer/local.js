@@ -34,7 +34,7 @@ var exampleWorkload = [
         params: { name: 'REA' }
     }, {
         inputFilename: 'c:/test/quick/1tqn.cif',
-        outputFilename: 'c:/test/quick/localapi/1tqn_het.cif',
+        outputFilename: 'c:/test/quick/localapi/1tqn_residues.cif',
         query: 'residues',
         params: { name: 'ALA', atomSitesOnly: '1' } // parameters are just a JSON version of the query string
     }
