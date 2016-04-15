@@ -184,6 +184,20 @@ exports.QueryList = (function () {
     list.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
     return list;
 })();
+// normalize the queries
+(function () {
+    for (var _i = 0, QueryList_1 = exports.QueryList; _i < QueryList_1.length; _i++) {
+        var q = QueryList_1[_i];
+        var m = q.description;
+        var paramMap = new Map();
+        m.queryParams = m.queryParams || [];
+        for (var _a = 0, _b = m.queryParams; _a < _b.length; _a++) {
+            var p = _b[_a];
+            paramMap.set(p.name, p);
+        }
+        m.paramMap = paramMap;
+    }
+})();
 function filterQueryParams(p, query) {
     var ret = {};
     for (var _i = 0, _a = Object.keys(p); _i < _a.length; _i++) {
@@ -234,13 +248,13 @@ function createDocumentationHTML(appPrefix) {
     "</head>", "<body>", "<div class=\"container\">");
     html.push("<h1>LiteMol Coordinate Server <small>" + Version_1.default + ", core " + Core.VERSION.number + " - " + Core.VERSION.date + ", node " + process.version + "</small></h1>");
     html.push("<hr>");
-    html.push(Object.keys(exports.QueryMap).map(function (k) { return ("<a href=\"#" + k + "\">" + k + "</a>"); }).join(" | "));
+    html.push(exports.QueryList.map(function (q) { return ("<a href=\"#" + q.name + "\">" + q.name + "</a>"); }).join(" | "));
     html.push("<hr>");
     html.push("<i>Note:</i><br/>");
     html.push("Empty-string values of parameters are ignored by the server, e.g. <code>/entities?entityId=&type=water</code> is the same as <code>/entities?type=water</code>.");
     html.push("<hr>");
-    for (var _i = 0, QueryList_1 = exports.QueryList; _i < QueryList_1.length; _i++) {
-        var entry = QueryList_1[_i];
+    for (var _i = 0, QueryList_2 = exports.QueryList; _i < QueryList_2.length; _i++) {
+        var entry = QueryList_2[_i];
         var id = entry.name;
         var q = entry.description;
         html.push("<a name=\"" + id + "\"></a>");

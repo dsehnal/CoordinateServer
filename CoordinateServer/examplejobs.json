@@ -1,0 +1,25 @@
+[
+  {
+    "inputFilename": "c:/test/quick/1tqn.cif",
+    "outputFilename": "c:/test/quick/localapi/1tqn_het.cif",
+    "query": "het",
+    "params": {}
+  },
+  {
+    "inputFilename": "c:/test/quick/1cbs_updated.cif",
+    "outputFilename": "c:/test/quick/localapi/1cbs_ligint.cif",
+    "query": "ligandInteraction",
+    "params": {
+      "name": "REA"
+    }
+  },
+  {
+    "inputFilename": "c:/test/quick/1tqn.cif",
+    "outputFilename": "c:/test/quick/localapi/1tqn_het.cif",
+    "query": "residues",
+    "params": {
+      "name": "ALA",
+      "atomSitesOnly": "1"
+    }
+  }
+]

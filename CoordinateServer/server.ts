@@ -63,7 +63,7 @@ if (ServerConfig.useCluster) {
             cluster.fork();
         }
 
-        console.log(`LiteMol Coordinate Server (${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
+        console.log(`LiteMol Coordinate Server (API ${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
         console.log(`(c) 2016 David Sehnal`);
         console.log(``);
         console.log(`The server is running on port ${port}, using ${numCPUs} core(s).`);
@@ -76,7 +76,7 @@ if (ServerConfig.useCluster) {
 } else {
 
     startServer();
-    console.log(`LiteMol Coordinate Server (${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
+    console.log(`LiteMol Coordinate Server (API ${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
     console.log(`(c) 2016 David Sehnal`);
     console.log(``);
     console.log(`The server is running on port ${port}.`);

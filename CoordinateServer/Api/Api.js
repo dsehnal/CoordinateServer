@@ -23,7 +23,7 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
         params = Queries.filterQueryParams(parameters, description);
     }
     catch (e) {
-        Logger_1.default.log(reqId + ": Query params error: " + e);
+        Logger_1.default.error(reqId + ": Query params error: " + e);
         var wcfg = new CifWriters.CifWriterConfig();
         wcfg.atomSitesOnly = serverConfig.atomSitesOnly;
         wcfg.type = query.name;
@@ -48,7 +48,7 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
         stream.end(getStatsCif(moleculeWrapper, result.timeQuery, result.timeSerialize, writeTime));
         var totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeSerialize + result.timeQuery + writeTime;
         var cached = moleculeWrapper.source === Provider.MoleculeSource.Cache ? 'cached; ' : '';
-        Logger_1.default.log(reqId + ": Done in " + Perf.format(totalTime) + " (io cached, parse cached, query " + Perf.format(result.timeQuery) + ", serialize " + Perf.format(result.timeSerialize) + ", write " + Perf.format(writeTime) + ")");
+        Logger_1.default.log(reqId + ": Done in " + Perf.format(totalTime) + " (" + cached + "io " + Perf.format(moleculeWrapper.ioTime) + ", parse " + Perf.format(moleculeWrapper.parseTime) + ", query " + Perf.format(result.timeQuery) + ", serialize " + Perf.format(result.timeSerialize) + ", write " + Perf.format(writeTime) + ")");
     });
 }
 exports.executeQuery = executeQuery;

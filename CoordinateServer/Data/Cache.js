@@ -35,8 +35,15 @@ var Cache = (function () {
         this.entries.remove(e);
         this.entries.addFirst(e);
     };
-    Cache.prototype.expire = function (e) {
-        Logger_1.default.log("[Cache] " + e.molecule.molecule.id + " expired.");
+    Cache.prototype.expire = function (e, notify) {
+        if (notify === void 0) { notify = true; }
+        if (notify)
+            Logger_1.default.log("[Cache] " + e.molecule.molecule.id + " expired.");
+        this.dispose(e);
+    };
+    Cache.prototype.expireAll = function () {
+        for (var e = this.entries.first; e; e = e.next)
+            this.expire(e, false);
     };
     Cache.prototype.add = function (m) {
         if (this.entryMap.has(m.key))

@@ -7,13 +7,14 @@
     "noEmitOnError": true,
     "rootDir": "."
   },
-  "files": [
+  "files": [  
     "Scripts/typings/compression.d.ts",
     "Scripts/typings/es6-collections.d.ts",
     "Scripts/typings/express.d.ts",
     "Scripts/typings/node.d.ts",
     "Scripts/typings/LiteMol-core.d.ts",
 
-    "server.ts"
+    "server.ts",
+    "local.ts"
   ]
 }

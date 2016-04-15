@@ -43,7 +43,7 @@ export function executeQuery(
         params = Queries.filterQueryParams(parameters, description)
     } catch (e) {
 
-        Logger.log(`${reqId}: Query params error: ${e}`);
+        Logger.error(`${reqId}: Query params error: ${e}`);
 
         let wcfg = new CifWriters.CifWriterConfig();
         wcfg.atomSitesOnly = serverConfig.atomSitesOnly;
@@ -88,7 +88,7 @@ export function executeQuery(
             let totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeSerialize + result.timeQuery + writeTime;
 
             let cached = moleculeWrapper.source === Provider.MoleculeSource.Cache ? 'cached; ' : '';
-            Logger.log(`${reqId}: Done in ${Perf.format(totalTime)} (io cached, parse cached, query ${Perf.format(result.timeQuery)}, serialize ${Perf.format(result.timeSerialize)}, write ${Perf.format(writeTime)})`);
+            Logger.log(`${reqId}: Done in ${Perf.format(totalTime)} (${cached}io ${Perf.format(moleculeWrapper.ioTime)}, parse ${Perf.format(moleculeWrapper.parseTime)}, query ${Perf.format(result.timeQuery)}, serialize ${Perf.format(result.timeSerialize)}, write ${Perf.format(writeTime)})`);
         });
 }
 

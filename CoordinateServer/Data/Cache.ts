@@ -42,8 +42,13 @@ export class Cache {
         this.entries.addFirst(e);
     }
 
-    private expire(e: CacheEntry) {
-        Logger.log(`[Cache] ${e.molecule.molecule.id} expired.`);
+    private expire(e: CacheEntry, notify = true) {
+        if (notify) Logger.log(`[Cache] ${e.molecule.molecule.id} expired.`);
+        this.dispose(e);
+    }
+
+    expireAll() {
+        for (let e = this.entries.first; e; e = e.next) this.expire(e, false);
     }
 
     add(m: Molecule.Molecule) {

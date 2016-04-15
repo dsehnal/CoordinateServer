@@ -66,14 +66,6 @@ function mapQuery(app, query) {
 function init(app) {
     for (var _i = 0, _a = Queries.QueryList; _i < _a.length; _i++) {
         var q = _a[_i];
-        var m = q.description;
-        var paramMap = new Map();
-        m.queryParams = m.queryParams || [];
-        for (var _b = 0, _c = m.queryParams; _b < _c.length; _b++) {
-            var p = _c[_b];
-            paramMap.set(p.name, p);
-        }
-        m.paramMap = paramMap;
         mapQuery(app, q);
     }
 }

@@ -1,4 +1,9 @@
-﻿== 1.1.6 ==
+﻿== 1.2.0 ==
+* Added caching support.
+* Refactored the API.
+* Support for local (file system) mode.
+
+== 1.1.6 ==
 * Better error reporting when parsing CIF failed.
 * Updated Core that fixes a CIF parser bug.
 

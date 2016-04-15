@@ -223,6 +223,21 @@ export const QueryList = (function () {
     return list;
 })();
 
+// normalize the queries
+(function () {
+    for (let q of QueryList) {
+
+        let m = q.description;
+
+        let paramMap = new Map<string, { name: string; type: QueryParamType }>();
+        m.queryParams = m.queryParams || [];
+        for (let p of m.queryParams) {
+            paramMap.set(p.name, p);
+        }
+        m.paramMap = paramMap;
+    }
+})();
+
 export function filterQueryParams(p: { [p: string]: string }, query: ApiQueryDescription):
     { [p: string]: string | number | boolean } {
         
@@ -285,7 +300,7 @@ function createDocumentationHTML(appPrefix: string) {
     html.push(`<h1>LiteMol Coordinate Server <small>${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date}, node ${process.version}</small></h1>`);
     html.push("<hr>");
 
-    html.push(Object.keys(QueryMap).map(k => `<a href="#${k}">${k}</a>`).join(` | `));
+    html.push(QueryList.map(q => `<a href="#${q.name}">${q.name}</a>`).join(` | `));
 
     html.push("<hr>");
 

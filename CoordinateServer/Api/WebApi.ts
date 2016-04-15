@@ -1,8 +1,6 @@
 ﻿import * as Queries from './Queries'
 import * as Api from './Api'
 
-import Logger from '../Utils/Logger'
-
 import * as CifWriters from '../Writers/CifWriter'
 import * as Molecule from '../Data/Molecule'
 import * as Provider from '../Data/Provider'
@@ -82,16 +80,6 @@ function mapQuery(app: express.Express, query: Queries.ApiQuery) {
 export function init(app: express.Express) {
 
     for (let q of Queries.QueryList) {
-
-        let m = q.description;
-
-        let paramMap = new Map<string, { name: string; type: Queries.QueryParamType }>();
-        m.queryParams = m.queryParams || [];
-        for (let p of m.queryParams) {
-            paramMap.set(p.name, p);
-        }
-        m.paramMap = paramMap;
-
         mapQuery(app, q);
     }
 }

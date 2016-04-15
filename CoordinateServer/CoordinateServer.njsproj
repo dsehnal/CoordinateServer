@@ -42,6 +42,7 @@
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="Api\LocalApi.ts" />
     <TypeScriptCompile Include="Api\WebApi.ts" />
     <TypeScriptCompile Include="Api\Api.ts" />
     <TypeScriptCompile Include="Api\CoordinateServer.ts" />
@@ -53,6 +54,7 @@
     <TypeScriptCompile Include="Scripts\typings\LiteMol-core.d.ts" />
     <TypeScriptCompile Include="Api.ts" />
     <TypeScriptCompile Include="Experimental.ts" />
+    <TypeScriptCompile Include="local.ts" />
     <TypeScriptCompile Include="Utils\Logger.ts" />
     <TypeScriptCompile Include="Writers\CifCategoryWriters.ts" />
     <TypeScriptCompile Include="Writers\CifStringWriter.ts" />
