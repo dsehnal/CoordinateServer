@@ -31,7 +31,10 @@ function doCifError(response, message, id, queryName, params) {
         'Access-Control-Allow-Headers': 'X-Requested-With'
     });
     var wcfg = new CifWriters.CifWriterConfig();
-    wcfg.atomSitesOnly = !!params.atomSitesOnly;
+    wcfg.commonParams = {
+        atomSitesOnly: !!params.atomSitesOnly,
+        modelId: params.modelId
+    };
     wcfg.type = queryName;
     var msg = new CifWriters.DefaultCifWriter().writeError(id, message, wcfg);
     response.end(msg);

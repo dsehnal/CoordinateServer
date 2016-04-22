@@ -40,7 +40,10 @@ function doCifError(response: any, message: string,
     });
     
     let wcfg = new CifWriters.CifWriterConfig();
-    wcfg.atomSitesOnly = !!params.atomSitesOnly;
+    wcfg.commonParams = {
+        atomSitesOnly: !!params.atomSitesOnly,
+        modelId: params.modelId
+    };
     wcfg.type = queryName;
     let msg = new CifWriters.DefaultCifWriter().writeError(id, message, wcfg);
     response.end(msg);

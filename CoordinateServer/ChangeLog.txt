@@ -1,4 +1,7 @@
-﻿== 1.2.0 ==
+﻿== 1.2.1 ==
+* Added support for modelId in queries.
+
+== 1.2.0 ==
 * Added caching support.
 * Refactored the API.
 * Support for local (file system) mode.

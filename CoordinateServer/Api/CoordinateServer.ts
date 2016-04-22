@@ -18,7 +18,7 @@ import * as Core from 'LiteMol-core'
 import * as CifWriters from '../Writers/CifWriter'
 import * as Molecule from '../Data/Molecule'
 
-import { ApiQuery } from './Queries'
+import { ApiQuery, CommonQueryParams } from './Queries'
 
 import Logger from '../Utils/Logger';
 
@@ -26,7 +26,7 @@ import Cif = Core.Formats.Cif;
 import Queries = Core.Structure.Queries;
 
 export class CoordinateServerConfig {
-    atomSitesOnly: boolean;
+    commonParams: CommonQueryParams;
     includedCategories: string[];
     writer: CifWriters.ICifWriter;
 }
@@ -56,7 +56,7 @@ export class CoordinateServer {
         let writerConfig = new CifWriters.CifWriterConfig();
         writerConfig.type = query.name;
         writerConfig.params = Object.keys(queryParams).map(p => ({ name: p, value: queryParams[p] }));
-        writerConfig.atomSitesOnly = config.atomSitesOnly;
+        writerConfig.commonParams = config.commonParams;
         writerConfig.includedCategories = config.includedCategories;
 
         try {
@@ -65,10 +65,16 @@ export class CoordinateServer {
 
             perf.start('query')
             let found = 0;
+            let singleModel = !!config.commonParams.modelId;
+            let singleModelId = config.commonParams.modelId;
+            let foundModel = false;
             for (var modelWrap of molecule.models) {
 
                 let fragments: Queries.FragmentSeq;
                 let model = modelWrap.model;
+
+                if (singleModel && model.modelId !== singleModelId) continue;
+                foundModel = true;
 
                 if (query.description.modelTransform) {
                     let transformed = query.description.modelTransform(queryParams, model);
@@ -86,6 +92,15 @@ export class CoordinateServer {
                 }
             }
             perf.end('query');
+
+            if (singleModelId && !foundModel) {
+                let err = `Model with id '${singleModelId}' was not found.`;
+                next({
+                    error: err,
+                    errorCif: config.writer.writeError(molecule.molecule.id, err, writerConfig)
+                });
+                return;
+            }
 
             Logger.log(`${reqId}: Found ${found} fragment(s).`)
 

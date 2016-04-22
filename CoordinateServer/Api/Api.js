@@ -15,7 +15,11 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
     Logger_1.default.log(reqId + ": Processing.");
     var serverConfig = new CoordinateServer_1.CoordinateServerConfig();
     var description = query.description;
-    serverConfig.atomSitesOnly = !!parameters.atomSitesOnly;
+    var commonParams = {
+        atomSitesOnly: !!parameters.atomSitesOnly,
+        modelId: parameters.modelId
+    };
+    serverConfig.commonParams = commonParams;
     serverConfig.includedCategories = description.includedCategories ? description.includedCategories : Queries.DefaultCategories;
     serverConfig.writer = description.writer ? description.writer : new CifWriters.DefaultCifWriter();
     var params, modelTransform = description.modelTransform ? description.modelTransform : function (p, m) { return m; };
@@ -25,7 +29,7 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
     catch (e) {
         Logger_1.default.error(reqId + ": Query params error: " + e);
         var wcfg = new CifWriters.CifWriterConfig();
-        wcfg.atomSitesOnly = serverConfig.atomSitesOnly;
+        wcfg.commonParams = commonParams;
         wcfg.type = query.name;
         var msg = serverConfig.writer.writeError(molecule.molecule.id, '' + e, wcfg);
         var stream = outputStreamProvider();

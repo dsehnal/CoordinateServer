@@ -1,3 +1,4 @@
+
 declare namespace LiteMol.Core {
     var VERSION: {
         number: string;
@@ -1100,6 +1101,7 @@ declare namespace LiteMol.Core.Structure {
         residueEndIndex: number[];
         entityIndex: number[];
         sourceChainIndex?: number[];
+        operatorIndex?: number[];
     }
     interface DefaultEntityTableSchema extends DataTable {
         entityId: string[];
@@ -1116,6 +1118,13 @@ declare namespace LiteMol.Core.Structure {
         File = 0,
         Computed = 1,
     }
+    class Operator {
+        matrix: number[];
+        id: string;
+        isIdentity: boolean;
+        apply(v: Geometry.LinearAlgebra.ObjectVec3): void;
+        constructor(matrix: number[], id: string, isIdentity: boolean);
+    }
     class MoleculeModel {
         id: string;
         modelId: string;
@@ -1129,10 +1138,11 @@ declare namespace LiteMol.Core.Structure {
         assemblyInfo: AssemblyInfo;
         parent: MoleculeModel;
         source: MoleculeModelSource;
+        operators: Operator[];
         private _queryContext;
         queryContext: Queries.QueryContext;
         query(q: Queries.Query): Queries.FragmentSeq;
-        constructor(id: string, modelId: string, atoms: DefaultAtomTableSchema, residues: DefaultResidueTableSchema, chains: DefaultChainTableSchema, entities: DefaultEntityTableSchema, componentBonds: ComponentBondInfo, secondaryStructure: SecondaryStructureElement[], symmetryInfo: SymmetryInfo, assemblyInfo: AssemblyInfo, parent: MoleculeModel, source: MoleculeModelSource);
+        constructor(id: string, modelId: string, atoms: DefaultAtomTableSchema, residues: DefaultResidueTableSchema, chains: DefaultChainTableSchema, entities: DefaultEntityTableSchema, componentBonds: ComponentBondInfo, secondaryStructure: SecondaryStructureElement[], symmetryInfo: SymmetryInfo, assemblyInfo: AssemblyInfo, parent: MoleculeModel, source: MoleculeModelSource, operators: Operator[]);
     }
     class Molecule {
         id: string;

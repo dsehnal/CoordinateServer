@@ -39,6 +39,7 @@ var SymmetryCategories = [
     '_atom_sites'
 ];
 var commonQueryParams = [
+    { name: "modelId", type: QueryParamType.String },
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0 },
 ];
 exports.QueryMap = {

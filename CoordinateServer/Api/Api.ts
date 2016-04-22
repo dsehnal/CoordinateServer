@@ -31,8 +31,13 @@ export function executeQuery(
     let serverConfig = new CoordinateServerConfig();
 
     let description = query.description;
-    
-    serverConfig.atomSitesOnly = !!parameters.atomSitesOnly;
+
+    let commonParams = {
+        atomSitesOnly: !!parameters.atomSitesOnly,
+        modelId: parameters.modelId
+    };
+
+    serverConfig.commonParams = commonParams;
     serverConfig.includedCategories = description.includedCategories ? description.includedCategories : Queries.DefaultCategories;
     serverConfig.writer = description.writer ? description.writer : new CifWriters.DefaultCifWriter();
     
@@ -46,7 +51,7 @@ export function executeQuery(
         Logger.error(`${reqId}: Query params error: ${e}`);
 
         let wcfg = new CifWriters.CifWriterConfig();
-        wcfg.atomSitesOnly = serverConfig.atomSitesOnly;
+        wcfg.commonParams = commonParams;
         wcfg.type = query.name;
         let msg = serverConfig.writer.writeError(molecule.molecule.id, '' + e, wcfg);
 

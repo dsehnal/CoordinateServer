@@ -18,12 +18,15 @@ import * as Core from 'LiteMol-core'
 import StringWriter from './StringWriter'
 import CifStringWriter from './CifStringWriter'
 import CifCategoryWriters from './CifCategoryWriters'
+import { CommonQueryParams } from '../Api/Queries'
 
 import ApiVersion from '../Api/Version'
 
 export class CifWriterConfig {
 
-    atomSitesOnly = false;
+    commonParams: CommonQueryParams;
+
+
     includedCategories: string[] = [
         '_entry',
         '_entity',
@@ -56,10 +59,15 @@ export interface ICifWriter {
 export class DefaultCifWriter implements ICifWriter {
 
 
-    private writeParams(writer: CifStringWriter, params: { name: string, value: any }[]) {
+    private writeParams(writer: CifStringWriter, params: { name: string, value: any }[], common: CommonQueryParams) {
 
+        let prms: { name: string, value: any }[] = [];
 
-        let ctx = params;
+        for (let p of params) prms.push(p);
+        prms.push({ name: 'atomSitesOnly', value: common.atomSitesOnly ? '1' : undefined });
+        prms.push({ name: 'modelId', value: common.modelId });
+
+        let ctx = prms;
         let fields: CifCategoryWriters.FieldDesc<typeof ctx> = [
             { name: '_coordinate_server_query_params.name', src: (ctx, i) => ctx[i].name },
             { name: '_coordinate_server_query_params.value', src: (ctx, i) => ctx[i].value === undefined ? '.' : '' + ctx[i].value },
@@ -75,7 +83,8 @@ export class DefaultCifWriter implements ICifWriter {
         writer.write(`_coordinate_server_result.datetime           `); writer.writeChecked(new Date().toLocaleString('us')); writer.newline();
         writer.write(`_coordinate_server_result.is_empty           ${isEmpty ? 'yes' : 'no'}`); writer.newline();
         writer.write(`_coordinate_server_result.has_error          ${hasError ? 'yes' : 'no'}`); writer.newline();
-        writer.write(`_coordinate_server_result.atom_sites_only    ${config.atomSitesOnly ? 'yes' : 'no'}`); writer.newline();
+        //writer.write(`_coordinate_server_result.atom_sites_only    ${config.commonParams.atomSitesOnly ? 'yes' : 'no'}`); writer.newline();
+        //writer.write(`_coordinate_server_result.model_id           `); writer.writeChecked(config.commonParams.modelId ? config.commonParams.modelId : undefined); writer.newline();
         writer.write(`_coordinate_server_result.api_version        ${ApiVersion}`); writer.newline();
         writer.write(`_coordinate_server_result.core_version       ${Core.VERSION.number}`); writer.newline();
         writer.write(`#\n`);
@@ -96,8 +105,7 @@ export class DefaultCifWriter implements ICifWriter {
         CifCategoryWriters.writeRecords(fields, ctx, 1, writer);
         writer.write('#\n');
 
-
-        this.writeParams(writer, config.params);
+        this.writeParams(writer, config.params, config.commonParams);
 
         return writer.writer.asString();        
     }
@@ -112,7 +120,7 @@ export class DefaultCifWriter implements ICifWriter {
         let isEmpty = !models || !models.length || !models.some(m => m.fragments.length > 0);
         this.writeResultHeader({ isEmpty: isEmpty, hasError: false }, config, writer);
 
-        this.writeParams(writer, config.params);
+        this.writeParams(writer, config.params, config.commonParams);
 
         if (isEmpty) {
             return writer.writer;
@@ -122,7 +130,7 @@ export class DefaultCifWriter implements ICifWriter {
         let unionFragment = models[0].fragments.unionFragment();
         let contents = new CifCategoryWriters.CifWriterContents(unionFragment, models[0].model, data);
 
-        if (!config.atomSitesOnly) {
+        if (!config.commonParams.atomSitesOnly) {
 
             if (!included) included = data.categoryList.map(c => c.name);
             for (let c of included) {

@@ -20,7 +20,6 @@ var CifCategoryWriters_1 = require('./CifCategoryWriters');
 var Version_1 = require('../Api/Version');
 var CifWriterConfig = (function () {
     function CifWriterConfig() {
-        this.atomSitesOnly = false;
         this.includedCategories = [
             '_entry',
             '_entity',
@@ -43,8 +42,15 @@ exports.CifWriterConfig = CifWriterConfig;
 var DefaultCifWriter = (function () {
     function DefaultCifWriter() {
     }
-    DefaultCifWriter.prototype.writeParams = function (writer, params) {
-        var ctx = params;
+    DefaultCifWriter.prototype.writeParams = function (writer, params, common) {
+        var prms = [];
+        for (var _i = 0, params_1 = params; _i < params_1.length; _i++) {
+            var p = params_1[_i];
+            prms.push(p);
+        }
+        prms.push({ name: 'atomSitesOnly', value: common.atomSitesOnly ? '1' : undefined });
+        prms.push({ name: 'modelId', value: common.modelId });
+        var ctx = prms;
         var fields = [
             { name: '_coordinate_server_query_params.name', src: function (ctx, i) { return ctx[i].name; } },
             { name: '_coordinate_server_query_params.value', src: function (ctx, i) { return ctx[i].value === undefined ? '.' : '' + ctx[i].value; } },
@@ -65,8 +71,8 @@ var DefaultCifWriter = (function () {
         writer.newline();
         writer.write("_coordinate_server_result.has_error          " + (hasError ? 'yes' : 'no'));
         writer.newline();
-        writer.write("_coordinate_server_result.atom_sites_only    " + (config.atomSitesOnly ? 'yes' : 'no'));
-        writer.newline();
+        //writer.write(`_coordinate_server_result.atom_sites_only    ${config.commonParams.atomSitesOnly ? 'yes' : 'no'}`); writer.newline();
+        //writer.write(`_coordinate_server_result.model_id           `); writer.writeChecked(config.commonParams.modelId ? config.commonParams.modelId : undefined); writer.newline();
         writer.write("_coordinate_server_result.api_version        " + Version_1.default);
         writer.newline();
         writer.write("_coordinate_server_result.core_version       " + Core.VERSION.number);
@@ -83,7 +89,7 @@ var DefaultCifWriter = (function () {
         ];
         CifCategoryWriters_1.default.writeRecords(fields, ctx, 1, writer);
         writer.write('#\n');
-        this.writeParams(writer, config.params);
+        this.writeParams(writer, config.params, config.commonParams);
         return writer.writer.asString();
     };
     DefaultCifWriter.prototype.writeFragment = function (data, models, config) {
@@ -92,13 +98,13 @@ var DefaultCifWriter = (function () {
         writer.write("data_" + data.header + "\n#\n");
         var isEmpty = !models || !models.length || !models.some(function (m) { return m.fragments.length > 0; });
         this.writeResultHeader({ isEmpty: isEmpty, hasError: false }, config, writer);
-        this.writeParams(writer, config.params);
+        this.writeParams(writer, config.params, config.commonParams);
         if (isEmpty) {
             return writer.writer;
         }
         var unionFragment = models[0].fragments.unionFragment();
         var contents = new CifCategoryWriters_1.default.CifWriterContents(unionFragment, models[0].model, data);
-        if (!config.atomSitesOnly) {
+        if (!config.commonParams.atomSitesOnly) {
             if (!included)
                 included = data.categoryList.map(function (c) { return c.name; });
             for (var _i = 0, included_1 = included; _i < included_1.length; _i++) {

@@ -31,16 +31,22 @@ var CoordinateServer = (function () {
         var writerConfig = new CifWriters.CifWriterConfig();
         writerConfig.type = query.name;
         writerConfig.params = Object.keys(queryParams).map(function (p) { return ({ name: p, value: queryParams[p] }); });
-        writerConfig.atomSitesOnly = config.atomSitesOnly;
+        writerConfig.commonParams = config.commonParams;
         writerConfig.includedCategories = config.includedCategories;
         try {
             var models = [];
             perf.start('query');
             var found = 0;
+            var singleModel = !!config.commonParams.modelId;
+            var singleModelId = config.commonParams.modelId;
+            var foundModel = false;
             for (var _i = 0, _a = molecule.models; _i < _a.length; _i++) {
                 var modelWrap = _a[_i];
                 var fragments = void 0;
                 var model = modelWrap.model;
+                if (singleModel && model.modelId !== singleModelId)
+                    continue;
+                foundModel = true;
                 if (query.description.modelTransform) {
                     var transformed = query.description.modelTransform(queryParams, model);
                     var compiled = query.description.query(queryParams, model, transformed).compile();
@@ -57,6 +63,14 @@ var CoordinateServer = (function () {
                 }
             }
             perf.end('query');
+            if (singleModelId && !foundModel) {
+                var err = "Model with id '" + singleModelId + "' was not found.";
+                next({
+                    error: err,
+                    errorCif: config.writer.writeError(molecule.molecule.id, err, writerConfig)
+                });
+                return;
+            }
             Logger_1.default.log(reqId + ": Found " + found + " fragment(s).");
             perf.start('serialize');
             var data = config.writer.writeFragment(molecule.cif, models, writerConfig);

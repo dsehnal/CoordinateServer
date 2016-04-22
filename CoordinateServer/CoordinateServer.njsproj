@@ -52,7 +52,6 @@
     <TypeScriptCompile Include="Data\Cache.ts" />
     <TypeScriptCompile Include="Data\Molecule.ts" />
     <TypeScriptCompile Include="Scripts\typings\LiteMol-core.d.ts" />
-    <TypeScriptCompile Include="Api.ts" />
     <TypeScriptCompile Include="Experimental.ts" />
     <TypeScriptCompile Include="local.ts" />
     <TypeScriptCompile Include="Utils\Logger.ts" />
@@ -63,7 +62,6 @@
     <TypeScriptCompile Include="Scripts\typings\es6-collections.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\express.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\node.d.ts" />
-    <TypeScriptCompile Include="CoordinateServer.ts" />
     <TypeScriptCompile Include="server.ts" />
     <TypeScriptCompile Include="Writers\CifWriter.ts" />
     <TypeScriptCompile Include="Writers\PDBcifWriter.ts" />
@@ -149,8 +147,8 @@
   </ProjectExtensions>
   <PropertyGroup>
     <PreBuildEvent>
-      copy $(ProjectDir)..\..\LiteMol\LiteMol\build\LiteMol-core.js $(ProjectDir)node_modules\LiteMol-core.js
-      copy $(ProjectDir)..\..\LiteMol\LiteMol\build\LiteMol-core.d.ts $(ProjectDir)Scripts\typings\LiteMol-core.d.ts
+      copy $(ProjectDir)..\..\LiteMol\dist\LiteMol-core.js $(ProjectDir)node_modules\LiteMol-core.js
+      copy $(ProjectDir)..\..\LiteMol\dist\LiteMol-core.d.ts $(ProjectDir)Scripts\typings\LiteMol-core.d.ts
     </PreBuildEvent>
   </PropertyGroup>
 </Project>
