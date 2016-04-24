@@ -573,6 +573,18 @@ declare namespace LiteMol.Core.Formats.CCP4 {
             mean: number;
             sigma: number;
         };
+        /**
+         * Are the data normalized?
+         */
+        isNormalized: boolean;
+        /**
+         * If not already normalized, normalize the data.
+         */
+        normalize(): void;
+        /**
+         * If normalized, de-normalize the data.
+         */
+        denormalize(): void;
         constructor(cellSize: number[], cellAngles: number[], origin: number[], hasSkewMatrix: boolean, skewMatrix: number[], data: number[], dataDimensions: number[], basis: {
             x: number[];
             y: number[];
@@ -584,9 +596,7 @@ declare namespace LiteMol.Core.Formats.CCP4 {
             sigma: number;
         });
     }
-    function parse(buffer: ArrayBuffer, options?: {
-        normalize: boolean;
-    }): ParserResult<DensityData>;
+    function parse(buffer: ArrayBuffer): ParserResult<DensityData>;
 }
 declare namespace LiteMol.Core.Geometry.LinearAlgebra {
     type ObjectVec3 = {
@@ -1224,6 +1234,10 @@ declare namespace LiteMol.Core.Structure.Queries {
          * Create a new context from a sequence of fragments.
          */
         static ofFragments(seq: FragmentSeq): QueryContext;
+        /**
+         * Create a new context from a sequence of fragments.
+         */
+        static ofAtomIndices(structure: MoleculeModel, atomIndices: number[]): QueryContext;
         constructor(structure: MoleculeModel, mask: number[], count: number);
         private makeTree();
     }
@@ -1456,12 +1470,13 @@ declare namespace LiteMol.Core.Structure.Queries {
 }
 declare namespace LiteMol.Core.Utils {
     function extend<S, T, U>(object: S, source: T, guard?: U): S & T & U;
-    function updateClone<S, T>(object: S, source: T): S & T;
+    function pickValues<S, T>(keys: S, source: T): S;
     function shallowEqual<T>(a: T, b: T): boolean;
     function shallowClone<T>(o: T): T;
     function debounce<T>(func: () => T, wait: number): () => T;
 }
 declare namespace LiteMol.Core.Utils {
+    function integerSetToSortedTypedArray(set: Set<number>): number[];
     /**
      * A a JS native array with the given size.
      */

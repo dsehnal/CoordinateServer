@@ -80,7 +80,7 @@ export class DefaultCifWriter implements ICifWriter {
     private writeResultHeader({ isEmpty, hasError }: { isEmpty: boolean, hasError: boolean }, config: CifWriterConfig, writer: CifStringWriter) {
 
         writer.write(`_coordinate_server_result.query_type         `); writer.writeChecked(config.type); writer.newline();
-        writer.write(`_coordinate_server_result.datetime           `); writer.writeChecked(new Date().toLocaleString('us')); writer.newline();
+        writer.write(`_coordinate_server_result.datetime           `); writer.writeChecked(new Date().toLocaleString('en-US')); writer.newline();
         writer.write(`_coordinate_server_result.is_empty           ${isEmpty ? 'yes' : 'no'}`); writer.newline();
         writer.write(`_coordinate_server_result.has_error          ${hasError ? 'yes' : 'no'}`); writer.newline();
         //writer.write(`_coordinate_server_result.atom_sites_only    ${config.commonParams.atomSitesOnly ? 'yes' : 'no'}`); writer.newline();

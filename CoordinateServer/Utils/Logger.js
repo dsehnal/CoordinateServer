@@ -3,10 +3,10 @@ var Logger = (function () {
     function Logger() {
     }
     Logger.log = function (msg) {
-        console.log("[" + new Date().toLocaleString('us') + "] " + msg);
+        console.log("[" + new Date().toLocaleString('en-US') + "] " + msg);
     };
     Logger.error = function (msg) {
-        console.error("[" + new Date().toLocaleString('us') + "] " + msg);
+        console.error("[" + new Date().toLocaleString('en-US') + "] " + msg);
     };
     return Logger;
 }());
