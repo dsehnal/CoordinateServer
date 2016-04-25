@@ -5,6 +5,7 @@ import * as CifWriters from '../Writers/CifWriter'
 import * as Molecule from '../Data/Molecule'
 import * as Provider from '../Data/Provider'
 import * as Cache from '../Data/Cache'
+import * as Experimental from './ExperimentalWebApi'
 import ServerConfig from '../ServerConfig'
 
 import * as express from 'express';
@@ -85,4 +86,6 @@ export function init(app: express.Express) {
     for (let q of Queries.QueryList) {
         mapQuery(app, q);
     }
+
+    Experimental.init(app, WebApiCache);    
 }

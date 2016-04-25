@@ -5,6 +5,7 @@ var CifWriters = require('../Writers/CifWriter');
 var Molecule = require('../Data/Molecule');
 var Provider = require('../Data/Provider');
 var Cache = require('../Data/Cache');
+var Experimental = require('./ExperimentalWebApi');
 var ServerConfig_1 = require('../ServerConfig');
 function makePath(p) {
     return ServerConfig_1.default.appPrefix + '/' + p;
@@ -71,5 +72,6 @@ function init(app) {
         var q = _a[_i];
         mapQuery(app, q);
     }
+    Experimental.init(app, WebApiCache);
 }
 exports.init = init;
