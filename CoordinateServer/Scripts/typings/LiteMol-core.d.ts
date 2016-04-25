@@ -519,6 +519,31 @@ declare namespace LiteMol.Core.Formats.PDB {
     }
     function parse(id: string, data: string): ParserResult<any>;
 }
+declare namespace LiteMol.Core.Formats {
+    interface IField3D {
+        dimensions: number[];
+        length: number;
+        getAt(idx: number): number;
+        setAt(idx: number, v: number): void;
+        get(i: number, j: number, k: number): number;
+        set(i: number, j: number, k: number, v: number): void;
+        fill(v: number): void;
+    }
+    class Field3DZYX implements IField3D {
+        data: number[];
+        dimensions: number[];
+        private nX;
+        private nY;
+        private len;
+        length: number;
+        getAt(idx: number): number;
+        setAt(idx: number, v: number): void;
+        get(i: number, j: number, k: number): number;
+        set(i: number, j: number, k: number, v: number): void;
+        fill(v: number): void;
+        constructor(data: number[], dimensions: number[]);
+    }
+}
 declare namespace LiteMol.Core.Formats.CCP4 {
     /**
      * Represents electron density data from the CCP4 format.
@@ -539,7 +564,7 @@ declare namespace LiteMol.Core.Formats.CCP4 {
         /**
          * 3D volumetric data.
          */
-        data: number[];
+        data: IField3D;
         /**
          * X, Y, Z dimensions of the data matrix.
          */
@@ -585,7 +610,7 @@ declare namespace LiteMol.Core.Formats.CCP4 {
          * If normalized, de-normalize the data.
          */
         denormalize(): void;
-        constructor(cellSize: number[], cellAngles: number[], origin: number[], hasSkewMatrix: boolean, skewMatrix: number[], data: number[], dataDimensions: number[], basis: {
+        constructor(cellSize: number[], cellAngles: number[], origin: number[], hasSkewMatrix: boolean, skewMatrix: number[], data: IField3D, dataDimensions: number[], basis: {
             x: number[];
             y: number[];
             z: number[];
@@ -766,12 +791,11 @@ declare namespace LiteMol.Core.Geometry.MarchingCubes {
      * The parameters required by the algorithm.
      */
     interface MarchingCubesParameters {
-        dimenstions: number[];
         isoLevel: number;
-        scalarField: number[];
+        scalarField: Formats.IField3D;
         bottomLeft?: number[];
         topRight?: number[];
-        annotationField?: number[];
+        annotationField?: Formats.IField3D;
     }
     function computeCubes(parameters: MarchingCubesParameters): MarchingCubesResult;
     class MarchingCubesResult {
@@ -808,9 +832,8 @@ declare namespace LiteMol.Core.Geometry.MarchingCubes {
      * The parameters required by the algorithm.
      */
     interface MarchingSquares3DParameters {
-        dimenstions: number[];
         isoLevel: number;
-        scalarField: number[];
+        scalarField: Formats.IField3D;
         bottomLeft: number[];
         topRight: number[];
     }

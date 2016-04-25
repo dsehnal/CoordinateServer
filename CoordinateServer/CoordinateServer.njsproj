@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="Api\LocalApi.ts" />
+    <TypeScriptCompile Include="Api\Documentation.ts" />
     <TypeScriptCompile Include="Api\WebApi.ts" />
     <TypeScriptCompile Include="Api\Api.ts" />
     <TypeScriptCompile Include="Api\CoordinateServer.ts" />

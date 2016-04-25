@@ -24,6 +24,7 @@ import * as WebApi from './Api/WebApi'
 import ExperimentalApi from './Experimental'
 import ApiVersion from './Api/Version'
 import * as Queries from './Api/Queries'
+import * as Documentation from './Api/Documentation'
 
 let port = process.env.port || ServerConfig.defaultPort;
 
@@ -33,7 +34,7 @@ function startServer() {
     
     app.get(ServerConfig.appPrefix + '/documentation', (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.write(Queries.getHTMLDocs(ServerConfig.appPrefix));
+        res.write(Documentation.getHTMLDocs(ServerConfig.appPrefix));
         res.end();
     });
 
@@ -44,7 +45,7 @@ function startServer() {
 
     app.get('*', (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.write(Queries.getHTMLDocs(ServerConfig.appPrefix));
+        res.write(Documentation.getHTMLDocs(ServerConfig.appPrefix));
         res.end();
     });
 
