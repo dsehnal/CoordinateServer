@@ -1,4 +1,7 @@
-﻿== 1.2.1 ==
+﻿== 1.2.2 ==
+* Documentation is now in separate source file.
+
+== 1.2.1 ==
 * Added support for modelId in queries.
 
 == 1.2.0 ==
