@@ -212,7 +212,7 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
             return Core.Structure.buildAssembly(m, assembly[0]);
         },
         queryParams: [
-            { name: "id", type: QueryParamType.String, required: true }
+            { name: "id", type: QueryParamType.String, defaultValue: '1' }
         ],
         includedCategories: SymmetryCategories
     }
