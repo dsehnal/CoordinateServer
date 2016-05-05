@@ -6,8 +6,7 @@ import * as CifWriters from '../Writers/CifWriter'
 
 import ApiVersion from './Version'
 
-import Queries = Core.Structure.Queries;
-import Generators = Queries.Generators;
+import Queries = Core.Structure.Query;
 
 export enum QueryParamType {
     String,
@@ -24,7 +23,7 @@ export interface QueryParamInfo {
 }
 
 export interface ApiQueryDescription {
-    query: (params: any, originalModel: Core.Structure.MoleculeModel, transformedModel: Core.Structure.MoleculeModel) => Queries.IQueryBuilder;
+    query: (params: any, originalModel: Core.Structure.MoleculeModel, transformedModel: Core.Structure.MoleculeModel) => Queries.Builder;
     description: string;
     queryParams?: QueryParamInfo[];
     paramMap?: Map<string, QueryParamInfo>;
@@ -81,14 +80,14 @@ export const CommonQueryParamsInfo: QueryParamInfo[] = [
 ];
 
 export const QueryMap: { [id: string]: ApiQueryDescription } = {
-    "het": { query: () => Generators.hetGroups(), description: "All non-water 'HETATM' records." },
-    "cartoon": { query: () => Generators.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities)." },
-    "backbone": { query: () => Generators.backbone(), description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
-    "sidechain": { query: () => Generators.sidechain(), description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
-    "water": { query: () => Generators.entities({ type: 'water' }), description: "Atoms from entities with type water." },
+    "het": { query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
+    "cartoon": { query: () => Queries.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities)." },
+    "backbone": { query: () => Queries.backbone(), description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
+    "sidechain": { query: () => Queries.sidechain(), description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
+    "water": { query: () => Queries.entities({ type: 'water' }), description: "Atoms from entities with type water." },
     "entities": {
         description: "Entities that satisfy the given parameters.",
-        query: p => Generators.entities(p),
+        query: p => Queries.entities(p),
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
             { name: "type", type: QueryParamType.String }
@@ -96,7 +95,7 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
     },
     "chains": {
         description: "Chains that satisfy the given parameters.",
-        query: p => Generators.chains(p),
+        query: p => Queries.chains(p),
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
             { name: "asymId", type: QueryParamType.String },
@@ -105,7 +104,7 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
     },
     "residues": {
         description: "Residues that satisfy the given parameters.",
-        query: p => Generators.residues(p),
+        query: p => Queries.residues(p),
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
             { name: "asymId", type: QueryParamType.String },
@@ -120,9 +119,9 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
     "ambientResidues": {
         description: "Identifies all residues within the given radius from the source residue.",
         query: (p, m) => {
-            let id = Core.Utils.shallowClone(p);
+            let id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Generators.residues(id).ambientResidues(p.radius);
+            return Queries.residues(id).ambientResidues(p.radius);
         },
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
@@ -147,15 +146,15 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
         description: "Identifies symmetry mates and returns the specified atom set and all residues within the given radius.",
         query: (p, m) => {
             
-            let chains = Generators.chains.apply(null, m.chains.asymId.map(x => { return { asymId: x } })),
-                id = Core.Utils.shallowClone(p);
+            let chains = Queries.chains.apply(null, m.chains.asymId.map(x => { return { asymId: x } })),
+                id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Generators.residues(id).inside(chains).ambientResidues(p.radius).wholeResidues();
+            return Queries.residues(id).inside(chains).ambientResidues(p.radius).wholeResidues();
         },
         modelTransform: (p, m) => {
-            let id = Core.Utils.shallowClone(p);
+            let id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Core.Structure.buildPivotGroupSymmetry(m, p.radius, Generators.residues(id).compile());
+            return Core.Structure.buildPivotGroupSymmetry(m, p.radius, Queries.residues(id).compile());
         },
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
@@ -180,7 +179,7 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
     "symmetryMates": {
         description: "Identifies symmetry mates within the given radius.",
         query: (p, m) => {
-            return Generators.everything();
+            return Queries.everything();
         },
         modelTransform: (p, m) => {
             return Core.Structure.buildSymmetryMates(m, p.radius);
@@ -200,7 +199,7 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
     "assembly": {
         description: "Constructs assembly with the given radius.",
         query: (p, m) => {
-            return Generators.everything();
+            return Queries.everything();
         },
         modelTransform: (p, m) => {
             

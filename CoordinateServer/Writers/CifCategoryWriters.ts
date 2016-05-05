@@ -70,7 +70,7 @@ namespace CifCategoryWriters {
             return `${asymId} ${res.seqNumber[i]} ${res.insCode[i]}`;
         }
 
-        constructor(public fragment: Core.Structure.Queries.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.Cif.Block) {
+        constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.Cif.Block) {
         }
     }
 
@@ -150,9 +150,21 @@ namespace CifCategoryWriters {
         let f = content.fragment;
         if (!f.entityIndices.length) return;
 
+        let uniqueEntities = new Set<string>();
+        let entityIndices: number[] = [];
+        for (let i of f.entityIndices) {
+            let id = content.model.entities.entityId[i];
+            if (!uniqueEntities.has(id)) {
+                entityIndices.push(i);
+                uniqueEntities.add(id);
+            }
+        }
+
+        entityIndices.sort((i, j) => i - j);
+
         let e = content.model.entities;
 
-        let ctx = { id: e.entityId, type: e.type, index: f.entityIndices };
+        let ctx = { id: e.entityId, type: e.type, index: entityIndices };
         let fields: FieldDesc<typeof ctx> = [
             { name: '_entity.id', src: (ctx, i) => ctx.id[ctx.index[i]] },
             { name: '_entity.type', src: (ctx, i) => ctx.type[ctx.index[i]] },
@@ -166,7 +178,7 @@ namespace CifCategoryWriters {
             { name: '_entity.pdbx_ec', src: (ctx, i) => '?' }
         ];
 
-        writeRecords(fields, ctx, f.entityIndices.length, writer);
+        writeRecords(fields, ctx, entityIndices.length, writer);
 
         writer.write('#\n');
     }
@@ -685,7 +697,7 @@ namespace CifCategoryWriters {
         }      
     }
 
-    export function writeAtomSites(models: { model: Core.Structure.MoleculeModel; fragments: Core.Structure.Queries.FragmentSeq }[], first: CifWriterContents, writer: CifStringWriter) {
+    export function writeAtomSites(models: { model: Core.Structure.MoleculeModel; fragments: Core.Structure.Query.FragmentSeq }[], first: CifWriterContents, writer: CifStringWriter) {
 
         if (!models.some(m => m.fragments.length > 0)) return;
 

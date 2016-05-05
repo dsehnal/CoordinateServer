@@ -1,7 +1,6 @@
 "use strict";
 var Core = require('LiteMol-core');
-var Queries = Core.Structure.Queries;
-var Generators = Queries.Generators;
+var Queries = Core.Structure.Query;
 (function (QueryParamType) {
     QueryParamType[QueryParamType["String"] = 0] = "String";
     QueryParamType[QueryParamType["Integer"] = 1] = "Integer";
@@ -42,14 +41,14 @@ exports.CommonQueryParamsInfo = [
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0 },
 ];
 exports.QueryMap = {
-    "het": { query: function () { return Generators.hetGroups(); }, description: "All non-water 'HETATM' records." },
-    "cartoon": { query: function () { return Generators.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities)." },
-    "backbone": { query: function () { return Generators.backbone(); }, description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
-    "sidechain": { query: function () { return Generators.sidechain(); }, description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
-    "water": { query: function () { return Generators.entities({ type: 'water' }); }, description: "Atoms from entities with type water." },
+    "het": { query: function () { return Queries.hetGroups(); }, description: "All non-water 'HETATM' records." },
+    "cartoon": { query: function () { return Queries.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities)." },
+    "backbone": { query: function () { return Queries.backbone(); }, description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
+    "sidechain": { query: function () { return Queries.sidechain(); }, description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
+    "water": { query: function () { return Queries.entities({ type: 'water' }); }, description: "Atoms from entities with type water." },
     "entities": {
         description: "Entities that satisfy the given parameters.",
-        query: function (p) { return Generators.entities(p); },
+        query: function (p) { return Queries.entities(p); },
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
             { name: "type", type: QueryParamType.String }
@@ -57,7 +56,7 @@ exports.QueryMap = {
     },
     "chains": {
         description: "Chains that satisfy the given parameters.",
-        query: function (p) { return Generators.chains(p); },
+        query: function (p) { return Queries.chains(p); },
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
             { name: "asymId", type: QueryParamType.String },
@@ -66,7 +65,7 @@ exports.QueryMap = {
     },
     "residues": {
         description: "Residues that satisfy the given parameters.",
-        query: function (p) { return Generators.residues(p); },
+        query: function (p) { return Queries.residues(p); },
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
             { name: "asymId", type: QueryParamType.String },
@@ -81,9 +80,9 @@ exports.QueryMap = {
     "ambientResidues": {
         description: "Identifies all residues within the given radius from the source residue.",
         query: function (p, m) {
-            var id = Core.Utils.shallowClone(p);
+            var id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Generators.residues(id).ambientResidues(p.radius);
+            return Queries.residues(id).ambientResidues(p.radius);
         },
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
@@ -107,14 +106,14 @@ exports.QueryMap = {
     "ligandInteraction": {
         description: "Identifies symmetry mates and returns the specified atom set and all residues within the given radius.",
         query: function (p, m) {
-            var chains = Generators.chains.apply(null, m.chains.asymId.map(function (x) { return { asymId: x }; })), id = Core.Utils.shallowClone(p);
+            var chains = Queries.chains.apply(null, m.chains.asymId.map(function (x) { return { asymId: x }; })), id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Generators.residues(id).inside(chains).ambientResidues(p.radius).wholeResidues();
+            return Queries.residues(id).inside(chains).ambientResidues(p.radius).wholeResidues();
         },
         modelTransform: function (p, m) {
-            var id = Core.Utils.shallowClone(p);
+            var id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Core.Structure.buildPivotGroupSymmetry(m, p.radius, Generators.residues(id).compile());
+            return Core.Structure.buildPivotGroupSymmetry(m, p.radius, Queries.residues(id).compile());
         },
         queryParams: [
             { name: "entityId", type: QueryParamType.String },
@@ -139,7 +138,7 @@ exports.QueryMap = {
     "symmetryMates": {
         description: "Identifies symmetry mates within the given radius.",
         query: function (p, m) {
-            return Generators.everything();
+            return Queries.everything();
         },
         modelTransform: function (p, m) {
             return Core.Structure.buildSymmetryMates(m, p.radius);
@@ -159,7 +158,7 @@ exports.QueryMap = {
     "assembly": {
         description: "Constructs assembly with the given radius.",
         query: function (p, m) {
-            return Generators.everything();
+            return Queries.everything();
         },
         modelTransform: function (p, m) {
             if (!m.assemblyInfo)

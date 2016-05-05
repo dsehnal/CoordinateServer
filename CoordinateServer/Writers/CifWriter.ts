@@ -47,7 +47,7 @@ export class CifWriterConfig {
 
 export interface IWritableFragments {
     model: Core.Structure.MoleculeModel;
-    fragments: Core.Structure.Queries.FragmentSeq
+    fragments: Core.Structure.Query.FragmentSeq
 }
 
 

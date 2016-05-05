@@ -1,7 +1,5 @@
 ﻿import * as Core from 'LiteMol-core'
 
-import Queries = Core.Structure.Queries;
-
 export class Model {
     constructor(public model: Core.Structure.MoleculeModel) {
     }

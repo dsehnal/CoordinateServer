@@ -23,7 +23,7 @@ import { ApiQuery, CommonQueryParams } from './Queries'
 import Logger from '../Utils/Logger';
 
 import Cif = Core.Formats.Cif;
-import Queries = Core.Structure.Queries;
+import Queries = Core.Structure.Query;
 
 export class CoordinateServerConfig {
     commonParams: CommonQueryParams;

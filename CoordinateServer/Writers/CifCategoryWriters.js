@@ -150,8 +150,19 @@ var CifCategoryWriters;
         var f = content.fragment;
         if (!f.entityIndices.length)
             return;
+        var uniqueEntities = new Set();
+        var entityIndices = [];
+        for (var _i = 0, _a = f.entityIndices; _i < _a.length; _i++) {
+            var i = _a[_i];
+            var id = content.model.entities.entityId[i];
+            if (!uniqueEntities.has(id)) {
+                entityIndices.push(i);
+                uniqueEntities.add(id);
+            }
+        }
+        entityIndices.sort(function (i, j) { return i - j; });
         var e = content.model.entities;
-        var ctx = { id: e.entityId, type: e.type, index: f.entityIndices };
+        var ctx = { id: e.entityId, type: e.type, index: entityIndices };
         var fields = [
             { name: '_entity.id', src: function (ctx, i) { return ctx.id[ctx.index[i]]; } },
             { name: '_entity.type', src: function (ctx, i) { return ctx.type[ctx.index[i]]; } },
@@ -164,7 +175,7 @@ var CifCategoryWriters;
             { name: '_entity.pdbx_fragment', src: function (ctx, i) { return '?'; } },
             { name: '_entity.pdbx_ec', src: function (ctx, i) { return '?'; } }
         ];
-        writeRecords(fields, ctx, f.entityIndices.length, writer);
+        writeRecords(fields, ctx, entityIndices.length, writer);
         writer.write('#\n');
     }
     function writeChemCompBond(content, writer) {
@@ -256,7 +267,7 @@ var CifCategoryWriters;
     }
     function writeHelices(content, writer) {
         //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
-        var helix = Core.Structure.SecondaryStructureType.Helix, turn = Core.Structure.SecondaryStructureType.Turn;
+        var helix = 1 /* Helix */, turn = 2 /* Turn */;
         var ssIndices = findSecondary(function (t) { return t === helix || t === turn; }, content);
         if (!ssIndices || !ssIndices.starts.length)
             return;
@@ -289,7 +300,7 @@ var CifCategoryWriters;
     }
     function writeSheets(content, writer) {
         //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
-        var sheet = Core.Structure.SecondaryStructureType.Sheet;
+        var sheet = 3 /* Sheet */;
         var ssIndices = findSecondary(function (t) { return t === sheet; }, content);
         if (!ssIndices || !ssIndices.starts.length)
             return;
