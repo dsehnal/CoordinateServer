@@ -1,4 +1,9 @@
-﻿== 1.2.2 ==
+﻿== 1.2.3 ==
+* Fixed a bug CIF writer with duplicate _entity records.
+* Fixed a bug with sometimes incorrect asym ids in symmetry related queries.
+* Basic Query API has been refactored in the core.
+
+== 1.2.2 ==
 * Documentation is now in separate source file.
 
 == 1.2.1 ==
