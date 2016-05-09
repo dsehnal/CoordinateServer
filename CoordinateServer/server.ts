@@ -16,6 +16,7 @@
 
 import * as fs from 'fs'
 import * as express from 'express'
+import * as zlib from 'zlib'
 import * as compression from 'compression'
 
 import ServerConfig from './ServerConfig'
@@ -30,7 +31,7 @@ let port = process.env.port || ServerConfig.defaultPort;
 
 function startServer() {
     let app = express();
-    app.use(compression());
+    app.use(compression(<any>{ level: 1, memLevel: 9, chunkSize: 16 * 16384 }));
     
     app.get(ServerConfig.appPrefix + '/documentation', (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });

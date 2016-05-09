@@ -908,6 +908,7 @@ declare namespace LiteMol.Core {
     }
     module Computation {
         function create<A>(computation: (ctx: Context<A>) => void): Computation<A>;
+        function resolve<A>(a: A): Computation<{}>;
         interface ProgressInfo {
             message: string;
             isIndeterminate: boolean;
@@ -1723,6 +1724,49 @@ declare namespace LiteMol.Core.Geometry {
         constructor();
     }
 }
+declare namespace LiteMol.Core.Geometry {
+    interface Surface {
+        /**
+         * Number of vertices.
+         */
+        vertexCount: number;
+        /**
+         * Number of triangles.
+         */
+        triangleCount: number;
+        /**
+         * Array of size 3 * vertexCount. Layout [x1, y1, z1, ...., xn, yn, zn]
+         */
+        vertices: Float32Array;
+        /**
+         * 3 indexes for each triangle
+         */
+        triangleIndices: Uint32Array;
+        /**
+         * Per vertex annotation.
+         */
+        annotation?: number[];
+        /**
+         * Array of size 3 * vertexCount. Layout [x1, y1, z1, ...., xn, yn, zn]
+         *
+         * Computed on demand.
+         */
+        normals?: Float32Array;
+        /**
+         * Bounding sphere.
+         */
+        boundingSphere?: {
+            center: Geometry.LinearAlgebra.ObjectVec3;
+            radius: number;
+        };
+    }
+    namespace Surface {
+        function computeNormals(surface: Surface): Computation<Surface>;
+        function laplacianSmooth(surface: Surface, iterCount?: number): Computation<Surface>;
+        function computeBoundingSphere(surface: Surface): Computation<Surface>;
+        function transform(surface: Surface, t: number[]): Computation<Surface>;
+    }
+}
 declare namespace LiteMol.Core.Geometry.MarchingCubes {
     /**
      * The parameters required by the algorithm.
@@ -1734,60 +1778,7 @@ declare namespace LiteMol.Core.Geometry.MarchingCubes {
         topRight?: number[];
         annotationField?: Formats.IField3D;
     }
-    function computeCubes(parameters: MarchingCubesParameters): MarchingCubesResult;
-    function computeCubesAsync(parameters: MarchingCubesParameters): Computation<MarchingCubesResult>;
-    class MarchingCubesResult {
-        vertexCount: number;
-        triangleCount: number;
-        /**
-         * Array of size 3 * vertexCount. Layout [x1, y1, z1, ...., xn, yn, zn]
-         */
-        vertices: number[];
-        /**
-         * 3 indexes for each triangle
-         */
-        triangleIndices: number[];
-        /**
-         * Per vertex annotation.
-         */
-        annotation: number[];
-        /**
-         * Array of size 3 * vertexCount. Layout [x1, y1, z1, ...., xn, yn, zn]
-         *
-         * Computed on demand.
-         */
-        normals: number[];
-        private __normals;
-        private computeVertexNormals();
-        private static addVertex(src, i, dst, j);
-        private laplacianSmoothIter(counts, vs);
-        laplacianSmooth(iterCount?: number): void;
-        constructor(vertices: number[], triangleIndices: number[], annotation: number[]);
-    }
-}
-declare namespace LiteMol.Core.Geometry.MarchingCubes {
-    /**
-     * The parameters required by the algorithm.
-     */
-    interface MarchingSquares3DParameters {
-        isoLevel: number;
-        scalarField: Formats.IField3D;
-        bottomLeft: number[];
-        topRight: number[];
-    }
-    function computeSquares3D(params: MarchingSquares3DParameters): MarchingSquares3DResult;
-    class MarchingSquares3DResult {
-        vertexCount: number;
-        /**
-         * Array of size 3 * vertexCount. Layout [x1, y1, z1, ...., xn, yn, zn]
-         */
-        vertices: number[];
-        /**
-         * 2 indexes for each edge
-         */
-        edgeIndices: number[];
-        constructor(vertices: number[], edgeIndices: number[]);
-    }
+    function compute(parameters: MarchingCubesParameters): Computation<Surface>;
 }
 declare namespace LiteMol.Core.Geometry.MarchingCubes {
     class Index {
@@ -1850,14 +1841,11 @@ declare namespace LiteMol.Core.Geometry.MolecularSurface {
         topRight: Geometry.LinearAlgebra.ObjectVec3;
         transform: number[];
         inputParameters: MolecularSurfaceInputParameters;
+        parameters: MolecularIsoSurfaceParameters;
     }
     interface MolecularIsoSurfaceGeometryData {
-        data: Core.Geometry.MarchingCubes.MarchingCubesResult;
-        bottomLeft: LinearAlgebra.ObjectVec3;
-        topRight: LinearAlgebra.ObjectVec3;
-        transform: number[];
-        vertexAtomIdMap: number[];
-        parameters: MolecularIsoSurfaceParameters;
+        surface: Surface;
+        usedParameters: MolecularIsoSurfaceParameters;
     }
     function createMolecularIsoFieldAsync(parameters: MolecularSurfaceInputParameters): Computation<MolecularIsoField>;
     interface MolecularSurfaceInputParameters {
@@ -2126,8 +2114,7 @@ declare namespace LiteMol.Core.Structure {
          *
          */
         class Context {
-            private _mask;
-            private _count;
+            private mask;
             private lazyTree;
             /**
              * Number of atoms in the current context.
@@ -2165,8 +2152,22 @@ declare namespace LiteMol.Core.Structure {
              * Create a new context from a sequence of fragments.
              */
             static ofAtomIndices(structure: MoleculeModel, atomIndices: number[]): Context;
-            constructor(structure: MoleculeModel, mask: number[], count: number);
+            constructor(structure: MoleculeModel, mask: Context.Mask);
             private makeTree();
+        }
+        namespace Context {
+            /**
+             * Represents the atoms in the context.
+             */
+            interface Mask {
+                size: number;
+                has(i: number): boolean;
+            }
+            module Mask {
+                function ofStructure(structure: MoleculeModel): Mask;
+                function ofIndices(structure: MoleculeModel, atomIndices: number[]): Mask;
+                function ofFragments(seq: FragmentSeq): Mask;
+            }
         }
         /**
          * The basic element of the query language.
@@ -2332,9 +2333,10 @@ declare namespace LiteMol.Core.Structure.Query {
     function entities(...ids: EntityIdSchema[]): Builder;
     function notEntities(...ids: EntityIdSchema[]): Builder;
     function everything(): Builder;
-    function chainsFromIndices(...indices: number[]): Builder;
-    function entitiesFromIndices(...indices: number[]): Builder;
-    function residuesFromIndices(...indices: number[]): Builder;
+    function entitiesFromIndices(indices: number[]): Builder;
+    function chainsFromIndices(indices: number[]): Builder;
+    function residuesFromIndices(indices: number[]): Builder;
+    function atomsFromIndices(indices: number[]): Builder;
     function sequence(entityId: string, asymId: string, startId: ResidueIdSchema, endId: ResidueIdSchema): Builder;
     function hetGroups(): Builder;
     function nonHetPolymer(): Builder;
@@ -2360,6 +2362,7 @@ declare namespace LiteMol.Core.Structure.Query {
      */
     namespace Compiler {
         function compileEverything(): (ctx: Context) => FragmentSeq;
+        function compileAtomIndices(indices: number[]): (ctx: Context) => FragmentSeq;
         function compileFromIndices(complement: boolean, indices: number[], tableProvider: (molecule: Structure.MoleculeModel) => {
             atomStartIndex: number[];
             atomEndIndex: number[];

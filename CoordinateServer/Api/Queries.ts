@@ -81,7 +81,7 @@ export const CommonQueryParamsInfo: QueryParamInfo[] = [
 
 export const QueryMap: { [id: string]: ApiQueryDescription } = {
     "het": { query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
-    "cartoon": { query: () => Queries.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities)." },
+    "cartoon": { query: () => Queries.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET groups + water." },
     "backbone": { query: () => Queries.backbone(), description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
     "sidechain": { query: () => Queries.sidechain(), description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
     "water": { query: () => Queries.entities({ type: 'water' }), description: "Atoms from entities with type water." },
