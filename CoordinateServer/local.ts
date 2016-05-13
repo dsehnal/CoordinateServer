@@ -64,7 +64,7 @@ if (process.argv.length !== 3) {
 
     try {
         let jobs = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-        LocalApi.run(exampleWorkload);
+        LocalApi.run(jobs);
     } catch (e) {
         console.error(e);
     }

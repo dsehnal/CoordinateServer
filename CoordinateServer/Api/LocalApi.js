@@ -5,14 +5,16 @@ var Logger_1 = require('../Utils/Logger');
 var Provider = require('../Data/Provider');
 var fs = require('fs');
 var path = require('path');
-function makeDir(path) {
+function makeDir(path, root) {
+    var dirs = path.split('/'), dir = dirs.shift(), root = (root || '') + dir + '/';
     try {
-        fs.mkdirSync(path);
+        fs.mkdirSync(root);
     }
     catch (e) {
-        if (e.code != 'EEXIST')
-            throw e;
+        if (!fs.statSync(root).isDirectory())
+            throw new Error(e);
     }
+    return !dirs.length || makeDir(dirs.join('/'), root);
 }
 function createFile(name) {
     var dir = path.dirname(name);

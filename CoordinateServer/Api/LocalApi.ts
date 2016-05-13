@@ -20,12 +20,15 @@ export interface LocalApiJob {
 
 export type LocalApiWorkload = LocalApiJob[]
 
-function makeDir(path: string) {
-    try {
-        fs.mkdirSync(path);
-    } catch (e) {
-        if (e.code != 'EEXIST') throw e;
+function makeDir(path: string, root?: string) {
+    var dirs = path.split('/'), dir = dirs.shift(), root = (root || '') + dir + '/';
+
+    try { fs.mkdirSync(root); }
+    catch (e) {
+        if (!fs.statSync(root).isDirectory()) throw new Error(e);
     }
+
+    return !dirs.length || makeDir(dirs.join('/'), root);
 }
 
 function createFile(name: string) {
