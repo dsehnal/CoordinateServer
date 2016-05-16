@@ -2,6 +2,7 @@
 import * as Core from 'LiteMol-core'
 import * as Molecule from './Molecule'
 import * as fs from 'fs'
+import * as zlib from 'zlib'
 
 import Cif = Core.Formats.Cif;
 
@@ -15,6 +16,30 @@ export class MoleculeWrapper {
     }
 }
 
+function readString(filename: string, onDone: (err: any, data: string) => void) {
+    let isGz = /\.gz$/i.test(filename);
+    if (isGz) {
+        fs.readFile(filename, (err, raw) => {
+            if (err) {
+                onDone(err, void 0);
+                return;
+            }            
+            zlib.unzip(raw, (e, data) => {
+                if (e) {
+                    onDone(e, void 0);
+                    return;
+                }
+
+                let s = data.toString('utf8');
+                onDone(void 0, s);
+            });
+        });
+    } else {
+        fs.readFile(filename, 'utf8', onDone);
+    }
+}
+
+
 export function readMolecule(filename: string,
     onParsed: (err: string, m: MoleculeWrapper) => void,
     onIOError: (err: string) => void,
@@ -23,7 +48,7 @@ export function readMolecule(filename: string,
 
     let perf = new Core.Utils.PerformanceMonitor();
     perf.start('io');
-    fs.readFile(filename, 'utf8', (err, data) => {
+    readString(filename, (err, data) => {        
         perf.end('io');
 
         try {

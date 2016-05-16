@@ -38,7 +38,7 @@ function runJob(jobIndex, workload) {
         batchSize++;
     }
     var filename = job.inputFilename;
-    var id = path.basename(filename.replace(/(\.cif$)|['";]|\s/g, ''));
+    var id = path.basename(filename.replace(/(\.cif$)|['";]|(\.cif\.gz$)|\s/ig, ''));
     Provider.readMolecule(filename, function (parserErr, m) {
         if (parserErr) {
             Logger_1.default.error("Parser error (" + filename + "): " + parserErr + ", all jobs with inputFilename skipped.");

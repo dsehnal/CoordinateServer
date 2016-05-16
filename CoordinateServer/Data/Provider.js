@@ -2,6 +2,7 @@
 var Core = require('LiteMol-core');
 var Molecule = require('./Molecule');
 var fs = require('fs');
+var zlib = require('zlib');
 var Cif = Core.Formats.Cif;
 (function (MoleculeSource) {
     MoleculeSource[MoleculeSource["File"] = 0] = "File";
@@ -18,10 +19,32 @@ var MoleculeWrapper = (function () {
     return MoleculeWrapper;
 }());
 exports.MoleculeWrapper = MoleculeWrapper;
+function readString(filename, onDone) {
+    var isGz = /\.gz$/i.test(filename);
+    if (isGz) {
+        fs.readFile(filename, function (err, raw) {
+            if (err) {
+                onDone(err, void 0);
+                return;
+            }
+            zlib.unzip(raw, function (e, data) {
+                if (e) {
+                    onDone(e, void 0);
+                    return;
+                }
+                var s = data.toString('utf8');
+                onDone(void 0, s);
+            });
+        });
+    }
+    else {
+        fs.readFile(filename, 'utf8', onDone);
+    }
+}
 function readMolecule(filename, onParsed, onIOError, onUnexpectedError, onIOfinished) {
     var perf = new Core.Utils.PerformanceMonitor();
     perf.start('io');
-    fs.readFile(filename, 'utf8', function (err, data) {
+    readString(filename, function (err, data) {
         perf.end('io');
         try {
             if (onIOfinished)

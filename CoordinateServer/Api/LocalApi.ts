@@ -58,7 +58,7 @@ function runJob(jobIndex: number, workload: LocalApiWorkload) {
     }
     
     let filename = job.inputFilename;
-    let id = path.basename(filename.replace(/(\.cif$)|['";]|\s/g, ''))
+    let id = path.basename(filename.replace(/(\.cif$)|['";]|(\.cif\.gz$)|\s/ig, ''))
     
     Provider.readMolecule(filename,
         (parserErr, m) => {

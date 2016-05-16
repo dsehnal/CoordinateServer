@@ -1,7 +1,6 @@
 
 
 
-
 // Project: https://github.com/jakearchibald/ES6-Promise
 // Definitions by: François de Campredon <https://github.com/fdecampredon/>, vvakame <https://github.com/vvakame>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
@@ -920,12 +919,12 @@ declare namespace LiteMol.Core {
             schedule(action: () => void, afterMs?: number): void;
             private _abortRequested;
             abortRequested: boolean;
-            progressStream: Rx.Subject<ProgressInfo>;
             setRequestAbort(abort?: () => void): void;
             private _abortRequest;
             abortRequest: () => boolean;
             private progressTick;
             private progress;
+            progressStream: Rx.BehaviorSubject<ProgressInfo>;
             update(msg: string, abort?: () => void, current?: number, max?: number): void;
             private promiseStack;
             __push(resolve: (r: A) => void, reject: (err: any) => void): void;
@@ -2042,6 +2041,7 @@ declare namespace LiteMol.Core.Structure {
         id: string;
         isIdentity: boolean;
         apply(v: Geometry.LinearAlgebra.ObjectVec3): void;
+        static applyToModelUnsafe(matrix: number[], m: MoleculeModel): void;
         constructor(matrix: number[], id: string, isIdentity: boolean);
     }
     class MoleculeModel {
