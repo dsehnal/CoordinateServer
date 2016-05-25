@@ -1,4 +1,7 @@
-﻿== 1.2.5 ==
+﻿== 1.2.6 ==
+* Updated to newer version of Core that fixes issues with symmetry/assembly generation.
+
+== 1.2.5 ==
 * Added support for .gz files.
 
 == 1.2.4 ==

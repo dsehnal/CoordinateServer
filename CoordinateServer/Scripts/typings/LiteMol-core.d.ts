@@ -2371,7 +2371,7 @@ declare namespace LiteMol.Core.Structure.Query {
             atomStartIndex: number[];
             atomEndIndex: number[];
         } & Structure.DataTable): Query;
-        function compileSequence(entityId: string, asymId: string, start: ResidueIdSchema, end: ResidueIdSchema): Query;
+        function compileSequence(seqEntityId: string, seqAsymId: string, start: ResidueIdSchema, end: ResidueIdSchema): Query;
         function compileHetGroups(): Query;
         function compileNonHetPolymer(): Query;
         function compileAtomsInBox(min: {

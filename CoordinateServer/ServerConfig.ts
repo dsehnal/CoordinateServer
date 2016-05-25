@@ -17,7 +17,7 @@
     }
 
     //mapPdbIdToFilename(id: string) {
-    //    return `e:/test/quick/${id}_updated.cif.gz`;
+    //    return `c:/test/quick/${id}_updated.cif`;
     //}
 };
 
