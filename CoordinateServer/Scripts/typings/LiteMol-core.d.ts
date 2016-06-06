@@ -1952,13 +1952,20 @@ declare namespace LiteMol.Core.Structure {
         constructor(id: string, name: string, operator: number[]);
     }
     /**
+     * Wraps a single assembly gen entry.
+     */
+    class AssemblyGenEntry {
+        operators: string[][];
+        asymIds: string[];
+        constructor(operators: string[][], asymIds: string[]);
+    }
+    /**
      * Wraps an assembly generation template.
      */
     class AssemblyGen {
         name: string;
-        operators: string[][];
-        asymIds: string[];
-        constructor(name: string, operators: string[][], asymIds: string[]);
+        gens: AssemblyGenEntry[];
+        constructor(name: string);
     }
     /**
      * Information about the assemblies.
