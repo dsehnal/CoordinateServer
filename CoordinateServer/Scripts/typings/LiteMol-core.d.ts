@@ -1327,7 +1327,8 @@ declare namespace LiteMol.Core.Formats.Cif {
         private static isResidueNucleotide(atoms, residues, entities, index);
         private static analyzeSecondaryStructure(atoms, residues, entities, start, end, elements);
         private static splitNonconsecutiveSecondaryStructure(residues, elements);
-        private static updateSSIndicesAndFilterEmpty(elements, structure, target);
+        private static updateSSIndicesAndFilterEmpty(elements, structure);
+        private static handleSecondaryStructureCollision(a, b);
         private static getSecondaryStructureInfo(data, atoms, structure);
         private static assignSecondaryStructureIndex(residues, ss);
         private static parseOperatorList(value);

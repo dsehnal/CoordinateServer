@@ -1,4 +1,7 @@
-﻿== 1.2.7 ==
+﻿== 1.2.8 ==
+* Updated to newer version of Core that fixes issues with overlapping secondary structure.
+
+== 1.2.7 ==
 * Updated to newer version of Core that fixes more issues with assembly generation.
 
 == 1.2.6 ==
