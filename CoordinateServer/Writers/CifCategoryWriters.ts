@@ -74,6 +74,33 @@ namespace CifCategoryWriters {
         }
     }
 
+    class SourceCategoryMap {
+
+        private byKey = new Map<string, number>();
+        private category: LiteMol.Core.Formats.Cif.Category = null;
+
+        getValueOrDefault(id: string, columnName: string, def: string) {
+            if (!this.category) return def;
+            let row = this.byKey.get(id);
+            if (row === void 0) return def;
+            let v = this.category.getStringValue(columnName, row);
+            if (v === null) return def;
+            return v;
+        }
+
+        constructor(private contents: CifWriterContents, private name: string, private keyColumnName: string) {
+            let cat = contents.data.getCategory(name);
+            if (!cat) return;
+            let ci = cat.getColumnIndex(keyColumnName);
+            if (ci < 0) return;
+            this.category = cat;
+            for (let i = 0; i < cat.rowCount; i++) {
+                let id = cat.getStringValueFromIndex(ci, i);
+                this.byKey.set(id, i);
+            }
+        }
+    }
+
     function isMultiline(value: string) {
         return !!value && value.indexOf('\n') >= 0;
     }
@@ -164,18 +191,20 @@ namespace CifCategoryWriters {
 
         let e = content.model.entities;
 
-        let ctx = { id: e.entityId, type: e.type, index: entityIndices };
+        let map = new SourceCategoryMap(content, '_entity', '_entity.id');
+        
+        let ctx = { id: e.entityId, type: e.type, index: entityIndices, map };
         let fields: FieldDesc<typeof ctx> = [
             { name: '_entity.id', src: (ctx, i) => ctx.id[ctx.index[i]] },
             { name: '_entity.type', src: (ctx, i) => ctx.type[ctx.index[i]] },
-            { name: '_entity.src_method', src: (ctx, i) => '?' },
-            { name: '_entity.pdbx_description', src: (ctx, i) => '?' },
+            { name: '_entity.src_method', src: (ctx, i) => ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.src_method', '?') },
+            { name: '_entity.pdbx_description', src: (ctx, i) => ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.pdbx_description', '?') },
             { name: '_entity.formula_weight', src: (ctx, i) => '?' },
             { name: '_entity.pdbx_number_of_molecules', src: (ctx, i) => '?' },
-            { name: '_entity.details', src: (ctx, i) => 'Generated to provide info about entity type' },
-            { name: '_entity.pdbx_mutation', src: (ctx, i) => '?' },
-            { name: '_entity.pdbx_fragment', src: (ctx, i) => '?' },
-            { name: '_entity.pdbx_ec', src: (ctx, i) => '?' }
+            { name: '_entity.details', src: (ctx, i) => '?' },
+            { name: '_entity.pdbx_mutation', src: (ctx, i) => ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.pdbx_mutation', '?') },
+            { name: '_entity.pdbx_fragment', src: (ctx, i) => ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.pdbx_fragment', '?') },
+            { name: '_entity.pdbx_ec', src: (ctx, i) => ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.pdbx_ec', '?') }
         ];
 
         writeRecords(fields, ctx, entityIndices.length, writer);

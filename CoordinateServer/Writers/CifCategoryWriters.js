@@ -75,6 +75,38 @@ var CifCategoryWriters;
         return CifWriterContents;
     }());
     CifCategoryWriters.CifWriterContents = CifWriterContents;
+    var SourceCategoryMap = (function () {
+        function SourceCategoryMap(contents, name, keyColumnName) {
+            this.contents = contents;
+            this.name = name;
+            this.keyColumnName = keyColumnName;
+            this.byKey = new Map();
+            this.category = null;
+            var cat = contents.data.getCategory(name);
+            if (!cat)
+                return;
+            var ci = cat.getColumnIndex(keyColumnName);
+            if (ci < 0)
+                return;
+            this.category = cat;
+            for (var i = 0; i < cat.rowCount; i++) {
+                var id = cat.getStringValueFromIndex(ci, i);
+                this.byKey.set(id, i);
+            }
+        }
+        SourceCategoryMap.prototype.getValueOrDefault = function (id, columnName, def) {
+            if (!this.category)
+                return def;
+            var row = this.byKey.get(id);
+            if (row === void 0)
+                return def;
+            var v = this.category.getStringValue(columnName, row);
+            if (v === null)
+                return def;
+            return v;
+        };
+        return SourceCategoryMap;
+    }());
     function isMultiline(value) {
         return !!value && value.indexOf('\n') >= 0;
     }
@@ -162,18 +194,19 @@ var CifCategoryWriters;
         }
         entityIndices.sort(function (i, j) { return i - j; });
         var e = content.model.entities;
-        var ctx = { id: e.entityId, type: e.type, index: entityIndices };
+        var map = new SourceCategoryMap(content, '_entity', '_entity.id');
+        var ctx = { id: e.entityId, type: e.type, index: entityIndices, map: map };
         var fields = [
             { name: '_entity.id', src: function (ctx, i) { return ctx.id[ctx.index[i]]; } },
             { name: '_entity.type', src: function (ctx, i) { return ctx.type[ctx.index[i]]; } },
-            { name: '_entity.src_method', src: function (ctx, i) { return '?'; } },
-            { name: '_entity.pdbx_description', src: function (ctx, i) { return '?'; } },
+            { name: '_entity.src_method', src: function (ctx, i) { return ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.src_method', '?'); } },
+            { name: '_entity.pdbx_description', src: function (ctx, i) { return ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.pdbx_description', '?'); } },
             { name: '_entity.formula_weight', src: function (ctx, i) { return '?'; } },
             { name: '_entity.pdbx_number_of_molecules', src: function (ctx, i) { return '?'; } },
-            { name: '_entity.details', src: function (ctx, i) { return 'Generated to provide info about entity type'; } },
-            { name: '_entity.pdbx_mutation', src: function (ctx, i) { return '?'; } },
-            { name: '_entity.pdbx_fragment', src: function (ctx, i) { return '?'; } },
-            { name: '_entity.pdbx_ec', src: function (ctx, i) { return '?'; } }
+            { name: '_entity.details', src: function (ctx, i) { return '?'; } },
+            { name: '_entity.pdbx_mutation', src: function (ctx, i) { return ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.pdbx_mutation', '?'); } },
+            { name: '_entity.pdbx_fragment', src: function (ctx, i) { return ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.pdbx_fragment', '?'); } },
+            { name: '_entity.pdbx_ec', src: function (ctx, i) { return ctx.map.getValueOrDefault(ctx.id[ctx.index[i]], '_entity.pdbx_ec', '?'); } }
         ];
         writeRecords(fields, ctx, entityIndices.length, writer);
         writer.write('#\n');
