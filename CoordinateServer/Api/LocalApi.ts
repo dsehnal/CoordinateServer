@@ -20,7 +20,7 @@ export interface LocalApiJob {
 
 export type LocalApiWorkload = LocalApiJob[]
 
-function makeDir(path: string, root?: string) {
+function makeDir(path: string, root?: string): boolean {
     var dirs = path.split('/'), dir = dirs.shift(), root = (root || '') + dir + '/';
 
     try { fs.mkdirSync(root); }

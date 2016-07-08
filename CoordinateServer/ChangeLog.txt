@@ -1,4 +1,7 @@
-﻿== 1.2.9 ==
+﻿== 1.2.10 ==
+* Fixed _struct_sheet_range.conf_type_id -> _struct_sheet_range.sheet_id.
+
+== 1.2.9 ==
 * Additional info included in the _entity category.
 
 == 1.2.8 ==

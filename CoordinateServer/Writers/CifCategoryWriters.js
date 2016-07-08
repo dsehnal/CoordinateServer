@@ -340,7 +340,7 @@ var CifCategoryWriters;
         var rs = content.model.residues;
         var ctx = { indices: ssIndices, residues: rs, index: content.fragment.residueIndices };
         var fields = [
-            { name: '_struct_sheet_range.conf_type_id', src: function (ctx, i) { var val = ctx.indices.struct[ctx.indices.ssIndices[i]].info.sheetId; return val !== null && val !== undefined ? '' + val : (i + 1).toString(); } },
+            { name: '_struct_sheet_range.sheet_id', src: function (ctx, i) { var val = ctx.indices.struct[ctx.indices.ssIndices[i]].info.sheetId; return val !== null && val !== undefined ? '' + val : (i + 1).toString(); } },
             { name: '_struct_sheet_range.id', src: function (ctx, i) { var val = ctx.indices.struct[ctx.indices.ssIndices[i]].info.id; return val !== null && val !== undefined ? '' + val : (i + 1).toString(); } },
             { name: '_struct_sheet_range.beg_label_comp_id', src: function (ctx, i) { return ctx.residues.name[ctx.indices.starts[i]]; } },
             { name: '_struct_sheet_range.beg_label_asym_id', src: function (ctx, i) { return ctx.residues.asymId[ctx.indices.starts[i]]; } },

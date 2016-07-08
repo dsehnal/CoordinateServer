@@ -8,7 +8,7 @@ class CacheEntry implements LinkedElement<CacheEntry> {
     next: CacheEntry = null;
     inList = false;
 
-    timeoutId = undefined;
+    timeoutId: NodeJS.Timer = undefined;
     
     constructor(public molecule: Molecule.Molecule) {
     }

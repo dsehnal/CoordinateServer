@@ -364,7 +364,7 @@ namespace CifCategoryWriters {
         let rs = content.model.residues;
         let ctx = { indices: ssIndices, residues: rs, index: content.fragment.residueIndices };
         let fields: FieldDesc<typeof ctx> = [
-            { name: '_struct_sheet_range.conf_type_id', src: (ctx, i) => { let val = ctx.indices.struct[ctx.indices.ssIndices[i]].info.sheetId; return val !== null && val !== undefined ? '' + val : (i + 1).toString() } },
+            { name: '_struct_sheet_range.sheet_id', src: (ctx, i) => { let val = ctx.indices.struct[ctx.indices.ssIndices[i]].info.sheetId; return val !== null && val !== undefined ? '' + val : (i + 1).toString() } },
             { name: '_struct_sheet_range.id', src: (ctx, i) => { let val = ctx.indices.struct[ctx.indices.ssIndices[i]].info.id; return val !== null && val !== undefined ? '' + val : (i + 1).toString() } },
 
             { name: '_struct_sheet_range.beg_label_comp_id', src: (ctx, i) => ctx.residues.name[ctx.indices.starts[i]] },
