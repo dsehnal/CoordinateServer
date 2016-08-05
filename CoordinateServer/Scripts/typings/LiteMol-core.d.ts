@@ -1481,12 +1481,10 @@ declare namespace LiteMol.Core.Formats {
         fill(v: number): void;
         constructor(data: number[], dimensions: number[]);
     }
-}
-declare namespace LiteMol.Core.Formats.CCP4 {
     /**
-     * Represents electron density data from the CCP4 format.
+     * Represents electron density data.
      */
-    class DensityData {
+    class ElectronDensityData {
         /**
          * Crystal cell size.
          */
@@ -1537,6 +1535,12 @@ declare namespace LiteMol.Core.Formats.CCP4 {
             sigma: number;
         };
         /**
+         * Additional attributes.
+         */
+        attributes: {
+            [key: string]: any;
+        };
+        /**
          * Are the data normalized?
          */
         isNormalized: boolean;
@@ -1557,9 +1561,16 @@ declare namespace LiteMol.Core.Formats.CCP4 {
             max: number;
             mean: number;
             sigma: number;
+        }, attributes?: {
+            [key: string]: any;
         });
     }
-    function parse(buffer: ArrayBuffer): ParserResult<DensityData>;
+}
+declare namespace LiteMol.Core.Formats.CCP4 {
+    function parse(buffer: ArrayBuffer): ParserResult<ElectronDensityData>;
+}
+declare namespace LiteMol.Core.Formats.BRIX {
+    function parse(buffer: ArrayBuffer): ParserResult<ElectronDensityData>;
 }
 declare namespace LiteMol.Core.Geometry.LinearAlgebra {
     type ObjectVec3 = {
@@ -2309,6 +2320,7 @@ declare namespace LiteMol.Core.Structure {
 declare namespace LiteMol.Core.Structure.Query {
     interface Builder {
         compile(): Query;
+        complement(): Builder;
         ambientResidues(radius: number): Builder;
         wholeResidues(): Builder;
         union(): Builder;
@@ -2336,6 +2348,9 @@ declare namespace LiteMol.Core.Structure.Query {
         authSeqNumber?: number;
         insCode?: string;
     }
+    function atomsByElement(...elements: string[]): Builder;
+    function atomsByName(...names: string[]): Builder;
+    function atomsById(...ids: number[]): Builder;
     function residues(...ids: ResidueIdSchema[]): Builder;
     function chains(...ids: AsymIdSchema[]): Builder;
     function entities(...ids: EntityIdSchema[]): Builder;
@@ -2361,15 +2376,23 @@ declare namespace LiteMol.Core.Structure.Query {
         z: number;
     }): Builder;
     function or(...elements: Source[]): Builder;
+    function complement(q: Source): Builder;
     function ambientResidues(q: Source, radius: number): Builder;
     function wholeResidues(q: Source): Builder;
     function union(q: Source): Builder;
     function inside(q: Source, where: Source): Builder;
     /**
+     * Shortcuts
+     */
+    function residuesByName(...names: string[]): Builder;
+    function residuesById(...ids: number[]): Builder;
+    function chainsById(...ids: string[]): Builder;
+    /**
      * Query compilation wrapper.
      */
     namespace Compiler {
         function compileEverything(): (ctx: Context) => FragmentSeq;
+        function compileAtoms(elements: string[] | number[], sel: (model: Structure.MoleculeModel) => string[] | number[]): (ctx: Context) => FragmentSeq;
         function compileAtomIndices(indices: number[]): (ctx: Context) => FragmentSeq;
         function compileFromIndices(complement: boolean, indices: number[], tableProvider: (molecule: Structure.MoleculeModel) => {
             atomStartIndex: number[];
@@ -2393,12 +2416,42 @@ declare namespace LiteMol.Core.Structure.Query {
         }): Query;
         function compileInside(what: Source, where: Source): Query;
         function compileFilter(what: Source, filter: (f: Fragment) => boolean): Query;
+        function compileComplement(what: Source): Query;
         function compileOr(queries: Source[]): (ctx: Context) => FragmentSeq;
         function compileUnion(what: Source): Query;
         function compilePolymerNames(names: string[], complement: boolean): Query;
         function compileAmbientResidues(where: Source, radius: number): (ctx: Context) => FragmentSeq;
         function compileWholeResidues(where: Source): (ctx: Context) => FragmentSeq;
     }
+}
+declare namespace LiteMol.Core.Structure.Query.Algebraic {
+    type Predicate = (ctx: Context, i: number) => boolean;
+    type Selector = (ctx: Context, i: number) => any;
+    const not: (a: (ctx: Context, i: number) => boolean) => (ctx: Context, i: number) => boolean;
+    const and: (a: (ctx: Context, i: number) => boolean, b: (ctx: Context, i: number) => boolean) => (ctx: Context, i: number) => boolean;
+    const or: (a: (ctx: Context, i: number) => boolean, b: (ctx: Context, i: number) => boolean) => (ctx: Context, i: number) => boolean;
+    const backbone: Predicate;
+    const sidechain: Predicate;
+    const equal: (a: (ctx: Context, i: number) => any, b: (ctx: Context, i: number) => any) => (ctx: Context, i: number) => boolean;
+    const notEqual: (a: (ctx: Context, i: number) => any, b: (ctx: Context, i: number) => any) => (ctx: Context, i: number) => boolean;
+    const greater: (a: (ctx: Context, i: number) => any, b: (ctx: Context, i: number) => any) => (ctx: Context, i: number) => boolean;
+    const lesser: (a: (ctx: Context, i: number) => any, b: (ctx: Context, i: number) => any) => (ctx: Context, i: number) => boolean;
+    const greaterEqual: (a: (ctx: Context, i: number) => any, b: (ctx: Context, i: number) => any) => (ctx: Context, i: number) => boolean;
+    const lesserEqual: (a: (ctx: Context, i: number) => any, b: (ctx: Context, i: number) => any) => (ctx: Context, i: number) => boolean;
+    function inRange(s: Selector, a: number, b: number): Predicate;
+    /**
+     * Selectors
+     */
+    function value(v: any): Selector;
+    const residueSeqNumber: (ctx: Context, i: number) => any;
+    const residueName: (ctx: Context, i: number) => any;
+    const elementSymbol: (ctx: Context, i: number) => any;
+    const atomName: (ctx: Context, i: number) => any;
+    const entityType: (ctx: Context, i: number) => any;
+    /**
+     * Query
+     */
+    function query(p: Predicate): Builder;
 }
 declare namespace LiteMol.Core.Utils {
     function extend<S, T, U>(object: S, source: T, guard?: U): S & T & U;

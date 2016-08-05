@@ -17,6 +17,7 @@
 var Core = require('LiteMol-core');
 var CifStringWriter_1 = require('./CifStringWriter');
 var CifCategoryWriters_1 = require('./CifCategoryWriters');
+var fCifCategoryWriters_1 = require('./fCifCategoryWriters');
 var Version_1 = require('../Api/Version');
 var CifWriterConfig = (function () {
     function CifWriterConfig() {
@@ -33,6 +34,7 @@ var CifWriterConfig = (function () {
             '_atom_sites',
             '_chem_comp_bond'
         ];
+        this.useFCif = false;
         this.type = '?';
         this.params = [];
     }
@@ -103,18 +105,36 @@ var DefaultCifWriter = (function () {
             return writer.writer;
         }
         var unionFragment = models[0].fragments.unionFragment();
-        var contents = new CifCategoryWriters_1.default.CifWriterContents(unionFragment, models[0].model, data);
-        if (!config.commonParams.atomSitesOnly) {
-            if (!included)
-                included = data.categoryList.map(function (c) { return c.name; });
-            for (var _i = 0, included_1 = included; _i < included_1.length; _i++) {
-                var c = included_1[_i];
-                var w = CifCategoryWriters_1.default.CategoryWriters[c];
-                if (w)
-                    w(contents, writer);
+        if (config.useFCif) {
+            var contents = new fCifCategoryWriters_1.default.CifWriterContents(unionFragment, models[0].model, data);
+            if (!config.commonParams.atomSitesOnly) {
+                if (!included)
+                    included = data.categoryList.map(function (c) { return c.name; });
+                for (var _i = 0, included_1 = included; _i < included_1.length; _i++) {
+                    var c = included_1[_i];
+                    var w = fCifCategoryWriters_1.default.CategoryWriters[c];
+                    if (w)
+                        w(contents, writer);
+                }
             }
+            fCifCategoryWriters_1.default.writeChainSites(contents, writer);
+            fCifCategoryWriters_1.default.writeResidueSites(contents, writer);
+            fCifCategoryWriters_1.default.writeAtomSites(models, contents, writer);
         }
-        CifCategoryWriters_1.default.writeAtomSites(models, contents, writer);
+        else {
+            var contents = new CifCategoryWriters_1.default.CifWriterContents(unionFragment, models[0].model, data);
+            if (!config.commonParams.atomSitesOnly) {
+                if (!included)
+                    included = data.categoryList.map(function (c) { return c.name; });
+                for (var _a = 0, included_2 = included; _a < included_2.length; _a++) {
+                    var c = included_2[_a];
+                    var w = CifCategoryWriters_1.default.CategoryWriters[c];
+                    if (w)
+                        w(contents, writer);
+                }
+            }
+            CifCategoryWriters_1.default.writeAtomSites(models, contents, writer);
+        }
         return writer.writer;
     };
     return DefaultCifWriter;

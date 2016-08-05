@@ -19,7 +19,7 @@ function createDocumentationHTML(appPrefix: string) {
         `<html xmlns="http://www.w3.org/1999/xhtml">`,
         `<head>`,
         `<meta charset="utf-8" />`,
-        `<title>LiteMol Coordinate Server (${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date}, node ${process.version})</title>`,
+        `<title>LiteMol Coordinate Server (${ApiVersion})</title>`,
         `<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">`,
         `<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">`,
         //`<style> h2 { margin-bottom: 5px } </style>`,
@@ -28,7 +28,7 @@ function createDocumentationHTML(appPrefix: string) {
         `<div class="container">`
     );
 
-    html.push(`<h1>LiteMol Coordinate Server <small>${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date}, node ${process.version}</small></h1>`);
+    html.push(`<h1>LiteMol Coordinate Server <small>${ApiVersion}</small></h1>`);
     html.push("<hr>");
 
     html.push(Queries.QueryList.map(q => `<a href="#${q.name}">${q.name}</a>`).join(` | `));
@@ -36,7 +36,10 @@ function createDocumentationHTML(appPrefix: string) {
     html.push("<hr>");
 
     html.push("<i>Note:</i><br/>");
-    html.push("Empty-string values of parameters are ignored by the server, e.g. <code>/entities?entityId=&type=water</code> is the same as <code>/entities?type=water</code>.")
+    html.push("<ul>");
+    html.push("<li>Empty-string values of parameters are ignored by the server, e.g. <code>/entities?entityId=&type=water</code> is the same as <code>/entities?type=water</code>.</li>");
+    html.push("<li>Names of residues/chains/entities/etc. are case sensitive.</li>");
+    html.push("</ul>");
 
     html.push("<hr>");
 
@@ -69,6 +72,8 @@ function createDocumentationHTML(appPrefix: string) {
         html.push(`<hr>`);
     }
 
+    html.push(`<div class='pull-right' style='color: #999;font-size:smaller;margin-bottom: 20px'>LiteMol Core ${Core.VERSION.number} - ${Core.VERSION.date}, Node ${process.version}</div>`);
+    
 
     html.push(
         `</div>`,

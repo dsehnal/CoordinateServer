@@ -40,6 +40,7 @@ export function executeQuery(
     serverConfig.commonParams = commonParams;
     serverConfig.includedCategories = description.includedCategories ? description.includedCategories : Queries.DefaultCategories;
     serverConfig.writer = description.writer ? description.writer : new CifWriters.DefaultCifWriter();
+    serverConfig.useFCif = (parameters['format'] || '').toLowerCase() === 'fcif';
     
     let params: any,
         modelTransform = description.modelTransform ? description.modelTransform : (p: any, m: any) => m;
@@ -52,7 +53,7 @@ export function executeQuery(
 
         let wcfg = new CifWriters.CifWriterConfig();
         wcfg.commonParams = commonParams;
-        wcfg.type = query.name;
+        wcfg.type = query.name;        
         let msg = serverConfig.writer.writeError(molecule.molecule.id, '' + e, wcfg);
 
         let stream = outputStreamProvider();
@@ -86,8 +87,6 @@ export function executeQuery(
             }
 
             writeTime = Perf.currentTime() - writeTime;
-
-
             stream.end(getStatsCif(moleculeWrapper, result.timeQuery, result.timeSerialize, writeTime));
 
             let totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeSerialize + result.timeQuery + writeTime;

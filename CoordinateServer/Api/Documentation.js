@@ -11,15 +11,18 @@ function getHTMLDocs(appPrefix) {
 exports.getHTMLDocs = getHTMLDocs;
 function createDocumentationHTML(appPrefix) {
     var html = [];
-    html.push("<!DOCTYPE html>", "<html xmlns=\"http://www.w3.org/1999/xhtml\">", "<head>", "<meta charset=\"utf-8\" />", "<title>LiteMol Coordinate Server (" + Version_1.default + ", core " + Core.VERSION.number + " - " + Core.VERSION.date + ", node " + process.version + ")</title>", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css\" integrity=\"sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7\" crossorigin=\"anonymous\">", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css\" integrity=\"sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r\" crossorigin=\"anonymous\">", 
+    html.push("<!DOCTYPE html>", "<html xmlns=\"http://www.w3.org/1999/xhtml\">", "<head>", "<meta charset=\"utf-8\" />", "<title>LiteMol Coordinate Server (" + Version_1.default + ")</title>", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css\" integrity=\"sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7\" crossorigin=\"anonymous\">", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css\" integrity=\"sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r\" crossorigin=\"anonymous\">", 
     //`<style> h2 { margin-bottom: 5px } </style>`,
     "</head>", "<body>", "<div class=\"container\">");
-    html.push("<h1>LiteMol Coordinate Server <small>" + Version_1.default + ", core " + Core.VERSION.number + " - " + Core.VERSION.date + ", node " + process.version + "</small></h1>");
+    html.push("<h1>LiteMol Coordinate Server <small>" + Version_1.default + "</small></h1>");
     html.push("<hr>");
     html.push(Queries.QueryList.map(function (q) { return ("<a href=\"#" + q.name + "\">" + q.name + "</a>"); }).join(" | "));
     html.push("<hr>");
     html.push("<i>Note:</i><br/>");
-    html.push("Empty-string values of parameters are ignored by the server, e.g. <code>/entities?entityId=&type=water</code> is the same as <code>/entities?type=water</code>.");
+    html.push("<ul>");
+    html.push("<li>Empty-string values of parameters are ignored by the server, e.g. <code>/entities?entityId=&type=water</code> is the same as <code>/entities?type=water</code>.</li>");
+    html.push("<li>Names of residues/chains/entities/etc. are case sensitive.</li>");
+    html.push("</ul>");
     html.push("<hr>");
     for (var _i = 0, _a = Queries.QueryList; _i < _a.length; _i++) {
         var entry = _a[_i];
@@ -45,6 +48,7 @@ function createDocumentationHTML(appPrefix) {
         html.push("<div style='color: #424242; margin-top: 10px'><small style='color: #424242'><b>Included categories:</b><br/>" + (q.includedCategories || Queries.DefaultCategories).concat('_atom_site').join(', ') + "</small></div>");
         html.push("<hr>");
     }
+    html.push("<div class='pull-right' style='color: #999;font-size:smaller;margin-bottom: 20px'>LiteMol Core " + Core.VERSION.number + " - " + Core.VERSION.date + ", Node " + process.version + "</div>");
     html.push("</div>", "</body>", "</html>");
     return html.join('\n');
 }

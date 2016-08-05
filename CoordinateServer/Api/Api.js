@@ -22,6 +22,7 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
     serverConfig.commonParams = commonParams;
     serverConfig.includedCategories = description.includedCategories ? description.includedCategories : Queries.DefaultCategories;
     serverConfig.writer = description.writer ? description.writer : new CifWriters.DefaultCifWriter();
+    serverConfig.useFCif = (parameters['format'] || '').toLowerCase() === 'fcif';
     var params, modelTransform = description.modelTransform ? description.modelTransform : function (p, m) { return m; };
     try {
         params = Queries.filterQueryParams(parameters, description);

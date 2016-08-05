@@ -28,6 +28,7 @@ import Queries = Core.Structure.Query;
 export class CoordinateServerConfig {
     commonParams: CommonQueryParams;
     includedCategories: string[];
+    useFCif = false;
     writer: CifWriters.ICifWriter;
 }
 
@@ -58,6 +59,7 @@ export class CoordinateServer {
         writerConfig.params = Object.keys(queryParams).map(p => ({ name: p, value: queryParams[p] }));
         writerConfig.commonParams = config.commonParams;
         writerConfig.includedCategories = config.includedCategories;
+        writerConfig.useFCif = config.useFCif;
 
         try {
 

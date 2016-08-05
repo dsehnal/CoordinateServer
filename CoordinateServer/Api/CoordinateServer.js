@@ -19,6 +19,7 @@ var CifWriters = require('../Writers/CifWriter');
 var Logger_1 = require('../Utils/Logger');
 var CoordinateServerConfig = (function () {
     function CoordinateServerConfig() {
+        this.useFCif = false;
     }
     return CoordinateServerConfig;
 }());
@@ -33,6 +34,7 @@ var CoordinateServer = (function () {
         writerConfig.params = Object.keys(queryParams).map(function (p) { return ({ name: p, value: queryParams[p] }); });
         writerConfig.commonParams = config.commonParams;
         writerConfig.includedCategories = config.includedCategories;
+        writerConfig.useFCif = config.useFCif;
         try {
             var models = [];
             perf.start('query');

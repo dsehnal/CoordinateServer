@@ -18,6 +18,7 @@ import * as Core from 'LiteMol-core'
 import StringWriter from './StringWriter'
 import CifStringWriter from './CifStringWriter'
 import CifCategoryWriters from './CifCategoryWriters'
+import fCifCategoryWriters from './fCifCategoryWriters'
 import { CommonQueryParams } from '../Api/Queries'
 
 import ApiVersion from '../Api/Version'
@@ -41,6 +42,7 @@ export class CifWriterConfig {
         '_chem_comp_bond'
     ];
 
+    useFCif: boolean = false;
     type = '?';
     params: { name: string, value: any }[] = [];
 }
@@ -128,18 +130,34 @@ export class DefaultCifWriter implements ICifWriter {
 
 
         let unionFragment = models[0].fragments.unionFragment();
-        let contents = new CifCategoryWriters.CifWriterContents(unionFragment, models[0].model, data);
 
-        if (!config.commonParams.atomSitesOnly) {
+        if (config.useFCif) {
+            let contents = new fCifCategoryWriters.CifWriterContents(unionFragment, models[0].model, data);
+            if (!config.commonParams.atomSitesOnly) {
 
-            if (!included) included = data.categoryList.map(c => c.name);
-            for (let c of included) {
-                let w = CifCategoryWriters.CategoryWriters[c];
-                if (w) w(contents, writer);
+                if (!included) included = data.categoryList.map(c => c.name);
+                for (let c of included) {
+                    let w = fCifCategoryWriters.CategoryWriters[c];
+                    if (w) w(contents, writer);
+                }
             }
-        }
 
-        CifCategoryWriters.writeAtomSites(models, contents, writer);
+            fCifCategoryWriters.writeChainSites(contents, writer);
+            fCifCategoryWriters.writeResidueSites(contents, writer);
+            fCifCategoryWriters.writeAtomSites(models, contents, writer);
+        } else {
+            let contents = new CifCategoryWriters.CifWriterContents(unionFragment, models[0].model, data);
+            if (!config.commonParams.atomSitesOnly) {
+
+                if (!included) included = data.categoryList.map(c => c.name);
+                for (let c of included) {
+                    let w = CifCategoryWriters.CategoryWriters[c];
+                    if (w) w(contents, writer);
+                }
+            }
+
+            CifCategoryWriters.writeAtomSites(models, contents, writer);
+        }
         
         return writer.writer;    
     }

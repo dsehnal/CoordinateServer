@@ -66,6 +66,7 @@
     <TypeScriptCompile Include="Scripts\typings\node.d.ts" />
     <TypeScriptCompile Include="server.ts" />
     <TypeScriptCompile Include="Writers\CifWriter.ts" />
+    <TypeScriptCompile Include="Writers\fCifCategoryWriters.ts" />
     <TypeScriptCompile Include="Writers\PDBcifWriter.ts" />
     <TypeScriptCompile Include="Writers\StringWriter.ts">
       <SubType>Code</SubType>

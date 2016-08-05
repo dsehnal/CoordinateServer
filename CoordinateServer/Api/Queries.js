@@ -43,8 +43,8 @@ exports.CommonQueryParamsInfo = [
 exports.QueryMap = {
     "het": { query: function () { return Queries.hetGroups(); }, description: "All non-water 'HETATM' records." },
     "cartoon": { query: function () { return Queries.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET groups + water." },
-    "backbone": { query: function () { return Queries.backbone(); }, description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
-    "sidechain": { query: function () { return Queries.sidechain(); }, description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C5' from polymer entities." },
+    "backbone": { query: function () { return Queries.backbone(); }, description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
+    "sidechain": { query: function () { return Queries.sidechain(); }, description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
     "water": { query: function () { return Queries.entities({ type: 'water' }); }, description: "Atoms from entities with type water." },
     "entities": {
         description: "Entities that satisfy the given parameters.",
@@ -156,7 +156,7 @@ exports.QueryMap = {
         includedCategories: SymmetryCategories
     },
     "assembly": {
-        description: "Constructs assembly with the given radius.",
+        description: "Constructs assembly with the given id.",
         query: function (p, m) {
             return Queries.everything();
         },
