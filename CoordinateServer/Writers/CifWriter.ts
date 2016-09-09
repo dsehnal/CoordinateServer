@@ -52,22 +52,20 @@ export interface IWritableFragments {
     fragments: Core.Structure.Query.FragmentSeq
 }
 
-
 export interface ICifWriter {
     writeError(header: string, message: string, config: CifWriterConfig): string;
-    writeFragment(data: Core.Formats.Cif.Block, models: IWritableFragments[], config: CifWriterConfig): StringWriter;
+    writeFragment(data: Core.Formats.CIF.Block, models: IWritableFragments[], config: CifWriterConfig): StringWriter;
 }
 
 export class DefaultCifWriter implements ICifWriter {
-
-
     private writeParams(writer: CifStringWriter, params: { name: string, value: any }[], common: CommonQueryParams) {
 
         let prms: { name: string, value: any }[] = [];
 
         for (let p of params) prms.push(p);
-        prms.push({ name: 'atomSitesOnly', value: common.atomSitesOnly ? '1' : undefined });
+        prms.push({ name: 'atomSitesOnly', value: common.atomSitesOnly ? '1' : '0' });
         prms.push({ name: 'modelId', value: common.modelId });
+        prms.push({ name: 'format', value: common.format });
 
         let ctx = prms;
         let fields: CifCategoryWriters.FieldDesc<typeof ctx> = [
@@ -80,13 +78,10 @@ export class DefaultCifWriter implements ICifWriter {
     }
 
     private writeResultHeader({ isEmpty, hasError }: { isEmpty: boolean, hasError: boolean }, config: CifWriterConfig, writer: CifStringWriter) {
-
         writer.write(`_coordinate_server_result.query_type         `); writer.writeChecked(config.type); writer.newline();
         writer.write(`_coordinate_server_result.datetime           `); writer.writeChecked(new Date().toLocaleString('en-US')); writer.newline();
         writer.write(`_coordinate_server_result.is_empty           ${isEmpty ? 'yes' : 'no'}`); writer.newline();
         writer.write(`_coordinate_server_result.has_error          ${hasError ? 'yes' : 'no'}`); writer.newline();
-        //writer.write(`_coordinate_server_result.atom_sites_only    ${config.commonParams.atomSitesOnly ? 'yes' : 'no'}`); writer.newline();
-        //writer.write(`_coordinate_server_result.model_id           `); writer.writeChecked(config.commonParams.modelId ? config.commonParams.modelId : undefined); writer.newline();
         writer.write(`_coordinate_server_result.api_version        ${ApiVersion}`); writer.newline();
         writer.write(`_coordinate_server_result.core_version       ${Core.VERSION.number}`); writer.newline();
         writer.write(`#\n`);
@@ -112,7 +107,7 @@ export class DefaultCifWriter implements ICifWriter {
         return writer.writer.asString();        
     }
 
-    writeFragment(data: Core.Formats.Cif.Block, models: IWritableFragments[], config: CifWriterConfig) {
+    writeFragment(data: Core.Formats.CIF.Block, models: IWritableFragments[], config: CifWriterConfig) {
 
         let writer = new CifStringWriter();
         let included = config.includedCategories;

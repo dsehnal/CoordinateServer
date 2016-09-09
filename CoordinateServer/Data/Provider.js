@@ -3,7 +3,8 @@ var Core = require('LiteMol-core');
 var Molecule = require('./Molecule');
 var fs = require('fs');
 var zlib = require('zlib');
-var Cif = Core.Formats.Cif;
+var CIF = Core.Formats.CIF;
+var mmCIF = Core.Formats.Molecule.mmCIF;
 (function (MoleculeSource) {
     MoleculeSource[MoleculeSource["File"] = 0] = "File";
     MoleculeSource[MoleculeSource["Cache"] = 1] = "Cache";
@@ -54,7 +55,7 @@ function readMolecule(filename, onParsed, onIOError, onUnexpectedError, onIOfini
                 return;
             }
             perf.start('parse');
-            var dict = Cif.parse(data);
+            var dict = CIF.parse(data);
             if (dict.error) {
                 var error = dict.error.toString();
                 onParsed(error, undefined);
@@ -66,7 +67,7 @@ function readMolecule(filename, onParsed, onIOError, onUnexpectedError, onIOfini
                 return;
             }
             var block = dict.result.dataBlocks[0];
-            var rawMol = Cif.mmCif.ofDataBlock(block);
+            var rawMol = mmCIF.ofDataBlock(block);
             perf.end('parse');
             var mol = new Molecule.Molecule(Molecule.Molecule.createKey(filename), block, rawMol);
             onParsed(undefined, new MoleculeWrapper(mol, MoleculeSource.File, perf.time('io'), perf.time('parse')));

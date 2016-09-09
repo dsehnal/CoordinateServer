@@ -1,4 +1,9 @@
-﻿== 1.2.10 ==
+﻿== 1.3.0 ==
+* Added support for choosing output format.
+* Added support for the "mmfBCIF" format.
+* Improved documentation.
+
+== 1.2.10 ==
 * Fixed _struct_sheet_range.conf_type_id -> _struct_sheet_range.sheet_id.
 
 == 1.2.9 ==

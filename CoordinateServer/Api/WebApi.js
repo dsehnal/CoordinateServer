@@ -34,7 +34,8 @@ function doCifError(response, message, id, queryName, params) {
     var wcfg = new CifWriters.CifWriterConfig();
     wcfg.commonParams = {
         atomSitesOnly: !!params.atomSitesOnly,
-        modelId: params.modelId
+        modelId: params.modelId,
+        format: params.format
     };
     wcfg.type = queryName;
     var msg = new CifWriters.DefaultCifWriter().writeError(id, message, wcfg);

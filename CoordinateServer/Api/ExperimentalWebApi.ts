@@ -40,7 +40,7 @@ function do404(response: any) {
     response.end();
 }
 
-function writeCifCategories(id: string, data: string, cats: Core.Formats.Cif.Category[]) {
+function writeCifCategories(id: string, data: string, cats: Core.Formats.CIF.Category[]) {
     let writer = new StringWriter();
     writer.write('data_' + id); writer.newline();
     writer.write('#'); writer.newline();
@@ -50,7 +50,7 @@ function writeCifCategories(id: string, data: string, cats: Core.Formats.Cif.Cat
     return writer;
 }
 
-function makeCategoriesJson(id: string, data: string, cats: Core.Formats.Cif.Category[]) {
+function makeCategoriesJson(id: string, data: string, cats: Core.Formats.CIF.Category[]) {
     return JSON.stringify({
         data: id,
         categories: cats.map(c => c.toJSON())

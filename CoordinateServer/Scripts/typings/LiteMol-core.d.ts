@@ -942,6 +942,16 @@ declare namespace LiteMol.Core {
     }
 }
 declare namespace LiteMol.Core.Formats {
+    interface FormatInfo {
+        name: string;
+        extensions: string[];
+        isBinary?: boolean;
+    }
+    namespace FormatInfo {
+        function formatRegExp(info: FormatInfo): RegExp;
+        function formatFileFilters(all: FormatInfo[]): string;
+        function getFormat(filename: string, all: FormatInfo[]): FormatInfo;
+    }
     class ParserError {
         message: string;
         line: number;
@@ -978,7 +988,18 @@ declare namespace LiteMol.Core.Formats {
         static getString(key: string): string;
     }
 }
-declare namespace LiteMol.Core.Formats.Cif {
+declare namespace LiteMol.Core.Formats.MsgPack {
+    function encode(value: any): Uint8Array;
+}
+declare namespace LiteMol.Core.Formats.MsgPack {
+    function decode(buffer: Uint8Array): any;
+}
+declare namespace LiteMol.Core.Formats.MsgPack {
+    function utf8Write(data: Uint8Array, offset: number, str: string): void;
+    function utf8Read(data: Uint8Array, offset: number, length: number): string;
+    function utf8ByteCount(str: string): number;
+}
+declare namespace LiteMol.Core.Formats.CIF {
     /**
      * Represents the input file.
      */
@@ -1315,75 +1336,110 @@ declare namespace LiteMol.Core.Formats.Cif {
         toJSON(): any;
     }
 }
-declare namespace LiteMol.Core.Formats.Cif {
-    class mmCif {
-        private static getModelEndRow(startRow, category);
-        private static buildModelAtomTable(startRow, category);
-        private static buildStructure(category, atoms);
-        private static assignEntityTypes(category, entities);
-        static residueIdfromColumns(cat: Category, row: number, asymId: string, seqNum: string, insCode: string): Structure.PolyResidueIdentifier;
-        private static aminoAcidNames;
-        private static isResidueAminoSeq(atoms, residues, entities, index);
-        private static isResidueNucleotide(atoms, residues, entities, index);
-        private static analyzeSecondaryStructure(atoms, residues, entities, start, end, elements);
-        private static splitNonconsecutiveSecondaryStructure(residues, elements);
-        private static updateSSIndicesAndFilterEmpty(elements, structure);
-        private static handleSecondaryStructureCollision(a, b);
-        private static getSecondaryStructureInfo(data, atoms, structure);
-        private static assignSecondaryStructureIndex(residues, ss);
-        private static parseOperatorList(value);
-        private static getAssemblyInfo(data);
-        private static getSymmetryInfo(data);
-        private static getComponentBonds(category);
-        private static getModel(startRow, data);
-        static ofDataBlock(data: Block): Structure.Molecule;
-    }
-}
-declare namespace LiteMol.Core.Formats.Cif {
-    /**
-     * mmCIF parser.
-     *
-     * Trying to be as close to the specification http://www.iucr.org/resources/cif/spec/version1.1/cifsyntax
-     *
-     * Differences I'm aware of:
-     * - Except keywords (data_, loop_, save_) everything is case sensitive.
-     * - The tokens . and ? are treated the same as the values '.' and '?'.
-     * - Ignores \ in the multiline values:
-     *     ;abc\
-     *     efg
-     *     ;
-     *   should have the value 'abcefg' but will have the value 'abc\\nefg' instead.
-     *   Post processing of this is left to the consumer of the data.
-     * - Similarly, things like punctuation (\', ..) are left to be processed by the user if needed.
-     *
-     */
-    class Parser {
-        /**
-         * Reads a category containing a single row.
-         */
-        private static handleSingle(tokenizer, block);
-        /**
-         * Reads a loop.
-         */
-        private static handleLoop(tokenizer, block);
-        /**
-         * Creates an error result.
-         */
-        private static error(line, message);
-        /**
-         * Creates a data result.
-         */
-        private static result(data);
-        /**
-         * Parses an mmCIF file.
-         *
-         * @returns CifParserResult wrapper of the result.
-         */
-        static parse(data: string): ParserResult<Cif.File>;
-    }
+declare namespace LiteMol.Core.Formats.CIF {
     function parse(data: string): ParserResult<File>;
 }
-declare namespace LiteMol.Core.Formats.PDB {
+declare namespace LiteMol.Core.Formats.BinaryCIF {
+    /**
+     * Inspired by https://github.com/rcsb/mmtf-javascript/
+     * by Alexander Rose <alexander.rose@weirdbyte.de>, MIT License, Copyright (c) 2016
+     */
+    type Encoding = Encoding.Value | Encoding.ByteArray | Encoding.FixedPoint | Encoding.RunLength | Encoding.Delta | Encoding.IntegerPacking | Encoding.StringArray;
+    interface EncodedData {
+        encoding: Encoding[];
+        data: Uint8Array;
+    }
+    namespace Encoding {
+        const enum DataType {
+            Int8 = 0,
+            Int16 = 1,
+            Int32 = 2,
+            Float32 = 3,
+            Float64 = 4,
+        }
+        const enum IntDataType {
+            Int8 = 0,
+            Int16 = 1,
+            Int32 = 2,
+        }
+        function getIntDataType(data: (Int8Array | Int16Array | Int32Array | number[])): IntDataType;
+        interface Value {
+            kind: 'Value';
+            value: any;
+        }
+        interface ByteArray {
+            kind: 'ByteArray';
+            type: DataType;
+        }
+        interface FixedPoint {
+            kind: 'FixedPoint';
+            factor: number;
+        }
+        interface RunLength {
+            kind: 'RunLength';
+            srcType: IntDataType;
+            srcSize: number;
+        }
+        interface Delta {
+            kind: 'Delta';
+            srcType: IntDataType;
+        }
+        interface IntegerPacking {
+            kind: 'IntegerPacking';
+            byteCount: number;
+            srcSize: number;
+        }
+        interface StringArray {
+            kind: 'StringArray';
+            dataEncoding: Encoding[];
+            stringData: string;
+            offsetEncoding: Encoding[];
+            offsets: Uint8Array;
+        }
+    }
+}
+declare namespace LiteMol.Core.Formats.BinaryCIF {
+    /**
+     * Fixed point, delta, RLE, integer packing adopted from https://github.com/rcsb/mmtf-javascript/
+     * by Alexander Rose <alexander.rose@weirdbyte.de>, MIT License, Copyright (c) 2016
+     */
+    class Encoder {
+        private latestData;
+        private encoding;
+        by(f: (data: any) => Encoder.Result): this;
+        encode(): EncodedData;
+        constructor(data: any);
+        static of(data: any): Encoder;
+    }
+    namespace Encoder {
+        interface Result {
+            encoding: Encoding;
+            data: any;
+        }
+        type Provider = (data: any) => Result;
+        function value(value: any): Result;
+        function int16(data: Int16Array): Result;
+        function int32(data: Int32Array): Result;
+        function float32(data: Float32Array): Result;
+        function float64(data: Float64Array): Result;
+        function fixedPoint(factor: number): Provider;
+        function runLength(data: (Int8Array | Int16Array | Int32Array | number[])): Result;
+        function delta(data: (Int8Array | Int16Array | Int32Array | number[])): Result;
+        function integerPacking(byteCount: number): Provider;
+        function stringArray(data: string[]): Result;
+    }
+}
+declare namespace LiteMol.Core.Formats.BinaryCIF {
+    /**
+     * Fixed point, delta, RLE, integer packing adopted from https://github.com/rcsb/mmtf-javascript/
+     * by Alexander Rose <alexander.rose@weirdbyte.de>, MIT License, Copyright (c) 2016
+     */
+    function decode(data: EncodedData): any;
+}
+declare namespace LiteMol.Core.Formats.Molecule.mmCIF {
+    function ofDataBlock(data: CIF.Block): Structure.Molecule;
+}
+declare namespace LiteMol.Core.Formats.Molecule.PDB {
     type TokenRange = {
         start: number;
         end: number;
@@ -1400,7 +1456,7 @@ declare namespace LiteMol.Core.Formats.PDB {
         models: ModelsData;
         data: string;
         private makeEntities();
-        toCifFile(): Cif.File;
+        toCifFile(): CIF.File;
         constructor(header: Header, crystInfo: CrystStructureInfo, models: ModelsData, data: string);
     }
     class Header {
@@ -1410,8 +1466,8 @@ declare namespace LiteMol.Core.Formats.PDB {
     class CrystStructureInfo {
         record: string;
         toCifCategory(id: string): {
-            cell: Cif.Category;
-            symm: Cif.Category;
+            cell: CIF.Category;
+            symm: CIF.Category;
         };
         constructor(record: string);
     }
@@ -1419,8 +1475,8 @@ declare namespace LiteMol.Core.Formats.PDB {
         helixTokens: number[];
         sheetTokens: number[];
         toCifCategory(data: string): {
-            helices: Cif.Category;
-            sheets: Cif.Category;
+            helices: CIF.Category;
+            sheets: CIF.Category;
         };
         constructor(helixTokens: number[], sheetTokens: number[]);
     }
@@ -1439,11 +1495,11 @@ declare namespace LiteMol.Core.Formats.PDB {
     }
     class ModelsData {
         models: ModelData[];
-        toCifCategory(block: Cif.Block, helpers: HelperData): Cif.Category;
+        toCifCategory(block: CIF.Block, helpers: HelperData): CIF.Category;
         constructor(models: ModelData[]);
     }
 }
-declare namespace LiteMol.Core.Formats.PDB {
+declare namespace LiteMol.Core.Formats.Molecule.PDB {
     class Parser {
         id: string;
         private data;
@@ -1452,12 +1508,24 @@ declare namespace LiteMol.Core.Formats.PDB {
         static getDotRange(length: number): TokenRange;
         static getNumberRanges(length: number): Map<number, TokenRange>;
         static getQuestionmarkRange(length: number): TokenRange;
-        static parse(id: string, data: string): ParserResult<any>;
+        static parse(id: string, data: string): ParserResult<CIF.File>;
         constructor(id: string, data: string);
     }
-    function parse(id: string, data: string): ParserResult<any>;
+    function toCifFile(id: string, data: string): ParserResult<CIF.File>;
 }
-declare namespace LiteMol.Core.Formats {
+declare namespace LiteMol.Core.Formats.Molecule.SDF {
+    function parse(data: string, id?: string): ParserResult<Structure.Molecule>;
+}
+declare namespace LiteMol.Core.Formats.Molecule {
+    namespace SupportedFormats {
+        const mmCIF: FormatInfo;
+        const PDB: FormatInfo;
+        const SDF: FormatInfo;
+        const All: FormatInfo[];
+    }
+    function parse(format: FormatInfo, data: string | ArrayBuffer, id?: string): Computation<ParserResult<Structure.Molecule>>;
+}
+declare namespace LiteMol.Core.Formats.Density {
     interface IField3D {
         dimensions: number[];
         length: number;
@@ -1484,7 +1552,7 @@ declare namespace LiteMol.Core.Formats {
     /**
      * Represents electron density data.
      */
-    class ElectronDensityData {
+    class Data {
         /**
          * Crystal cell size.
          */
@@ -1566,11 +1634,19 @@ declare namespace LiteMol.Core.Formats {
         });
     }
 }
-declare namespace LiteMol.Core.Formats.CCP4 {
-    function parse(buffer: ArrayBuffer): ParserResult<ElectronDensityData>;
+declare namespace LiteMol.Core.Formats.Density.CCP4 {
+    function parse(buffer: ArrayBuffer): ParserResult<Data>;
 }
-declare namespace LiteMol.Core.Formats.BRIX {
-    function parse(buffer: ArrayBuffer): ParserResult<ElectronDensityData>;
+declare namespace LiteMol.Core.Formats.Density.BRIX {
+    function parse(buffer: ArrayBuffer): ParserResult<Data>;
+}
+declare namespace LiteMol.Core.Formats.Density {
+    namespace SupportedFormats {
+        const CCP4: FormatInfo;
+        const BRIX: FormatInfo;
+        const All: FormatInfo[];
+    }
+    function parse(format: FormatInfo, data: string | ArrayBuffer, id?: string): ParserResult<Data>;
 }
 declare namespace LiteMol.Core.Geometry.LinearAlgebra {
     type ObjectVec3 = {
@@ -1784,10 +1860,10 @@ declare namespace LiteMol.Core.Geometry.MarchingCubes {
      */
     interface MarchingCubesParameters {
         isoLevel: number;
-        scalarField: Formats.IField3D;
+        scalarField: Formats.Density.IField3D;
         bottomLeft?: number[];
         topRight?: number[];
-        annotationField?: Formats.IField3D;
+        annotationField?: Formats.Density.IField3D;
     }
     function compute(parameters: MarchingCubesParameters): Computation<Surface>;
 }
@@ -1899,17 +1975,21 @@ declare namespace LiteMol.Core.Structure {
         Water = 2,
         Unknown = 3,
     }
-    enum BondOrder {
-        None = 0,
+    const enum BondType {
+        Unknown = 0,
         Single = 1,
         Double = 2,
         Triple = 3,
-        Quadruple = 4,
+        Aromatic = 4,
+        Metallic = 5,
+        Ion = 6,
+        Hydrogen = 7,
+        DisulfideBridge = 8,
     }
     class ComponentBondInfoEntry {
         id: string;
-        map: Map<string, Map<string, BondOrder>>;
-        add(a: string, b: string, order: BondOrder, swap?: boolean): void;
+        map: Map<string, Map<string, BondType>>;
+        add(a: string, b: string, order: BondType, swap?: boolean): void;
         constructor(id: string);
     }
     class ComponentBondInfo {
@@ -2051,6 +2131,89 @@ declare namespace LiteMol.Core.Structure {
         chainEndIndex: number[];
         type: string[];
     }
+    interface DefaultBondTableSchema extends DataTable {
+        atomAIndex: number[];
+        atomBIndex: number[];
+        type: BondType[];
+    }
+    /**
+     * Default Builders
+     */
+    namespace DefaultDataTables {
+        function forAtoms(count: number): {
+            table: DefaultAtomTableSchema;
+            columns: {
+                id: Int32Array;
+                x: Float32Array;
+                y: Float32Array;
+                z: Float32Array;
+                altLoc: any[];
+                rowIndex: Int32Array;
+                residueIndex: Int32Array;
+                chainIndex: Int32Array;
+                entityIndex: Int32Array;
+                name: string[];
+                elementSymbol: string[];
+                occupancy: Float32Array;
+                tempFactor: Float32Array;
+                authName: string[];
+            };
+        };
+        function forResidues(count: number): {
+            table: DefaultResidueTableSchema;
+            columns: {
+                name: string[];
+                seqNumber: Int32Array;
+                asymId: string[];
+                authName: string[];
+                authSeqNumber: Int32Array;
+                authAsymId: string[];
+                insCode: string[];
+                entityId: string[];
+                isHet: Int8Array;
+                atomStartIndex: Int32Array;
+                atomEndIndex: Int32Array;
+                chainIndex: Int32Array;
+                entityIndex: Int32Array;
+                secondaryStructureIndex: Int32Array;
+            };
+        };
+        function forChains(count: number): {
+            table: DefaultChainTableSchema;
+            columns: {
+                asymId: string[];
+                entityId: string[];
+                authAsymId: string[];
+                atomStartIndex: Int32Array;
+                atomEndIndex: Int32Array;
+                residueStartIndex: Int32Array;
+                residueEndIndex: Int32Array;
+                entityIndex: Int32Array;
+            };
+        };
+        function forEntities(count: number): {
+            table: DefaultEntityTableSchema;
+            columns: {
+                entityId: string[];
+                entityType: EntityType[];
+                type: string[];
+                atomStartIndex: Int32Array;
+                atomEndIndex: Int32Array;
+                residueStartIndex: Int32Array;
+                residueEndIndex: Int32Array;
+                chainStartIndex: Int32Array;
+                chainEndIndex: Int32Array;
+            };
+        };
+        function forBonds(count: number): {
+            table: DefaultBondTableSchema;
+            columns: {
+                atomAIndex: Int32Array;
+                atomBIndex: Int32Array;
+                type: Int8Array;
+            };
+        };
+    }
     enum MoleculeModelSource {
         File = 0,
         Computed = 1,
@@ -2063,13 +2226,33 @@ declare namespace LiteMol.Core.Structure {
         static applyToModelUnsafe(matrix: number[], m: MoleculeModel): void;
         constructor(matrix: number[], id: string, isIdentity: boolean);
     }
-    class MoleculeModel {
+    interface IMoleculeModelData {
         id: string;
         modelId: string;
         atoms: DefaultAtomTableSchema;
         residues: DefaultResidueTableSchema;
         chains: DefaultChainTableSchema;
         entities: DefaultEntityTableSchema;
+        covalentBonds?: DefaultBondTableSchema;
+        nonCovalentbonds?: DefaultBondTableSchema;
+        componentBonds?: ComponentBondInfo;
+        secondaryStructure: SecondaryStructureElement[];
+        symmetryInfo?: SymmetryInfo;
+        assemblyInfo?: AssemblyInfo;
+        parent?: MoleculeModel;
+        source: MoleculeModelSource;
+        operators?: Operator[];
+    }
+    class MoleculeModel implements IMoleculeModelData {
+        private _queryContext;
+        id: string;
+        modelId: string;
+        atoms: DefaultAtomTableSchema;
+        residues: DefaultResidueTableSchema;
+        chains: DefaultChainTableSchema;
+        entities: DefaultEntityTableSchema;
+        covalentBonds: DefaultBondTableSchema;
+        nonCovalentbonds: DefaultBondTableSchema;
         componentBonds: ComponentBondInfo;
         secondaryStructure: SecondaryStructureElement[];
         symmetryInfo: SymmetryInfo;
@@ -2077,10 +2260,9 @@ declare namespace LiteMol.Core.Structure {
         parent: MoleculeModel;
         source: MoleculeModelSource;
         operators: Operator[];
-        private _queryContext;
         queryContext: Query.Context;
         query(q: Query.Source): Query.FragmentSeq;
-        constructor(id: string, modelId: string, atoms: DefaultAtomTableSchema, residues: DefaultResidueTableSchema, chains: DefaultChainTableSchema, entities: DefaultEntityTableSchema, componentBonds: ComponentBondInfo, secondaryStructure: SecondaryStructureElement[], symmetryInfo: SymmetryInfo, assemblyInfo: AssemblyInfo, parent: MoleculeModel, source: MoleculeModelSource, operators: Operator[]);
+        constructor(data: IMoleculeModelData);
     }
     class Molecule {
         id: string;
@@ -2233,6 +2415,10 @@ declare namespace LiteMol.Core.Structure {
              * A sorted list of residue identifiers.
              */
             authFingerprint: string;
+            /**
+             * Executes a query on the current fragment.
+             */
+            find(what: Source): FragmentSeq;
             private _residueIndices;
             private _chainIndices;
             private _entityIndices;
@@ -2325,6 +2511,8 @@ declare namespace LiteMol.Core.Structure.Query {
         wholeResidues(): Builder;
         union(): Builder;
         inside(where: Source): Builder;
+        intersectWith(where: Source): Builder;
+        flatten(selector: (f: Fragment) => FragmentSeq): Builder;
     }
     namespace Builder {
         const BuilderPrototype: any;
@@ -2381,6 +2569,8 @@ declare namespace LiteMol.Core.Structure.Query {
     function wholeResidues(q: Source): Builder;
     function union(q: Source): Builder;
     function inside(q: Source, where: Source): Builder;
+    function intersectWith(what: Source, where: Source): Builder;
+    function flatten(what: Source, selector: (f: Fragment) => FragmentSeq): Builder;
     /**
      * Shortcuts
      */
@@ -2415,6 +2605,7 @@ declare namespace LiteMol.Core.Structure.Query {
             z: number;
         }): Query;
         function compileInside(what: Source, where: Source): Query;
+        function compileIntersectWith(what: Source, where: Source): Query;
         function compileFilter(what: Source, filter: (f: Fragment) => boolean): Query;
         function compileComplement(what: Source): Query;
         function compileOr(queries: Source[]): (ctx: Context) => FragmentSeq;
@@ -2422,6 +2613,7 @@ declare namespace LiteMol.Core.Structure.Query {
         function compilePolymerNames(names: string[], complement: boolean): Query;
         function compileAmbientResidues(where: Source, radius: number): (ctx: Context) => FragmentSeq;
         function compileWholeResidues(where: Source): (ctx: Context) => FragmentSeq;
+        function compileFlatten(what: Source, selector: (f: Fragment) => FragmentSeq): (ctx: Context) => FragmentSeq;
     }
 }
 declare namespace LiteMol.Core.Structure.Query.Algebraic {
@@ -2512,18 +2704,18 @@ declare namespace LiteMol.Core.Utils {
         constructor(creator: (size: number) => any, chunkElementCount: number, elementSize: number);
     }
 }
-declare namespace LiteMol.Core.Utils {
-    /**
-     * Efficient integer and float parsers.
-     *
-     * For the purposes of parsing numbers from the mmCIF data representations,
-     * up to 4 times faster than JS parseInt/parseFloat.
-     */
-    class FastNumberParsers {
-        static parseInt(str: string, start: number, end: number): number;
-        static parseScientific(main: number, str: string, start: number, end: number): number;
-        static parseFloat(str: string, start: number, end: number): number;
-    }
+/**
+ * Efficient integer and float parsers.
+ *
+ * For the purposes of parsing numbers from the mmCIF data representations,
+ * up to 4 times faster than JS parseInt/parseFloat.
+ */
+declare namespace LiteMol.Core.Utils.FastNumberParsers {
+    function parseIntSkipTrailingWhitespace(str: string, start: number, end: number): number;
+    function parseInt(str: string, start: number, end: number): number;
+    function parseScientific(main: number, str: string, start: number, end: number): number;
+    function parseFloatSkipTrailingWhitespace(str: string, start: number, end: number): number;
+    function parseFloat(str: string, start: number, end: number): number;
 }
 declare namespace LiteMol.Core.Utils {
     class PerformanceMonitor {

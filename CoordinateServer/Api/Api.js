@@ -15,10 +15,12 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
     Logger_1.default.log(reqId + ": Processing.");
     var serverConfig = new CoordinateServer_1.CoordinateServerConfig();
     var description = query.description;
-    var commonParams = {
-        atomSitesOnly: !!parameters.atomSitesOnly,
-        modelId: parameters.modelId
-    };
+    var commonParams = Queries.filterCommonQueryParams(parameters);
+    //    {
+    //    atomSitesOnly: !!parameters.atomSitesOnly,
+    //    modelId: parameters.modelId,
+    //    format: parameters.format
+    //};
     serverConfig.commonParams = commonParams;
     serverConfig.includedCategories = description.includedCategories ? description.includedCategories : Queries.DefaultCategories;
     serverConfig.writer = description.writer ? description.writer : new CifWriters.DefaultCifWriter();

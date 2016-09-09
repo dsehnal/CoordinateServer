@@ -37,9 +37,25 @@ var SymmetryCategories = [
     '_atom_sites'
 ];
 exports.CommonQueryParamsInfo = [
-    { name: "modelId", type: QueryParamType.String },
-    { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0 },
+    { name: "modelId", type: QueryParamType.String, description: "If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field." },
+    { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
+    { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF - text, mmfBCIF - binary)." },
 ];
+exports.CommonQueryParamsInfoMap = (function () {
+    var map = new Map();
+    exports.CommonQueryParamsInfo.forEach(function (i) { return map.set(i.name, i); });
+    return map;
+})();
+var CommonParameters = {
+    entityId: { name: "entityId", type: QueryParamType.String, description: "Corresponds to the '_entity.id' or '*.label_entity_id' field, depending on the context." },
+    asymId: { name: "asymId", type: QueryParamType.String, description: "Corresponds to the '_atom_site.label_asym_id' field." },
+    authAsymId: { name: "authAsymId", type: QueryParamType.String, description: "Corresponds to the '_atom_site.auth_asym_id' field." },
+    name: { name: "name", type: QueryParamType.String, description: "Residue name. Corresponds to the '_atom_site.label_comp_id' field." },
+    authName: { name: "authName", type: QueryParamType.String, description: "Author residue name. Corresponds to the '_atom_site.auth_comp_id' field." },
+    insCode: { name: "insCode", type: QueryParamType.String, description: "Corresponds to the '_atom_site.pdbx_PDB_ins_code' field." },
+    seqNumber: { name: "seqNumber", type: QueryParamType.Integer, description: "Residue seq. number. Corresponds to the '_atom_site.label_seq_id' field." },
+    authSeqNumber: { name: "authSeqNumber", type: QueryParamType.Integer, description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
+};
 exports.QueryMap = {
     "het": { query: function () { return Queries.hetGroups(); }, description: "All non-water 'HETATM' records." },
     "cartoon": { query: function () { return Queries.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET groups + water." },
@@ -50,31 +66,31 @@ exports.QueryMap = {
         description: "Entities that satisfy the given parameters.",
         query: function (p) { return Queries.entities(p); },
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "type", type: QueryParamType.String }
+            CommonParameters.entityId,
+            { name: "type", type: QueryParamType.String, description: "Corresponds to the '_entity.type' field (polymer / non-polymer / water)." }
         ]
     },
     "chains": {
         description: "Chains that satisfy the given parameters.",
         query: function (p) { return Queries.chains(p); },
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "asymId", type: QueryParamType.String },
-            { name: "authAsymId", type: QueryParamType.String }
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
         ]
     },
     "residues": {
         description: "Residues that satisfy the given parameters.",
         query: function (p) { return Queries.residues(p); },
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "asymId", type: QueryParamType.String },
-            { name: "authAsymId", type: QueryParamType.String },
-            { name: "name", type: QueryParamType.String },
-            { name: "authName", type: QueryParamType.String },
-            { name: "insCode", type: QueryParamType.String },
-            { name: "seqNumber", type: QueryParamType.Integer },
-            { name: "authSeqNumber", type: QueryParamType.Integer }
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
+            CommonParameters.name,
+            CommonParameters.authName,
+            CommonParameters.insCode,
+            CommonParameters.seqNumber,
+            CommonParameters.authSeqNumber
         ]
     },
     "ambientResidues": {
@@ -85,16 +101,19 @@ exports.QueryMap = {
             return Queries.residues(id).ambientResidues(p.radius);
         },
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "asymId", type: QueryParamType.String },
-            { name: "authAsymId", type: QueryParamType.String },
-            { name: "name", type: QueryParamType.String },
-            { name: "authName", type: QueryParamType.String },
-            { name: "insCode", type: QueryParamType.String },
-            { name: "seqNumber", type: QueryParamType.Integer },
-            { name: "authSeqNumber", type: QueryParamType.Integer },
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
+            CommonParameters.name,
+            CommonParameters.authName,
+            CommonParameters.insCode,
+            CommonParameters.seqNumber,
+            CommonParameters.authSeqNumber,
             {
-                name: "radius", type: QueryParamType.Float, defaultValue: 5,
+                name: "radius",
+                type: QueryParamType.Float,
+                defaultValue: 5,
+                description: "Value in Angstroms.",
                 validation: function (v) {
                     if (v < 1 || v > 10) {
                         throw "Invalid radius for ligand interaction query (must be a value between 1 and 10).";
@@ -116,16 +135,19 @@ exports.QueryMap = {
             return Core.Structure.buildPivotGroupSymmetry(m, p.radius, Queries.residues(id).compile());
         },
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "asymId", type: QueryParamType.String },
-            { name: "authAsymId", type: QueryParamType.String },
-            { name: "name", type: QueryParamType.String },
-            { name: "authName", type: QueryParamType.String },
-            { name: "insCode", type: QueryParamType.String },
-            { name: "seqNumber", type: QueryParamType.Integer },
-            { name: "authSeqNumber", type: QueryParamType.Integer },
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
+            CommonParameters.name,
+            CommonParameters.authName,
+            CommonParameters.insCode,
+            CommonParameters.seqNumber,
+            CommonParameters.authSeqNumber,
             {
-                name: "radius", type: QueryParamType.Float, defaultValue: 5,
+                name: "radius",
+                type: QueryParamType.Float,
+                defaultValue: 5,
+                description: "Value in Angstroms.",
                 validation: function (v) {
                     if (v < 1 || v > 10) {
                         throw "Invalid radius for ligand interaction query (must be a value between 1 and 10).";
@@ -145,7 +167,10 @@ exports.QueryMap = {
         },
         queryParams: [
             {
-                name: "radius", type: QueryParamType.Float, defaultValue: 5,
+                name: "radius",
+                type: QueryParamType.Float,
+                defaultValue: 5,
+                description: "Value in Angstroms.",
                 validation: function (v) {
                     if (v < 1 || v > 50) {
                         throw "Invalid radius for symmetry mates query (must be a value between 1 and 50).";
@@ -169,7 +194,7 @@ exports.QueryMap = {
             return Core.Structure.buildAssembly(m, assembly[0]);
         },
         queryParams: [
-            { name: "id", type: QueryParamType.String, defaultValue: '1' }
+            { name: "id", type: QueryParamType.String, defaultValue: '1', description: "Corresponds to the '_pdbx_struct_assembly.id' field." }
         ],
         includedCategories: SymmetryCategories
     }
@@ -197,13 +222,13 @@ exports.QueryList = (function () {
         m.paramMap = paramMap;
     }
 })();
-function filterQueryParams(p, query) {
+function _filterQueryParams(p, paramMap, paramList) {
     var ret = {};
     for (var _i = 0, _a = Object.keys(p); _i < _a.length; _i++) {
         var key = _a[_i];
-        if (!query.paramMap.has(key))
+        if (!paramMap.has(key))
             continue;
-        var info = query.paramMap.get(key);
+        var info = paramMap.get(key);
         if (p[key] !== undefined && p[key] !== null && p[key]['length'] === 0) {
             continue;
         }
@@ -221,8 +246,8 @@ function filterQueryParams(p, query) {
         if (info.validation)
             info.validation(ret[key]);
     }
-    for (var _b = 0, _c = query.queryParams; _b < _c.length; _b++) {
-        var prm = _c[_b];
+    for (var _b = 0, paramList_1 = paramList; _b < paramList_1.length; _b++) {
+        var prm = paramList_1[_b];
         if (ret[prm.name] === undefined) {
             if (prm.required) {
                 throw "The parameter '" + prm.name + "' is required.";
@@ -232,4 +257,13 @@ function filterQueryParams(p, query) {
     }
     return ret;
 }
+function filterQueryParams(p, query) {
+    return _filterQueryParams(p, query.paramMap, query.queryParams);
+}
 exports.filterQueryParams = filterQueryParams;
+function filterCommonQueryParams(p) {
+    var r = _filterQueryParams(p, exports.CommonQueryParamsInfoMap, exports.CommonQueryParamsInfo);
+    r.atomSitesOnly = !!r.atomSitesOnly;
+    return r;
+}
+exports.filterCommonQueryParams = filterCommonQueryParams;

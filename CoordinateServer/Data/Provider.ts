@@ -4,7 +4,8 @@ import * as Molecule from './Molecule'
 import * as fs from 'fs'
 import * as zlib from 'zlib'
 
-import Cif = Core.Formats.Cif;
+import CIF = Core.Formats.CIF;
+import mmCIF = Core.Formats.Molecule.mmCIF;
 
 export enum MoleculeSource {
     File,
@@ -60,7 +61,7 @@ export function readMolecule(filename: string,
             }
 
             perf.start('parse');
-            let dict = Cif.parse(data);
+            let dict = CIF.parse(data);
 
             if (dict.error) {
                 let error = dict.error.toString();
@@ -75,7 +76,7 @@ export function readMolecule(filename: string,
             }
 
             let block = dict.result.dataBlocks[0];
-            let rawMol = Cif.mmCif.ofDataBlock(block);
+            let rawMol = mmCIF.ofDataBlock(block);
             perf.end('parse');
 
             let mol = new Molecule.Molecule(Molecule.Molecule.createKey(filename), block, rawMol);

@@ -70,14 +70,14 @@ namespace fCifCategoryWriters {
             return `${asymId} ${res.seqNumber[i]} ${res.insCode[i]}`;
         }
 
-        constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.Cif.Block) {
+        constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.CIF.Block) {
         }
     }
 
     class SourceCategoryMap {
 
         private byKey = new Map<string, number>();
-        private category: LiteMol.Core.Formats.Cif.Category = null;
+        private category: LiteMol.Core.Formats.CIF.Category = null;
 
         getValueOrDefault(id: string, columnName: string, def: string) {
             if (!this.category) return def;
@@ -661,7 +661,7 @@ namespace fCifCategoryWriters {
         '_atom_site.residue_index'
     ];
 
-    function writeAtomSitesProper(data: Core.Formats.Cif.Block, model: Core.Structure.MoleculeModel, atoms: number[], writer: CifStringWriter) {
+    function writeAtomSitesProper(data: Core.Formats.CIF.Block, model: Core.Structure.MoleculeModel, atoms: number[], writer: CifStringWriter) {
 
         let atomsCat = data.getCategory('_atom_site'),
             tokens = atomsCat.tokens,

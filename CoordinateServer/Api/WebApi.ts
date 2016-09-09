@@ -43,7 +43,8 @@ function doCifError(response: any, message: string,
     let wcfg = new CifWriters.CifWriterConfig();
     wcfg.commonParams = {
         atomSitesOnly: !!params.atomSitesOnly,
-        modelId: params.modelId
+        modelId: params.modelId,
+        format: params.format
     };
     wcfg.type = queryName;
     let msg = new CifWriters.DefaultCifWriter().writeError(id, message, wcfg);

@@ -17,6 +17,7 @@ export enum QueryParamType {
 export interface QueryParamInfo {
     name: string;
     type: QueryParamType;
+    description?: string;
     required?: boolean;
     defaultValue?: any;
     validation?: (v: any) => void;
@@ -72,12 +73,35 @@ const SymmetryCategories = [
 export interface CommonQueryParams {
     atomSitesOnly: boolean;
     modelId: string;
+    format: string;
 }
 
 export const CommonQueryParamsInfo: QueryParamInfo[] = [
-    { name: "modelId", type: QueryParamType.String },
-    { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0 },
+    { name: "modelId", type: QueryParamType.String, description: "If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field." },
+    { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
+    { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF - text, mmfBCIF - binary)." },
 ];
+
+export const CommonQueryParamsInfoMap = (function () {
+    let map = new Map<string, QueryParamInfo>();
+    CommonQueryParamsInfo.forEach(i => map.set(i.name, i));
+    return map;
+})();
+
+const CommonParameters = {
+    entityId: <QueryParamInfo>{ name: "entityId", type: QueryParamType.String, description: "Corresponds to the '_entity.id' or '*.label_entity_id' field, depending on the context." },
+
+    asymId: <QueryParamInfo>{ name: "asymId", type: QueryParamType.String, description: "Corresponds to the '_atom_site.label_asym_id' field." },
+    authAsymId: <QueryParamInfo>{ name: "authAsymId", type: QueryParamType.String, description: "Corresponds to the '_atom_site.auth_asym_id' field." },
+
+    name: <QueryParamInfo>{ name: "name", type: QueryParamType.String, description: "Residue name. Corresponds to the '_atom_site.label_comp_id' field." },
+    authName: <QueryParamInfo>{ name: "authName", type: QueryParamType.String, description: "Author residue name. Corresponds to the '_atom_site.auth_comp_id' field." },
+
+    insCode: <QueryParamInfo>{ name: "insCode", type: QueryParamType.String, description: "Corresponds to the '_atom_site.pdbx_PDB_ins_code' field." },
+
+    seqNumber: <QueryParamInfo>{ name: "seqNumber", type: QueryParamType.Integer, description: "Residue seq. number. Corresponds to the '_atom_site.label_seq_id' field." },
+    authSeqNumber: <QueryParamInfo>{ name: "authSeqNumber", type: QueryParamType.Integer, description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
+};
 
 export const QueryMap: { [id: string]: ApiQueryDescription } = {
     "het": { query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
@@ -89,31 +113,31 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
         description: "Entities that satisfy the given parameters.",
         query: p => Queries.entities(p),
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "type", type: QueryParamType.String }
+            CommonParameters.entityId,
+            { name: "type", type: QueryParamType.String, description: "Corresponds to the '_entity.type' field (polymer / non-polymer / water)." }
         ]
     },
     "chains": {
         description: "Chains that satisfy the given parameters.",
         query: p => Queries.chains(p),
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "asymId", type: QueryParamType.String },
-            { name: "authAsymId", type: QueryParamType.String }
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
         ]
     },
     "residues": {
         description: "Residues that satisfy the given parameters.",
         query: p => Queries.residues(p),
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "asymId", type: QueryParamType.String },
-            { name: "authAsymId", type: QueryParamType.String },
-            { name: "name", type: QueryParamType.String },
-            { name: "authName", type: QueryParamType.String },
-            { name: "insCode", type: QueryParamType.String },
-            { name: "seqNumber", type: QueryParamType.Integer },
-            { name: "authSeqNumber", type: QueryParamType.Integer }
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
+            CommonParameters.name,
+            CommonParameters.authName,
+            CommonParameters.insCode,
+            CommonParameters.seqNumber,
+            CommonParameters.authSeqNumber
         ]
     },
     "ambientResidues": {
@@ -124,16 +148,19 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
             return Queries.residues(id).ambientResidues(p.radius);
         },
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "asymId", type: QueryParamType.String },
-            { name: "authAsymId", type: QueryParamType.String },
-            { name: "name", type: QueryParamType.String },
-            { name: "authName", type: QueryParamType.String },
-            { name: "insCode", type: QueryParamType.String },
-            { name: "seqNumber", type: QueryParamType.Integer },
-            { name: "authSeqNumber", type: QueryParamType.Integer },
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
+            CommonParameters.name,
+            CommonParameters.authName,
+            CommonParameters.insCode,
+            CommonParameters.seqNumber,
+            CommonParameters.authSeqNumber,
             {
-                name: "radius", type: QueryParamType.Float, defaultValue: 5,
+                name: "radius",
+                type: QueryParamType.Float,
+                defaultValue: 5,
+                description: "Value in Angstroms.",
                 validation(v: any) {
                     if (v < 1 || v > 10) {
                         throw `Invalid radius for ligand interaction query (must be a value between 1 and 10).`;
@@ -157,16 +184,19 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
             return Core.Structure.buildPivotGroupSymmetry(m, p.radius, Queries.residues(id).compile());
         },
         queryParams: [
-            { name: "entityId", type: QueryParamType.String },
-            { name: "asymId", type: QueryParamType.String },
-            { name: "authAsymId", type: QueryParamType.String },
-            { name: "name", type: QueryParamType.String },
-            { name: "authName", type: QueryParamType.String },
-            { name: "insCode", type: QueryParamType.String },
-            { name: "seqNumber", type: QueryParamType.Integer },
-            { name: "authSeqNumber", type: QueryParamType.Integer },
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
+            CommonParameters.name,
+            CommonParameters.authName,
+            CommonParameters.insCode,
+            CommonParameters.seqNumber,
+            CommonParameters.authSeqNumber,
             {
-                name: "radius", type: QueryParamType.Float, defaultValue: 5,
+                name: "radius",
+                type: QueryParamType.Float,
+                defaultValue: 5,
+                description: "Value in Angstroms.",
                 validation(v: any) {
                     if (v < 1 || v > 10) {
                         throw `Invalid radius for ligand interaction query (must be a value between 1 and 10).`;
@@ -186,7 +216,10 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
         },
         queryParams: [           
             {
-                name: "radius", type: QueryParamType.Float, defaultValue: 5,
+                name: "radius",
+                type: QueryParamType.Float,
+                defaultValue: 5,
+                description: "Value in Angstroms.",
                 validation(v: any) {
                     if (v < 1 || v > 50) {
                         throw `Invalid radius for symmetry mates query (must be a value between 1 and 50).`;
@@ -211,7 +244,7 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
             return Core.Structure.buildAssembly(m, assembly[0]);
         },
         queryParams: [
-            { name: "id", type: QueryParamType.String, defaultValue: '1' }
+            { name: "id", type: QueryParamType.String, defaultValue: '1', description: "Corresponds to the '_pdbx_struct_assembly.id' field." }
         ],
         includedCategories: SymmetryCategories
     }
@@ -239,15 +272,16 @@ export const QueryList = (function () {
     }
 })();
 
-export function filterQueryParams(p: { [p: string]: string }, query: ApiQueryDescription):
+
+function _filterQueryParams(p: { [p: string]: string }, paramMap: Map<string, QueryParamInfo>, paramList: QueryParamInfo[]):
     { [p: string]: string | number | boolean } {
-        
+
     let ret: any = {};
     for (let key of Object.keys(p)) {
 
-        if (!query.paramMap.has(key)) continue;
+        if (!paramMap.has(key)) continue;
 
-        let info = query.paramMap.get(key);
+        let info = paramMap.get(key);
 
         if (p[key] !== undefined && p[key] !== null && p[key]['length'] === 0) {
             continue;
@@ -262,7 +296,7 @@ export function filterQueryParams(p: { [p: string]: string }, query: ApiQueryDes
         if (info.validation) info.validation(ret[key]);
     }
 
-    for (let prm of query.queryParams) {
+    for (let prm of paramList) {
         if (ret[prm.name] === undefined) {
             if (prm.required) {
                 throw `The parameter '${prm.name}' is required.`;
@@ -272,4 +306,15 @@ export function filterQueryParams(p: { [p: string]: string }, query: ApiQueryDes
     }
 
     return ret;
+}
+
+
+export function filterQueryParams(p: { [p: string]: string }, query: ApiQueryDescription) {
+    return _filterQueryParams(p, query.paramMap, query.queryParams);
+}
+
+export function filterCommonQueryParams(p: CommonQueryParams): CommonQueryParams {
+    let r = (<any>_filterQueryParams(p as any, CommonQueryParamsInfoMap, CommonQueryParamsInfo)) as CommonQueryParams;
+    r.atomSitesOnly = !!r.atomSitesOnly;
+    return r;
 }

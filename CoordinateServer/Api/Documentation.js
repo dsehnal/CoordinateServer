@@ -36,7 +36,14 @@ function createDocumentationHTML(appPrefix) {
             html.push("<br/>", "<ul>");
             for (var _b = 0, params_1 = params; _b < params_1.length; _b++) {
                 var p = params_1[_b];
-                html.push("<li><b>" + p.name + "</b> [ " + Queries.QueryParamType[p.type] + " ] <i>Default value:</i> " + (p.defaultValue === undefined ? 'n/a' : p.defaultValue) + " </li>");
+                html.push("<li><b>" + p.name + "</b> :: " + Queries.QueryParamType[p.type]);
+                if (p.defaultValue !== void 0) {
+                    html.push("= " + p.defaultValue + "</i>");
+                }
+                if (p.description) {
+                    html.push("<br />" + p.description + " ");
+                }
+                html.push("</li>");
             }
             html.push("</ul>");
             url = appPrefix + "/pdbid/" + id + "?" + params.map(function (p) { return p.name + "="; }).join('&');

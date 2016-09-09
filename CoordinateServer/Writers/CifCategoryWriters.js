@@ -255,27 +255,17 @@ var CifCategoryWriters;
         for (var k = 0, length_1 = residues.length; k < length_1;) {
             var residueIndex = residues[k];
             if (residueIndex >= currentStart && residueIndex < currentEnd) {
-                //console.log(`start, ${residueIndex}, ${currentStart}, ${currentEnd}`);
                 var start = residueIndex;
                 var slen = 0;
                 while (k < length_1 && currentEnd > residues[k]) {
                     k++;
                     slen++;
                 }
-                ////if (currentStructure > 0) {
-                ////    if (sStruct[currentStructure - 1].endResidueIndex === currentStart) {
-                ////        residueIndex--;
-                ////        if (residueIndex < 0) residueIndex = 0;
-                ////        slen++;
-                ////    }
-                ////}
                 k--;
                 starts[starts.length] = residueIndex;
                 ends[ends.length] = residues[k];
                 lengths[lengths.length] = slen;
                 ssIndices[ssIndices.length] = currentStructure;
-                //if (starts.length >= 3) break;
-                //console.log(currentStructure);
                 currentStructure++;
                 if (currentStructure >= struct.length)
                     break;
@@ -299,7 +289,6 @@ var CifCategoryWriters;
         return { starts: starts, ends: ends, lengths: lengths, ssIndices: ssIndices, struct: struct };
     }
     function writeHelices(content, writer) {
-        //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
         var helix = 1 /* Helix */, turn = 2 /* Turn */;
         var ssIndices = findSecondary(function (t) { return t === helix || t === turn; }, content);
         if (!ssIndices || !ssIndices.starts.length)
@@ -332,7 +321,6 @@ var CifCategoryWriters;
         writer.write('#\n');
     }
     function writeSheets(content, writer) {
-        //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
         var sheet = 3 /* Sheet */;
         var ssIndices = findSecondary(function (t) { return t === sheet; }, content);
         if (!ssIndices || !ssIndices.starts.length)
@@ -366,12 +354,9 @@ var CifCategoryWriters;
         if (!_entity_poly)
             return;
         var entityMap = new Map();
-        //let repl = /[ \t\n\r]/g;
         var poly = [];
         for (var i = 0; i < _entity_poly.rowCount; i++) {
             var eId = _entity_poly.getStringValue('_entity_poly.entity_id', i);
-            //let strand = _entity_poly.getStringValue('_entity_poly.pdbx_strand_id', i);
-            //let id = `${eId} ${strand}`;
             var e = {
                 entity_id: eId,
                 type: _entity_poly.getStringValue('_entity_poly.type', i),

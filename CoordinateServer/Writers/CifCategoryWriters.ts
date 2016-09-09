@@ -70,14 +70,14 @@ namespace CifCategoryWriters {
             return `${asymId} ${res.seqNumber[i]} ${res.insCode[i]}`;
         }
 
-        constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.Cif.Block) {
+        constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.CIF.Block) {
         }
     }
 
     class SourceCategoryMap {
 
         private byKey = new Map<string, number>();
-        private category: LiteMol.Core.Formats.Cif.Category = null;
+        private category: LiteMol.Core.Formats.CIF.Category = null;
 
         getValueOrDefault(id: string, columnName: string, def: string) {
             if (!this.category) return def;
@@ -262,7 +262,6 @@ namespace CifCategoryWriters {
 
             let residueIndex = residues[k];
             if (residueIndex >= currentStart && residueIndex < currentEnd) {
-                //console.log(`start, ${residueIndex}, ${currentStart}, ${currentEnd}`);
                 let start = residueIndex;
                 let slen = 0;
 
@@ -270,24 +269,13 @@ namespace CifCategoryWriters {
                     k++;
                     slen++;
                 }
-
-                ////if (currentStructure > 0) {
-                ////    if (sStruct[currentStructure - 1].endResidueIndex === currentStart) {
-                ////        residueIndex--;
-                ////        if (residueIndex < 0) residueIndex = 0;
-                ////        slen++;
-                ////    }
-                ////}
-
+                
                 k--;
                 starts[starts.length] = residueIndex;
                 ends[ends.length] = residues[k];
                 lengths[lengths.length] = slen;
                 ssIndices[ssIndices.length] = currentStructure;
-
-                //if (starts.length >= 3) break;
-
-                //console.log(currentStructure);
+                
                 currentStructure++;
                 if (currentStructure >= struct.length) break;
                 currentStart = struct[currentStructure].startResidueIndex;
@@ -308,10 +296,7 @@ namespace CifCategoryWriters {
         return { starts, ends, lengths, ssIndices, struct };
     }
 
-    function writeHelices(content: CifWriterContents, writer: CifStringWriter) {
-
-        //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
-
+    function writeHelices(content: CifWriterContents, writer: CifStringWriter) {        
         let helix = Core.Structure.SecondaryStructureType.Helix, turn = Core.Structure.SecondaryStructureType.Turn;
 
         let ssIndices = findSecondary(t => t === helix || t === turn, content);
@@ -353,10 +338,7 @@ namespace CifCategoryWriters {
         writer.write('#\n');
     }
 
-    function writeSheets(content: CifWriterContents, writer: CifStringWriter) {
-
-        //if (content.model.source === Core.Structure.MoleculeModelSource.Computed) return;
-
+    function writeSheets(content: CifWriterContents, writer: CifStringWriter) {        
         let sheet = Core.Structure.SecondaryStructureType.Sheet;
         let ssIndices = findSecondary(t => t === sheet, content);
         if (!ssIndices || !ssIndices.starts.length) return;
@@ -392,40 +374,6 @@ namespace CifCategoryWriters {
 
         writer.write('#\n');
     }
-
-    ////var shortResidueNames: { [name: string]: string } = {
-    ////    'ALA': 'A',
-    ////    'ARG': 'R',
-    ////    'ASN': 'N',
-    ////    'ASP': 'D',
-    ////    'CYS': 'C',
-    ////    'GLN': 'Q',
-    ////    'GLU': 'E',
-    ////    'GLY': 'G',
-    ////    'HIS': 'H',
-    ////    'ILE': 'I',
-    ////    'LEU': 'L',
-    ////    'LYS': 'K',
-    ////    'MET': 'M',
-    ////    'PHE': 'F',
-    ////    'PRO': 'P',
-    ////    'SER': 'S',
-    ////    'THR': 'T',
-    ////    'TRP': 'W',
-    ////    'TYR': 'Y',
-    ////    'VAL': 'V',
-
-    ////    'A': 'A',
-    ////    'C': 'C',
-    ////    'G': 'G',
-    ////    'T': 'T',
-    ////    'U': 'U',
-    ////    'DA': 'A',
-    ////    'DC': 'C',
-    ////    'DG': 'G',
-    ////    'DT': 'T',
-    ////    'DU': 'U',
-    ////}
     
     interface EntityPolyEntry {
         entity_id: string;
@@ -445,23 +393,19 @@ namespace CifCategoryWriters {
         if (!_entity_poly) return;
 
         let entityMap = new Map<string, EntityPolyEntry>();
-
-        //let repl = /[ \t\n\r]/g;
+        
         let poly: EntityPolyEntry[] = [];
         for (let i = 0; i < _entity_poly.rowCount; i++) {
-
             let eId = _entity_poly.getStringValue('_entity_poly.entity_id', i);
-            //let strand = _entity_poly.getStringValue('_entity_poly.pdbx_strand_id', i);
-            //let id = `${eId} ${strand}`;
 
             let e = <EntityPolyEntry>{
                 entity_id: eId,
                 type: _entity_poly.getStringValue('_entity_poly.type', i),
                 nstd_linkage: _entity_poly.getStringValue('_entity_poly.nstd_linkage', i),
                 nstd_monomer: _entity_poly.getStringValue('_entity_poly.nstd_monomer', i),
-                pdbx_seq_one_letter_code: _entity_poly.getStringValue('_entity_poly.pdbx_seq_one_letter_code', i), //.replace(repl, ''),
-                pdbx_seq_one_letter_code_can: _entity_poly.getStringValue('_entity_poly.pdbx_seq_one_letter_code_can', i), //.replace(repl, ''),
-                pdbx_strand_id: '', //_entity_poly.getStringValue('_entity_poly.pdbx_strand_id', i)
+                pdbx_seq_one_letter_code: _entity_poly.getStringValue('_entity_poly.pdbx_seq_one_letter_code', i),
+                pdbx_seq_one_letter_code_can: _entity_poly.getStringValue('_entity_poly.pdbx_seq_one_letter_code_can', i),
+                pdbx_strand_id: '', 
                 strand_set: new Set<string>()
             };
 
@@ -486,58 +430,6 @@ namespace CifCategoryWriters {
             else e.pdbx_strand_id += ',' + asymId;
 
             e.strand_set.add(asymId);
-
-            //let parentAsymId = asymId;
-            //if (chains.sourceChainIndex && content.model.parent) parentAsymId = content.model.parent.chains.authAsymId[chains.sourceChainIndex[chain]];
-
-            ////let info = entityMap.get(`${eId} ${parentAsymId}`);
-
-            ////if (!info /* || content.model.entities.entityType[chains.entityIndex[chain]] !== Core.Structure.EntityType.Polymer */) {
-            ////    continue;
-            ////}
-            
-            ////let len = 0, len_can = 0;
-            ////let seq = new StringWriter(); 
-            ////let seq_can = new StringWriter(); 
-
-            ////for (let res of content.fragment.residueIndices) {
-            ////    if (residues.chainIndex[res] !== chain) continue;
-
-            ////    let name = residues.name[res];
-
-
-            ////    if (modRes.names.has(name)) {
-            ////        let e = modRes.map.get(content.getSourceResidueStringId(res));
-            ////        if (e) name = e.original;
-            ////    }
-
-            ////    let shortName = shortResidueNames[name];
-
-            ////    if (shortName) {
-            ////        seq.write(shortName);
-            ////        len++;
-            ////        seq_can.write(shortName);
-            ////        len_can++;
-            ////    } else {
-            ////        seq_can.write(name === 'HOH' || name === 'SOL' || name === 'WTR' ? 'O' : 'X');
-            ////        len_can++;
-            ////    }
-                
-            ////    if (len > 0 && len % 80 === 0) seq.newline();
-            ////    if (len_can > 0 && len_can % 80 === 0) seq_can.newline();
-            ////}
-
-            ////if (len > 0 || len_can > 0) {
-            ////    poly.push({
-            ////        entity_id: eId,
-            ////        type: info ? info.type : '?',
-            ////        nstd_linkage: info ? info.nstd_linkage : '?',
-            ////        nstd_monomer: info ? info.nstd_monomer : '?',
-            ////        pdbx_seq_one_letter_code: seq.asString(),
-            ////        pdbx_seq_one_letter_code_can: seq_can.asString(),
-            ////        pdbx_strand_id: asymId
-            ////    });
-            ////}
         }
 
         poly = poly.filter(e => e.pdbx_strand_id.length > 0)
@@ -673,7 +565,7 @@ namespace CifCategoryWriters {
         constructor(private w: CifStringWriter, private i: number, private data: string, private tokens: number[]) { }
     }
 
-    function copyAtomSites(data: Core.Formats.Cif.Block, model: Core.Structure.MoleculeModel, atoms: number[], writer: CifStringWriter) {
+    function copyAtomSites(data: Core.Formats.CIF.Block, model: Core.Structure.MoleculeModel, atoms: number[], writer: CifStringWriter) {
         
         let atomsCat = data.getCategory('_atom_site'),
             tokens = atomsCat.tokens,
@@ -693,7 +585,7 @@ namespace CifCategoryWriters {
         }
     }
 
-    function writeAtomSitesProper(data: Core.Formats.Cif.Block, model: Core.Structure.MoleculeModel, atoms: number[], writer: CifStringWriter) {
+    function writeAtomSitesProper(data: Core.Formats.CIF.Block, model: Core.Structure.MoleculeModel, atoms: number[], writer: CifStringWriter) {
 
         let atomsCat = data.getCategory('_atom_site'),
             tokens = atomsCat.tokens,

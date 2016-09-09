@@ -9,8 +9,11 @@ var config = {
     // enable/disable multicore support using cluster library
     useCluster: false,
     appPrefix: '/CoordinateServer',
+    //mapPdbIdToFilename(id: string) {
+    //    return `E:/databases/PDB/updated/${id}.cif`;
+    //}
     mapPdbIdToFilename: function (id) {
-        return "E:/databases/PDB/updated/" + id + ".cif";
+        return "e:/test/quick/" + id + "_updated.cif";
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });

@@ -32,10 +32,13 @@ export function executeQuery(
 
     let description = query.description;
 
-    let commonParams = {
-        atomSitesOnly: !!parameters.atomSitesOnly,
-        modelId: parameters.modelId
-    };
+    let commonParams = Queries.filterCommonQueryParams(parameters);
+
+    //    {
+    //    atomSitesOnly: !!parameters.atomSitesOnly,
+    //    modelId: parameters.modelId,
+    //    format: parameters.format
+    //};
 
     serverConfig.commonParams = commonParams;
     serverConfig.includedCategories = description.includedCategories ? description.includedCategories : Queries.DefaultCategories;

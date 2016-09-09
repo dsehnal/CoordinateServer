@@ -1,18 +1,18 @@
 /*
-* Copyright (c) 2016 David Sehnal
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
+ * Copyright (c) 2016 David Sehnal
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 "use strict";
 var Core = require('LiteMol-core');
 var CifStringWriter_1 = require('./CifStringWriter');
@@ -50,8 +50,9 @@ var DefaultCifWriter = (function () {
             var p = params_1[_i];
             prms.push(p);
         }
-        prms.push({ name: 'atomSitesOnly', value: common.atomSitesOnly ? '1' : undefined });
+        prms.push({ name: 'atomSitesOnly', value: common.atomSitesOnly ? '1' : '0' });
         prms.push({ name: 'modelId', value: common.modelId });
+        prms.push({ name: 'format', value: common.format });
         var ctx = prms;
         var fields = [
             { name: '_coordinate_server_query_params.name', src: function (ctx, i) { return ctx[i].name; } },
@@ -73,8 +74,6 @@ var DefaultCifWriter = (function () {
         writer.newline();
         writer.write("_coordinate_server_result.has_error          " + (hasError ? 'yes' : 'no'));
         writer.newline();
-        //writer.write(`_coordinate_server_result.atom_sites_only    ${config.commonParams.atomSitesOnly ? 'yes' : 'no'}`); writer.newline();
-        //writer.write(`_coordinate_server_result.model_id           `); writer.writeChecked(config.commonParams.modelId ? config.commonParams.modelId : undefined); writer.newline();
         writer.write("_coordinate_server_result.api_version        " + Version_1.default);
         writer.newline();
         writer.write("_coordinate_server_result.core_version       " + Core.VERSION.number);
