@@ -15,29 +15,26 @@
  */
 
 import * as Core from 'LiteMol-core'
-import * as CifWriters from '../Writers/CifWriter'
+import * as WriterContext from '../Writers/Context'
 import * as Molecule from '../Data/Molecule'
 
-import { ApiQuery, CommonQueryParams } from './Queries'
+import { ApiQuery, FilteredQueryParams } from './Queries'
 
 import Logger from '../Utils/Logger';
 
 import Queries = Core.Structure.Query;
 
-export class CoordinateServerConfig {
-    commonParams: CommonQueryParams;
-    includedCategories: string[];
-    useFCif = false;
-    writer: CifWriters.ICifWriter;
+export interface CoordinateServerConfig {
+    params: FilteredQueryParams,
+    includedCategories: string[],
+    writer: WriterContext.Writer
 }
 
 export interface CoordinateServerResult {
     error?: string;
-    errorCif?: string;
 
     timeQuery?: number;
-    timeSerialize?: number;
-    data?: { writeTo: (stream: { write: (str: string) => boolean }) => void };
+    timeFormat?: number;
 }
 
 export class CoordinateServer {
@@ -47,27 +44,30 @@ export class CoordinateServer {
         molecule: Molecule.Molecule,
 
         query: ApiQuery,
-        queryParams: any,
+        queryParams: FilteredQueryParams,
+
+        formatter: WriterContext.Formatter,
 
         config: CoordinateServerConfig,
         next: (result: CoordinateServerResult) => void) {
         
         let perf = new Core.Utils.PerformanceMonitor();
-        let writerConfig = new CifWriters.CifWriterConfig();
-        writerConfig.type = query.name;
-        writerConfig.params = Object.keys(queryParams).map(p => ({ name: p, value: queryParams[p] }));
-        writerConfig.commonParams = config.commonParams;
-        writerConfig.includedCategories = config.includedCategories;
-        writerConfig.useFCif = config.useFCif;
 
+        let formatConfig: WriterContext.FormatConfig = {
+            queryType: query.name,
+            data: molecule.cif,
+            includedCategories: config.includedCategories,
+            params: queryParams
+        };
+        
         try {
 
-            let models: CifWriters.IWritableFragments[] = [];
+            let models: WriterContext.WritableFragments[] = [];
 
             perf.start('query')
             let found = 0;
-            let singleModel = !!config.commonParams.modelId;
-            let singleModelId = config.commonParams.modelId;
+            let singleModel = !!queryParams.common.modelId;
+            let singleModelId = queryParams.common.modelId;
             let foundModel = false;
             for (var modelWrap of molecule.models) {
 
@@ -79,11 +79,11 @@ export class CoordinateServer {
 
                 if (query.description.modelTransform) {
                     let transformed = query.description.modelTransform(queryParams, model);
-                    let compiled = query.description.query(queryParams, model, transformed).compile();
+                    let compiled = query.description.query(queryParams.query, model, transformed).compile();
                     fragments = compiled(transformed.queryContext);
                     model = transformed;
                 } else {
-                    let compiled = query.description.query(queryParams, model, model).compile();
+                    let compiled = query.description.query(queryParams.query, model, model).compile();
                     fragments = compiled(model.queryContext);
                 }
                 
@@ -98,26 +98,23 @@ export class CoordinateServer {
                 let err = `Model with id '${singleModelId}' was not found.`;
                 next({
                     error: err,
-                    errorCif: config.writer.writeError(molecule.molecule.id, err, writerConfig)
                 });
                 return;
             }
 
             Logger.log(`${reqId}: Found ${found} fragment(s).`)
 
-            perf.start('serialize');
-            let data = config.writer.writeFragment(molecule.cif, models, writerConfig);
-            perf.end('serialize');
+            perf.start('format');
+            formatter(config.writer, formatConfig, models);
+            perf.end('format');
 
             next({
-                data,
                 timeQuery: perf.time('query'),
-                timeSerialize: perf.time('serialize')
+                timeFormat: perf.time('format')
             });
         } catch (e) {
             next({
                 error: '' + e,
-                errorCif: config.writer.writeError(molecule.molecule.id, '' + e, writerConfig)
             });
         }
     }

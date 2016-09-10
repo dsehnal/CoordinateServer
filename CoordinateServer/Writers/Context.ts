@@ -15,142 +15,172 @@
  */
 
 import * as Core from 'LiteMol-core'
-import CifStringWriter from './CifStringWriter'
-import BCifDataWriter from './BCifDataWriter'
+import { FilteredQueryParams } from '../Api/Queries'
+import ApiVersion from '../Api/Version'
+import CifWriter from './CifWriter'
+import BCifWriter from './BCifWriter'
+import * as Provider from '../Data/Provider'
+import * as mmCif from './Formats/mmCif'
 
-export interface FieldDesc<T> {
+export interface FieldDesc<Data> {
     name: string,
-    string?: (ctx: T, i: number) => string,
-    number?: (ctx: T, i: number) => number,
+    string?: (data: Data, i: number) => string,
+    number?: (data: Data, i: number) => number,
     typedArray?: any,
-    encoder: (data: any) => Core.Formats.BinaryCIF.Encoder
+    encoder?: Core.Formats.BinaryCIF.Encoder
 }
 
-export interface CategoryDesc<T> {
+export interface CategoryDesc<Data> {
     name: string, 
-    fields: FieldDesc<T>[]
+    fields: FieldDesc<Data>[]
 }
 
-export type CategoryInstance = { data: any, count: number, desc: CategoryDesc<any> }
-export type CategoryProvider = (context: WriterContext) => CategoryInstance
+export type CategoryInstance<Data> = { data?: any, count?: number, desc: CategoryDesc<Data> }
+export type CategoryProvider = (ctx: Context) => CategoryInstance<any>
 
-export class WriterContext {
-    get isComplete() {
-        return this.model.source === Core.Structure.MoleculeModelSource.File
-            ? this.fragment.atomCount === this.model.atoms.count
-            : false;
-    }
-
-    private _residueNameSet: Set<string>;
-    get residueNameSet() {
-        if (this._residueNameSet) return this._residueNameSet;
-
-        let set = new Set<string>();
-        let name = this.model.residues.name;
-        for (let i of this.fragment.residueIndices) {
-            set.add(name[i]);
-        }
-        this._residueNameSet = set;
-        return set;
-    }
-
-    private _modres: { map: Map<string, { i: number, original: string }>, names: Set<string> };
-
-    private computeModres() {
-        if (this._modres) return;
-
-
-        let map = new Map<string, { i: number, original: string }>();
-        let names = new Set<string>();
-        this._modres = { map, names };
-
-        let _mod_res = this.data.getCategory('_pdbx_struct_mod_residue');
-        if (!_mod_res) return map;
-
-
-        for (let i = 0; i < _mod_res.rowCount; i++) {
-            let key = `${_mod_res.getStringValue('_pdbx_struct_mod_residue.label_asym_id', i)} ${_mod_res.getStringValue('_pdbx_struct_mod_residue.label_seq_id', i)} ${_mod_res.getStringValue('_pdbx_struct_mod_residue.PDB_ins_code', i)}`;
-            map.set(key, { i, original: _mod_res.getStringValue('_pdbx_struct_mod_residue.parent_comp_id', i) });
-            names.add(_mod_res.getStringValue('_pdbx_struct_mod_residue.label_comp_id', i));
-        }
-    }
-
-    get modifiedResidues() {
-        this.computeModres();
-        return this._modres;
-    }
-
-    getSourceResidueStringId(i: number) {
-        let res = this.model.residues, chains = this.model.chains, asymId: string;
-        if (chains.sourceChainIndex) {
-            let parent = this.model.parent;
-            if (parent) {
-                asymId = parent.chains.asymId[chains.sourceChainIndex[res.chainIndex[i]]];
-            } else {
-                asymId = res.asymId[i];
-            }
-        } else {
-            asymId = res.asymId[i];
-        }
-        return `${asymId} ${res.seqNumber[i]} ${res.insCode[i]}`;
-    }
-
-    constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.CIF.Block) {
-    }
+export interface Context {
+    fragment: Core.Structure.Query.Fragment,
+    model: Core.Structure.MoleculeModel,
+    data: Core.Formats.CIF.Block
 }
 
-function isMultiline(value: string) {
-    return !!value && value.indexOf('\n') >= 0;
+export type OutputStream = { write: (data: any) => boolean }
+
+export interface Writer {
+    writeCategory(category: CategoryProvider, context?: Context): void,
+    serialize(stream: OutputStream): void
 }
 
-function writeCifSingleRecord(category: CategoryInstance, writer: CifStringWriter) {
-    let fields = category.desc.fields;
-    let data = category.data;
-    let width = fields.reduce((w, s) => Math.max(w, s.name.length), 0) + 5;
+export type Formatter = (writer: Writer, config: FormatConfig, fs: WritableFragments[]) => void
 
-    for (let f of fields) {
-        writer.writer.writePadRight(f.name, width);
-        let val = f.string(data, 0);
-        if (isMultiline(val)) {
-            writer.writeMultiline(val);
-            writer.writer.newline();
-        } else {
-            writer.writeChecked(val);
+export interface FormatConfig {
+    queryType: string,
+    data: Core.Formats.CIF.Block,
+    params: FilteredQueryParams,
+    includedCategories: string[],
+}
+
+export interface WritableFragments {
+    model: Core.Structure.MoleculeModel;
+    fragments: Core.Structure.Query.FragmentSeq
+}
+
+import E = Core.Formats.BinaryCIF.Encoder
+export const Encoders = {
+    strings: E.by(E.stringArray),
+    coordinates: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking(2)).and(E.int16),
+    occupancy: E.by(E.fixedPoint(100)).and(E.delta).and(E.runLength).and(E.int32),
+    ids: E.by(E.delta).and(E.runLength).and(E.integerPacking(1)).and(E.int8)
+}
+
+export function createParamsCategory(params: FilteredQueryParams): CategoryProvider {
+    let prms: { name: string, value: any }[] = [];
+
+    for (let p of Object.keys(params.query)) prms.push({ name: p, value: params.query[p] });
+    prms.push({ name: 'atomSitesOnly', value: params.common.atomSitesOnly ? '1' : '0' });
+    prms.push({ name: 'modelId', value: params.common.modelId });
+    prms.push({ name: 'format', value: params.common.format });
+    prms.push({ name: 'encoding', value: params.common.encoding });
+    
+    let data = prms;
+    let fields: FieldDesc<typeof data>[] = [
+        { name: 'name', string: (data, i) => data[i].name },
+        { name: 'value', string: (data, i) => data[i].value === undefined ? '.' : '' + data[i].value },
+    ];
+
+    return () => <CategoryInstance<typeof data>>{
+        data,
+        count: data.length,
+        desc: {
+            name: '_coordinate_server_query_params',
+            fields
         }
-        writer.writer.newline();
-    }
-    writer.write('#\n');
+    };
 }
 
-function writeCifLoop(category: CategoryInstance, writer: CifStringWriter) {
-    writer.writeLine('loop_');
-    let fields = category.desc.fields;
-    let data = category.data;
-    for (let f of fields) {
-        writer.writeLine(`${category.desc.name}.${f.name}`);
-    }
-    let count = category.count;
-    for (let i = 0; i < count; i++) {
-        for (let f of fields) {
-            let val = f.string(data, i);
-            if (isMultiline(val)) {
-                writer.writeMultiline(val);
-                writer.writer.newline();
-            } else {
-                writer.writeChecked(val);
-            }
+export function createResultHeaderCategory({ isEmpty, hasError }: { isEmpty: boolean, hasError: boolean }, queryType: string = '?') {
+    let data = {
+        isEmpty,
+        hasError,
+        queryType,
+        ApiVersion,
+        CoreVersion: Core.VERSION.number
+    };
+
+    let fields: FieldDesc<typeof data>[] = [
+        { name: 'query_type', string: d => d.queryType },
+        { name: 'datetime', string: d => `${new Date().toLocaleString('en-US')}` },
+        { name: 'is_empty', string: d => d.isEmpty ? 'yes' : 'no' },
+        { name: 'has_error', string: d => d.hasError ? 'yes' : 'no' },
+        { name: 'api_version', string: d => d.ApiVersion },
+        { name: 'core_version', string: d => d.CoreVersion }
+    ];
+
+    return () => <CategoryInstance<typeof data>>{
+        data,
+        desc: {
+            name: '_coordinate_server_result',
+            fields
         }
-        writer.newline();
-    }
-    writer.write('#\n');
+    };
 }
 
-export function writeCifCategory<T>(category: CategoryProvider, context: WriterContext, writer: CifStringWriter) {
-    let data = category(context);
-    if (data.count === 0) return;
-    else if (data.count === 1) {
-        writeCifSingleRecord(data, writer);
-    } else {
-        writeCifLoop(data, writer);
+export function createErrorCategory(message: string) {  
+    let data = message;
+    let fields: FieldDesc<string>[] = [
+        { name: 'message', string: data => data }
+    ];
+
+    return () => <CategoryInstance<typeof data>>{
+        data,
+        desc: {
+            name: '_coordinate_server_error',
+            fields
+        }
+    };
+}
+
+export function createStatsCategory(molecule: Provider.MoleculeWrapper, queryTime: number, formatTime: number) {
+    let data = { cached: molecule.source === Provider.MoleculeSource.Cache ? 'yes' : 'no', io: molecule.ioTime | 0, parse: molecule.parseTime | 0, query: queryTime | 0, format: formatTime | 0 };
+    let fields: FieldDesc<typeof data>[] = [
+        { name: 'molecule_cached', string: data => data.cached },
+        { name: 'io_time_ms', string: data => `${data.io}`, number: data => data.io, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'parse_time_ms', string: data => `${data.parse}`, number: data => data.parse, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'query_time_ms', string: data => `${data.query}`, number: data => data.query, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'format_time_ms', string: data => `${data.format}`, number: data => data.format, typedArray: Int32Array, encoder: E.by(E.int32) },
+
+    ];
+
+    return () => <CategoryInstance<typeof data>>{
+        data,
+        desc: {
+            name: '_coordinate_server_stats',
+            fields
+        }
+    };
+}
+
+export function createWriter(encoding: string, header: string) {
+    let isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
+    return isBCif ? new BCifWriter(header) : new CifWriter(header);    
+}
+
+export function writeError(stream: OutputStream, encoding: string, header: string, message: string, optional?: { params?: FilteredQueryParams, queryType?: string }) {
+    let w = createWriter(encoding, header);
+    optional = optional || {};
+    let headerCat = createResultHeaderCategory({ isEmpty: true, hasError: true }, optional.queryType);
+    w.writeCategory(headerCat);
+
+    if (optional.params) {
+        let pCat = createParamsCategory(optional.params);
+        w.writeCategory(pCat);
     }
+
+    let errorCat = createErrorCategory(message);
+    w.writeCategory(errorCat);
+    w.serialize(stream);
+}
+
+export function getFormatter(format: string) {
+    return mmCif.format;
 }

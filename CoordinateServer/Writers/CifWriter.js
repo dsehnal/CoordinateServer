@@ -1,141 +1,200 @@
-/*
- * Copyright (c) 2016 David Sehnal
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
-
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 "use strict";
-var Core = require('LiteMol-core');
-var CifStringWriter_1 = require('./CifStringWriter');
-var CifCategoryWriters_1 = require('./CifCategoryWriters');
-var fCifCategoryWriters_1 = require('./fCifCategoryWriters');
-var Version_1 = require('../Api/Version');
-var CifWriterConfig = (function () {
-    function CifWriterConfig() {
-        this.includedCategories = [
-            '_entry',
-            '_entity',
-            '_struct_conf',
-            '_struct_sheet_range',
-            '_pdbx_struct_assembly',
-            '_pdbx_struct_assembly_gen',
-            '_pdbx_struct_oper_list',
-            '_cell',
-            '_symmetry',
-            '_atom_sites',
-            '_chem_comp_bond'
-        ];
-        this.useFCif = false;
-        this.type = '?';
-        this.params = [];
-    }
-    return CifWriterConfig;
-}());
-exports.CifWriterConfig = CifWriterConfig;
-var DefaultCifWriter = (function () {
-    function DefaultCifWriter() {
-    }
-    DefaultCifWriter.prototype.writeParams = function (writer, params, common) {
-        var prms = [];
-        for (var _i = 0, params_1 = params; _i < params_1.length; _i++) {
-            var p = params_1[_i];
-            prms.push(p);
-        }
-        prms.push({ name: 'atomSitesOnly', value: common.atomSitesOnly ? '1' : '0' });
-        prms.push({ name: 'modelId', value: common.modelId });
-        prms.push({ name: 'format', value: common.format });
-        var ctx = prms;
-        var fields = [
-            { name: '_coordinate_server_query_params.name', src: function (ctx, i) { return ctx[i].name; } },
-            { name: '_coordinate_server_query_params.value', src: function (ctx, i) { return ctx[i].value === undefined ? '.' : '' + ctx[i].value; } },
-        ];
-        CifCategoryWriters_1.default.writeRecords(fields, ctx, ctx.length, writer);
-        if (ctx.length > 0)
-            writer.write('#\n');
-    };
-    DefaultCifWriter.prototype.writeResultHeader = function (_a, config, writer) {
-        var isEmpty = _a.isEmpty, hasError = _a.hasError;
-        writer.write("_coordinate_server_result.query_type         ");
-        writer.writeChecked(config.type);
-        writer.newline();
-        writer.write("_coordinate_server_result.datetime           ");
-        writer.writeChecked(new Date().toLocaleString('en-US'));
-        writer.newline();
-        writer.write("_coordinate_server_result.is_empty           " + (isEmpty ? 'yes' : 'no'));
-        writer.newline();
-        writer.write("_coordinate_server_result.has_error          " + (hasError ? 'yes' : 'no'));
-        writer.newline();
-        writer.write("_coordinate_server_result.api_version        " + Version_1.default);
-        writer.newline();
-        writer.write("_coordinate_server_result.core_version       " + Core.VERSION.number);
-        writer.newline();
-        writer.write("#\n");
-    };
-    DefaultCifWriter.prototype.writeError = function (header, message, config) {
-        var writer = new CifStringWriter_1.default();
-        writer.write("data_" + (header || '').replace(/[ \n\t]/g, '').toUpperCase() + "\n#\n");
-        this.writeResultHeader({ isEmpty: true, hasError: true }, config, writer);
-        var ctx = message;
-        var fields = [
-            { name: '_coordinate_server_error.message', src: function (ctx, i) { return ctx; } }
-        ];
-        CifCategoryWriters_1.default.writeRecords(fields, ctx, 1, writer);
-        writer.write('#\n');
-        this.writeParams(writer, config.params, config.commonParams);
-        return writer.writer.asString();
-    };
-    DefaultCifWriter.prototype.writeFragment = function (data, models, config) {
-        var writer = new CifStringWriter_1.default();
-        var included = config.includedCategories;
-        writer.write("data_" + data.header + "\n#\n");
-        var isEmpty = !models || !models.length || !models.some(function (m) { return m.fragments.length > 0; });
-        this.writeResultHeader({ isEmpty: isEmpty, hasError: false }, config, writer);
-        this.writeParams(writer, config.params, config.commonParams);
-        if (isEmpty) {
-            return writer.writer;
-        }
-        var unionFragment = models[0].fragments.unionFragment();
-        if (config.useFCif) {
-            var contents = new fCifCategoryWriters_1.default.CifWriterContents(unionFragment, models[0].model, data);
-            if (!config.commonParams.atomSitesOnly) {
-                if (!included)
-                    included = data.categoryList.map(function (c) { return c.name; });
-                for (var _i = 0, included_1 = included; _i < included_1.length; _i++) {
-                    var c = included_1[_i];
-                    var w = fCifCategoryWriters_1.default.CategoryWriters[c];
-                    if (w)
-                        w(contents, writer);
-                }
-            }
-            fCifCategoryWriters_1.default.writeChainSites(contents, writer);
-            fCifCategoryWriters_1.default.writeResidueSites(contents, writer);
-            fCifCategoryWriters_1.default.writeAtomSites(models, contents, writer);
+var StringWriter_1 = require('./StringWriter');
+function isMultiline(value) {
+    return !!value && value.indexOf('\n') >= 0;
+}
+function writeCifSingleRecord(category, writer) {
+    var fields = category.desc.fields;
+    var data = category.data;
+    var width = fields.reduce(function (w, s) { return Math.max(w, s.name.length); }, 0) + category.desc.name.length + 5;
+    for (var _i = 0, fields_1 = fields; _i < fields_1.length; _i++) {
+        var f = fields_1[_i];
+        writer.writer.writePadRight(category.desc.name + "." + f.name, width);
+        var val = f.string(data, 0);
+        if (isMultiline(val)) {
+            writer.writeMultiline(val);
+            writer.writer.newline();
         }
         else {
-            var contents = new CifCategoryWriters_1.default.CifWriterContents(unionFragment, models[0].model, data);
-            if (!config.commonParams.atomSitesOnly) {
-                if (!included)
-                    included = data.categoryList.map(function (c) { return c.name; });
-                for (var _a = 0, included_2 = included; _a < included_2.length; _a++) {
-                    var c = included_2[_a];
-                    var w = CifCategoryWriters_1.default.CategoryWriters[c];
-                    if (w)
-                        w(contents, writer);
-                }
-            }
-            CifCategoryWriters_1.default.writeAtomSites(models, contents, writer);
+            writer.writeChecked(val);
         }
-        return writer.writer;
+        writer.writer.newline();
+    }
+    writer.write('#\n');
+}
+function writeCifLoop(category, writer) {
+    writer.writeLine('loop_');
+    var fields = category.desc.fields;
+    var data = category.data;
+    for (var _i = 0, fields_2 = fields; _i < fields_2.length; _i++) {
+        var f = fields_2[_i];
+        writer.writeLine(category.desc.name + "." + f.name);
+    }
+    var count = category.count;
+    for (var i = 0; i < count; i++) {
+        for (var _a = 0, fields_3 = fields; _a < fields_3.length; _a++) {
+            var f = fields_3[_a];
+            var val = f.string(data, i);
+            if (isMultiline(val)) {
+                writer.writeMultiline(val);
+                writer.writer.newline();
+            }
+            else {
+                writer.writeChecked(val);
+            }
+        }
+        writer.newline();
+    }
+    writer.write('#\n');
+}
+var CifWriter = (function () {
+    function CifWriter(header) {
+        this.writer = new CifStringWriter();
+        this.writer.write("data_" + (header || '').replace(/[ \n\t]/g, '').toUpperCase() + "\n#\n");
+    }
+    CifWriter.prototype.writeCategory = function (category, context) {
+        var data = category(context);
+        if (!data)
+            return;
+        var count = data.count === void 0 ? 1 : data.count;
+        if (count === 0)
+            return;
+        else if (count === 1) {
+            writeCifSingleRecord(data, this.writer);
+        }
+        else {
+            writeCifLoop(data, this.writer);
+        }
     };
-    return DefaultCifWriter;
+    CifWriter.prototype.serialize = function (stream) {
+        this.writer.writer.writeTo(stream);
+    };
+    return CifWriter;
 }());
-exports.DefaultCifWriter = DefaultCifWriter;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = CifWriter;
+var CifStringWriter = (function () {
+    function CifStringWriter() {
+        this.writer = new StringWriter_1.default();
+    }
+    CifStringWriter.prototype.newline = function () {
+        this.writer.newline();
+    };
+    CifStringWriter.prototype.write = function (val) {
+        this.writer.write(val);
+    };
+    CifStringWriter.prototype.writeLine = function (val) {
+        this.writer.write(val);
+        this.writer.newline();
+    };
+    CifStringWriter.prototype.writeInteger = function (val) {
+        this.writer.writeSafe('' + val + ' ');
+    };
+    /*
+     * eg writeFloat(123.2123, 100) -- 2 decim
+     */
+    CifStringWriter.prototype.writeFloat = function (val, precisionMultiplier) {
+        this.writer.writeSafe('' + Math.round(precisionMultiplier * val) / precisionMultiplier + ' ');
+    };
+    CifStringWriter.prototype.writeChecked = function (val) {
+        if (!val) {
+            this.writer.writeSafe('. ');
+            return;
+        }
+        var escape = false, escapeCharStart = '\'', escapeCharEnd = '\' ';
+        var writer = this.writer;
+        var whitespace = false;
+        var hasSingle = false;
+        var hasDouble = false;
+        for (var i = 0, _l = val.length - 1; i < _l; i++) {
+            var c = val.charCodeAt(i);
+            switch (c) {
+                case 9:
+                    whitespace = true;
+                    break; // \t
+                case 10:
+                    writer.writeSafe('\n;' + val);
+                    writer.writeSafe('\n; ');
+                    return;
+                case 32:
+                    whitespace = true;
+                    break; // ' '
+                case 34:
+                    if (hasSingle) {
+                        writer.writeSafe('\n;' + val);
+                        writer.writeSafe('\n; ');
+                        return;
+                    }
+                    hasDouble = true;
+                    escape = true;
+                    escapeCharStart = '\'';
+                    escapeCharEnd = '\' ';
+                    break;
+                case 39:
+                    if (hasDouble) {
+                        writer.writeSafe('\n;' + val);
+                        writer.writeSafe('\n; ');
+                        return;
+                    }
+                    escape = true;
+                    hasSingle = true;
+                    escapeCharStart = '"';
+                    escapeCharEnd = '" ';
+                    break;
+            }
+        }
+        if (!escape && (val.charCodeAt(0) === 59 /* ; */ || whitespace)) {
+            escapeCharStart = '\'';
+            escapeCharEnd = '\' ';
+            escape = true;
+        }
+        if (escape) {
+            writer.writeSafe(escapeCharStart + val + escapeCharEnd);
+        }
+        else {
+            writer.write(val);
+            writer.writeSafe(' ');
+        }
+    };
+    CifStringWriter.prototype.writeMultiline = function (val) {
+        this.writer.writeSafe('\n;' + val);
+        this.writer.writeSafe('\n; ');
+    };
+    CifStringWriter.prototype.writeToken = function (data, start, end) {
+        var escape = false, escapeCharStart = '\'', escapeCharEnd = '\' ';
+        var writer = this.writer;
+        for (var i = start; i < end - 1; i++) {
+            var c = data.charCodeAt(i);
+            switch (c) {
+                case 10:
+                    writer.writeSafe('\n;' + data.substring(start, end));
+                    writer.writeSafe('\n; ');
+                    return;
+                case 34:
+                    escape = true;
+                    escapeCharStart = '\'';
+                    escapeCharEnd = '\' ';
+                    break;
+                case 39:
+                    escape = true;
+                    escapeCharStart = '"';
+                    escapeCharEnd = '" ';
+                    break;
+            }
+        }
+        if (!escape && data.charCodeAt(start) === 59 /* ; */) {
+            escapeCharStart = '\'';
+            escapeCharEnd = '\' ';
+            escape = true;
+        }
+        if (escape) {
+            writer.writeSafe(escapeCharStart + data.substring(start, end));
+            writer.writeSafe(escapeCharStart);
+        }
+        else {
+            writer.write(data.substring(start, end));
+            writer.writeSafe(' ');
+        }
+    };
+    return CifStringWriter;
+}());

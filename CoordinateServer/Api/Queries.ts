@@ -29,13 +29,17 @@ export interface ApiQueryDescription {
     queryParams?: QueryParamInfo[];
     paramMap?: Map<string, QueryParamInfo>;
     modelTransform?: (params: any, m: Core.Structure.MoleculeModel) => Core.Structure.MoleculeModel;
-    writer?: CifWriters.ICifWriter;
     includedCategories?: string[];
 }
 
 export interface ApiQuery {
     name: string;
     description: ApiQueryDescription;
+}
+
+export interface FilteredQueryParams {
+    query: { [name: string]: string },
+    common: CommonQueryParams
 }
 
 export const DefaultCategories = [
@@ -74,12 +78,14 @@ export interface CommonQueryParams {
     atomSitesOnly: boolean;
     modelId: string;
     format: string;
+    encoding: string;
 }
 
 export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: "modelId", type: QueryParamType.String, description: "If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field." },
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
-    { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF - text, mmfBCIF - binary)." },
+    { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF)." },
+    { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (CIF or BCIF)." },
 ];
 
 export const CommonQueryParamsInfoMap = (function () {

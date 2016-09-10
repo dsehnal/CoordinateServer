@@ -1,23 +1,38 @@
 "use strict";
 var Queries = require('./Queries');
 var Api = require('./Api');
-var CifWriters = require('../Writers/CifWriter');
 var Molecule = require('../Data/Molecule');
 var Provider = require('../Data/Provider');
 var Cache = require('../Data/Cache');
 var Experimental = require('./ExperimentalWebApi');
 var ServerConfig_1 = require('../ServerConfig');
+var WriterContext = require('../Writers/Context');
 function makePath(p) {
     return ServerConfig_1.default.appPrefix + '/' + p;
 }
 var WebApiCache = new Cache.Cache(ServerConfig_1.default.cacheParams);
-function execute(response, query, molecule, params) {
-    Api.executeQuery(molecule, query, params, function () {
+function writeHeader(response, id, encoding) {
+    var isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
+    var ct = isBCif ? 'application/octet-stream' : 'text/plain; charset=utf-8';
+    if (isBCif) {
+        response.writeHead(200, {
+            'Content-Type': 'application/octet-stream',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'X-Requested-With',
+            'Content-Disposition': "inline; filename=\"" + (id || '').replace(/[ \n\t]/g, '').toLowerCase() + ".bcif\""
+        });
+    }
+    else {
         response.writeHead(200, {
             'Content-Type': 'text/plain; charset=utf-8',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'X-Requested-With'
         });
+    }
+}
+function execute(response, query, molecule, params) {
+    Api.executeQuery(molecule, query, params, function () {
+        writeHeader(response, molecule.molecule.molecule.id, params.encoding);
         return response;
     });
 }
@@ -26,20 +41,9 @@ function do404(response) {
     response.end();
 }
 function doCifError(response, message, id, queryName, params) {
-    response.writeHead(200, {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'X-Requested-With'
-    });
-    var wcfg = new CifWriters.CifWriterConfig();
-    wcfg.commonParams = {
-        atomSitesOnly: !!params.atomSitesOnly,
-        modelId: params.modelId,
-        format: params.format
-    };
-    wcfg.type = queryName;
-    var msg = new CifWriters.DefaultCifWriter().writeError(id, message, wcfg);
-    response.end(msg);
+    writeHeader(response, id, params.encoding);
+    WriterContext.writeError(response, params.encoding, id, message, { queryType: queryName });
+    response.end();
 }
 function mapQuery(app, query) {
     app.get(makePath(':id/' + query.name), function (req, res) {

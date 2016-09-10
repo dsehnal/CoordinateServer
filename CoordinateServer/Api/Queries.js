@@ -39,7 +39,8 @@ var SymmetryCategories = [
 exports.CommonQueryParamsInfo = [
     { name: "modelId", type: QueryParamType.String, description: "If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field." },
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
-    { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF - text, mmfBCIF - binary)." },
+    { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF)." },
+    { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (CIF or BCIF)." },
 ];
 exports.CommonQueryParamsInfoMap = (function () {
     var map = new Map();

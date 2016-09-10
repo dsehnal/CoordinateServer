@@ -57,17 +57,15 @@
     <TypeScriptCompile Include="Experimental.ts" />
     <TypeScriptCompile Include="local.ts" />
     <TypeScriptCompile Include="Utils\Logger.ts" />
-    <TypeScriptCompile Include="Writers\BCifDataWriter.ts" />
-    <TypeScriptCompile Include="Writers\CifCategoryWriters.ts" />
-    <TypeScriptCompile Include="Writers\CifStringWriter.ts" />
+    <TypeScriptCompile Include="Writers\BCifWriter.ts" />
+    <TypeScriptCompile Include="Writers\CifWriter.ts" />
     <TypeScriptCompile Include="Scripts\typings\compression.d.ts" />
     <TypeScriptCompile Include="ServerConfig.ts" />
     <TypeScriptCompile Include="Scripts\typings\es6-collections.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\express.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\node.d.ts" />
     <TypeScriptCompile Include="server.ts" />
-    <TypeScriptCompile Include="Writers\CifWriter.ts" />
-    <TypeScriptCompile Include="Writers\fCifCategoryWriters.ts" />
+    <TypeScriptCompile Include="Writers\Formats\mmCif.ts" />
     <TypeScriptCompile Include="Writers\StringWriter.ts">
       <SubType>Code</SubType>
       <TestFramework>ExportRunner</TestFramework>
@@ -81,8 +79,7 @@
     <Folder Include="Utils\" />
     <Folder Include="Writers\" />
     <Folder Include="Scripts\typings\" />
-    <Folder Include="Writers\Cif\" />
-    <Folder Include="Writers\BCif\" />
+    <Folder Include="Writers\Formats\" />
   </ItemGroup>
   <!-- Do not delete the following Import Project.  While this appears to do nothing it is a marker for setting TypeScript properties before our import that depends on them. -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Any CPU'">

@@ -1,149 +1,136 @@
 /*
- * Copyright (c) 2016 David Sehnal
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
+* Copyright (c) 2016 David Sehnal
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 "use strict";
 var Core = require('LiteMol-core');
-var WriterContext = (function () {
-    function WriterContext(fragment, model, data) {
-        this.fragment = fragment;
-        this.model = model;
-        this.data = data;
+var Version_1 = require('../Api/Version');
+var CifWriter_1 = require('./CifWriter');
+var BCifWriter_1 = require('./BCifWriter');
+var Provider = require('../Data/Provider');
+var mmCif = require('./Formats/mmCif');
+var E = Core.Formats.BinaryCIF.Encoder;
+exports.Encoders = {
+    strings: E.by(E.stringArray),
+    coordinates: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking(2)).and(E.int16),
+    occupancy: E.by(E.fixedPoint(100)).and(E.delta).and(E.runLength).and(E.int32),
+    ids: E.by(E.delta).and(E.runLength).and(E.integerPacking(1)).and(E.int8)
+};
+function createParamsCategory(params) {
+    var prms = [];
+    for (var _i = 0, _a = Object.keys(params.query); _i < _a.length; _i++) {
+        var p = _a[_i];
+        prms.push({ name: p, value: params.query[p] });
     }
-    Object.defineProperty(WriterContext.prototype, "isComplete", {
-        get: function () {
-            return this.model.source === Core.Structure.MoleculeModelSource.File
-                ? this.fragment.atomCount === this.model.atoms.count
-                : false;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(WriterContext.prototype, "residueNameSet", {
-        get: function () {
-            if (this._residueNameSet)
-                return this._residueNameSet;
-            var set = new Set();
-            var name = this.model.residues.name;
-            for (var _i = 0, _a = this.fragment.residueIndices; _i < _a.length; _i++) {
-                var i = _a[_i];
-                set.add(name[i]);
-            }
-            this._residueNameSet = set;
-            return set;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    WriterContext.prototype.computeModres = function () {
-        if (this._modres)
-            return;
-        var map = new Map();
-        var names = new Set();
-        this._modres = { map: map, names: names };
-        var _mod_res = this.data.getCategory('_pdbx_struct_mod_residue');
-        if (!_mod_res)
-            return map;
-        for (var i = 0; i < _mod_res.rowCount; i++) {
-            var key = _mod_res.getStringValue('_pdbx_struct_mod_residue.label_asym_id', i) + " " + _mod_res.getStringValue('_pdbx_struct_mod_residue.label_seq_id', i) + " " + _mod_res.getStringValue('_pdbx_struct_mod_residue.PDB_ins_code', i);
-            map.set(key, { i: i, original: _mod_res.getStringValue('_pdbx_struct_mod_residue.parent_comp_id', i) });
-            names.add(_mod_res.getStringValue('_pdbx_struct_mod_residue.label_comp_id', i));
+    prms.push({ name: 'atomSitesOnly', value: params.common.atomSitesOnly ? '1' : '0' });
+    prms.push({ name: 'modelId', value: params.common.modelId });
+    prms.push({ name: 'format', value: params.common.format });
+    prms.push({ name: 'encoding', value: params.common.encoding });
+    var data = prms;
+    var fields = [
+        { name: 'name', string: function (data, i) { return data[i].name; } },
+        { name: 'value', string: function (data, i) { return data[i].value === undefined ? '.' : '' + data[i].value; } },
+    ];
+    return function () { return {
+        data: data,
+        count: data.length,
+        desc: {
+            name: '_coordinate_server_query_params',
+            fields: fields
         }
+    }; };
+}
+exports.createParamsCategory = createParamsCategory;
+function createResultHeaderCategory(_a, queryType) {
+    var isEmpty = _a.isEmpty, hasError = _a.hasError;
+    if (queryType === void 0) { queryType = '?'; }
+    var data = {
+        isEmpty: isEmpty,
+        hasError: hasError,
+        queryType: queryType,
+        ApiVersion: Version_1.default,
+        CoreVersion: Core.VERSION.number
     };
-    Object.defineProperty(WriterContext.prototype, "modifiedResidues", {
-        get: function () {
-            this.computeModres();
-            return this._modres;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    WriterContext.prototype.getSourceResidueStringId = function (i) {
-        var res = this.model.residues, chains = this.model.chains, asymId;
-        if (chains.sourceChainIndex) {
-            var parent_1 = this.model.parent;
-            if (parent_1) {
-                asymId = parent_1.chains.asymId[chains.sourceChainIndex[res.chainIndex[i]]];
-            }
-            else {
-                asymId = res.asymId[i];
-            }
+    var fields = [
+        { name: 'query_type', string: function (d) { return d.queryType; } },
+        { name: 'datetime', string: function (d) { return ("" + new Date().toLocaleString('en-US')); } },
+        { name: 'is_empty', string: function (d) { return d.isEmpty ? 'yes' : 'no'; } },
+        { name: 'has_error', string: function (d) { return d.hasError ? 'yes' : 'no'; } },
+        { name: 'api_version', string: function (d) { return d.ApiVersion; } },
+        { name: 'core_version', string: function (d) { return d.CoreVersion; } }
+    ];
+    return function () { return {
+        data: data,
+        desc: {
+            name: '_coordinate_server_result',
+            fields: fields
         }
-        else {
-            asymId = res.asymId[i];
-        }
-        return asymId + " " + res.seqNumber[i] + " " + res.insCode[i];
-    };
-    return WriterContext;
-}());
-exports.WriterContext = WriterContext;
-function isMultiline(value) {
-    return !!value && value.indexOf('\n') >= 0;
+    }; };
 }
-function writeCifSingleRecord(category, writer) {
-    var fields = category.desc.fields;
-    var data = category.data;
-    var width = fields.reduce(function (w, s) { return Math.max(w, s.name.length); }, 0) + 5;
-    for (var _i = 0, fields_1 = fields; _i < fields_1.length; _i++) {
-        var f = fields_1[_i];
-        writer.writer.writePadRight(f.name, width);
-        var val = f.string(data, 0);
-        if (isMultiline(val)) {
-            writer.writeMultiline(val);
-            writer.writer.newline();
+exports.createResultHeaderCategory = createResultHeaderCategory;
+function createErrorCategory(message) {
+    var data = message;
+    var fields = [
+        { name: 'message', string: function (data) { return data; } }
+    ];
+    return function () { return {
+        data: data,
+        desc: {
+            name: '_coordinate_server_error',
+            fields: fields
         }
-        else {
-            writer.writeChecked(val);
+    }; };
+}
+exports.createErrorCategory = createErrorCategory;
+function createStatsCategory(molecule, queryTime, formatTime) {
+    var data = { cached: molecule.source === Provider.MoleculeSource.Cache ? 'yes' : 'no', io: molecule.ioTime | 0, parse: molecule.parseTime | 0, query: queryTime | 0, format: formatTime | 0 };
+    var fields = [
+        { name: 'molecule_cached', string: function (data) { return data.cached; } },
+        { name: 'io_time_ms', string: function (data) { return ("" + data.io); }, number: function (data) { return data.io; }, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'parse_time_ms', string: function (data) { return ("" + data.parse); }, number: function (data) { return data.parse; }, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'query_time_ms', string: function (data) { return ("" + data.query); }, number: function (data) { return data.query; }, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'format_time_ms', string: function (data) { return ("" + data.format); }, number: function (data) { return data.format; }, typedArray: Int32Array, encoder: E.by(E.int32) },
+    ];
+    return function () { return {
+        data: data,
+        desc: {
+            name: '_coordinate_server_stats',
+            fields: fields
         }
-        writer.writer.newline();
-    }
-    writer.write('#\n');
+    }; };
 }
-function writeCifLoop(category, writer) {
-    writer.writeLine('loop_');
-    var fields = category.desc.fields;
-    var data = category.data;
-    for (var _i = 0, fields_2 = fields; _i < fields_2.length; _i++) {
-        var f = fields_2[_i];
-        writer.writeLine(category.desc.name + "." + f.name);
-    }
-    var count = category.count;
-    for (var i = 0; i < count; i++) {
-        for (var _a = 0, fields_3 = fields; _a < fields_3.length; _a++) {
-            var f = fields_3[_a];
-            var val = f.string(data, i);
-            if (isMultiline(val)) {
-                writer.writeMultiline(val);
-                writer.writer.newline();
-            }
-            else {
-                writer.writeChecked(val);
-            }
-        }
-        writer.newline();
-    }
-    writer.write('#\n');
+exports.createStatsCategory = createStatsCategory;
+function createWriter(encoding, header) {
+    var isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
+    return isBCif ? new BCifWriter_1.default(header) : new CifWriter_1.default(header);
 }
-function writeCifCategory(category, context, writer) {
-    var data = category(context);
-    if (data.count === 0)
-        return;
-    else if (data.count === 1) {
-        writeCifSingleRecord(data, writer);
+exports.createWriter = createWriter;
+function writeError(stream, encoding, header, message, optional) {
+    var w = createWriter(encoding, header);
+    optional = optional || {};
+    var headerCat = createResultHeaderCategory({ isEmpty: true, hasError: true }, optional.queryType);
+    w.writeCategory(headerCat);
+    if (optional.params) {
+        var pCat = createParamsCategory(optional.params);
+        w.writeCategory(pCat);
     }
-    else {
-        writeCifLoop(data, writer);
-    }
+    var errorCat = createErrorCategory(message);
+    w.writeCategory(errorCat);
+    w.serialize(stream);
 }
-exports.writeCifCategory = writeCifCategory;
+exports.writeError = writeError;
+function getFormatter(format) {
+    return mmCif.format;
+}
+exports.getFormatter = getFormatter;
