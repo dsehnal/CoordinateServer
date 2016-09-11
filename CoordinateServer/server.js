@@ -25,7 +25,7 @@ var Documentation = require('./Api/Documentation');
 var port = process.env.port || ServerConfig_1.default.defaultPort;
 function startServer() {
     var app = express();
-    app.use(compression({ level: 1, memLevel: 9, chunkSize: 16 * 16384 }));
+    app.use(compression({ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: function () { return true; } }));
     app.get(ServerConfig_1.default.appPrefix + '/documentation', function (req, res) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.write(Documentation.getHTMLDocs(ServerConfig_1.default.appPrefix));

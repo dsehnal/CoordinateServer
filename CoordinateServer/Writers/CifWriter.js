@@ -22,28 +22,32 @@ function writeCifSingleRecord(category, writer) {
     }
     writer.write('#\n');
 }
-function writeCifLoop(category, writer) {
+function writeCifLoop(categories, writer) {
     writer.writeLine('loop_');
-    var fields = category.desc.fields;
-    var data = category.data;
+    var first = categories[0];
+    var fields = first.desc.fields;
     for (var _i = 0, fields_2 = fields; _i < fields_2.length; _i++) {
         var f = fields_2[_i];
-        writer.writeLine(category.desc.name + "." + f.name);
+        writer.writeLine(first.desc.name + "." + f.name);
     }
-    var count = category.count;
-    for (var i = 0; i < count; i++) {
-        for (var _a = 0, fields_3 = fields; _a < fields_3.length; _a++) {
-            var f = fields_3[_a];
-            var val = f.string(data, i);
-            if (isMultiline(val)) {
-                writer.writeMultiline(val);
-                writer.writer.newline();
+    for (var _a = 0, categories_1 = categories; _a < categories_1.length; _a++) {
+        var category = categories_1[_a];
+        var data = category.data;
+        var count = category.count;
+        for (var i = 0; i < count; i++) {
+            for (var _b = 0, fields_3 = fields; _b < fields_3.length; _b++) {
+                var f = fields_3[_b];
+                var val = f.string(data, i);
+                if (isMultiline(val)) {
+                    writer.writeMultiline(val);
+                    writer.writer.newline();
+                }
+                else {
+                    writer.writeChecked(val);
+                }
             }
-            else {
-                writer.writeChecked(val);
-            }
+            writer.newline();
         }
-        writer.newline();
     }
     writer.write('#\n');
 }
@@ -52,15 +56,16 @@ var CifWriter = (function () {
         this.writer = new CifStringWriter();
         this.writer.write("data_" + (header || '').replace(/[ \n\t]/g, '').toUpperCase() + "\n#\n");
     }
-    CifWriter.prototype.writeCategory = function (category, context) {
-        var data = category(context);
-        if (!data)
+    CifWriter.prototype.writeCategory = function (category, contexts) {
+        var data = !contexts || !contexts.length ? [category(void 0)] : contexts.map(function (c) { return category(c); });
+        data = data.filter(function (c) { return !!c || !!(c && (c.count === void 0 ? 1 : c.count)); });
+        if (!data.length)
             return;
-        var count = data.count === void 0 ? 1 : data.count;
-        if (count === 0)
+        var count = data.reduce(function (a, c) { return a + (c.count === void 0 ? 1 : c.count); }, 0);
+        if (!count)
             return;
         else if (count === 1) {
-            writeCifSingleRecord(data, this.writer);
+            writeCifSingleRecord(data[0], this.writer);
         }
         else {
             writeCifLoop(data, this.writer);

@@ -11,7 +11,7 @@ function makePath(p) {
     return ServerConfig_1.default.appPrefix + '/' + p;
 }
 var WebApiCache = new Cache.Cache(ServerConfig_1.default.cacheParams);
-function writeHeader(response, id, encoding) {
+function writeHeader(response, id, queryType, encoding) {
     var isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
     var ct = isBCif ? 'application/octet-stream' : 'text/plain; charset=utf-8';
     if (isBCif) {
@@ -19,7 +19,7 @@ function writeHeader(response, id, encoding) {
             'Content-Type': 'application/octet-stream',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'X-Requested-With',
-            'Content-Disposition': "inline; filename=\"" + (id || '').replace(/[ \n\t]/g, '').toLowerCase() + ".bcif\""
+            'Content-Disposition': "inline; filename=\"" + (id || '').replace(/[ \n\t]/g, '').toLowerCase() + "_" + queryType + ".bcif\""
         });
     }
     else {
@@ -32,7 +32,7 @@ function writeHeader(response, id, encoding) {
 }
 function execute(response, query, molecule, params) {
     Api.executeQuery(molecule, query, params, function () {
-        writeHeader(response, molecule.molecule.molecule.id, params.encoding);
+        writeHeader(response, molecule.molecule.molecule.id, query.name, params.encoding);
         return response;
     });
 }
@@ -41,7 +41,7 @@ function do404(response) {
     response.end();
 }
 function doCifError(response, message, id, queryName, params) {
-    writeHeader(response, id, params.encoding);
+    writeHeader(response, id, queryName, params.encoding);
     WriterContext.writeError(response, params.encoding, id, message, { queryType: queryName });
     response.end();
 }

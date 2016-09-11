@@ -17,7 +17,7 @@ function makePath(p: string) {
 
 const WebApiCache = new Cache.Cache(ServerConfig.cacheParams);
 
-function writeHeader(response: any, id: string, encoding: string) {
+function writeHeader(response: any, id: string, queryType: string, encoding: string) {
     let isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
     let ct = isBCif ? 'application/octet-stream' : 'text/plain; charset=utf-8';
 
@@ -26,7 +26,7 @@ function writeHeader(response: any, id: string, encoding: string) {
             'Content-Type': 'application/octet-stream',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'X-Requested-With',
-            'Content-Disposition': `inline; filename="${(id || '').replace(/[ \n\t]/g, '').toLowerCase()}.bcif"`
+            'Content-Disposition': `inline; filename="${(id || '').replace(/[ \n\t]/g, '').toLowerCase()}_${queryType}.bcif"`
         });
     } else {
         response.writeHead(200, {
@@ -35,13 +35,12 @@ function writeHeader(response: any, id: string, encoding: string) {
             'Access-Control-Allow-Headers': 'X-Requested-With'
         });
     }
-
 }
 
 
 function execute(response: any, query: Queries.ApiQuery, molecule: Provider.MoleculeWrapper, params: any) {
     Api.executeQuery(molecule, query, params, () => {
-        writeHeader(response, molecule.molecule.molecule.id, params.encoding);
+        writeHeader(response, molecule.molecule.molecule.id, query.name, params.encoding);
         return response;
     });
 }
@@ -52,7 +51,7 @@ function do404(response: any) {
 }
 
 function doCifError(response: any, message: string, id: string, queryName: string, params: any) {
-    writeHeader(response, id, params.encoding);
+    writeHeader(response, id, queryName, params.encoding);
     WriterContext.writeError(response, params.encoding, id, message, { queryType: queryName });
     response.end();
 }

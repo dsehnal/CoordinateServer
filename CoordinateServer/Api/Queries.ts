@@ -85,7 +85,7 @@ export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: "modelId", type: QueryParamType.String, description: "If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field." },
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
     { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF)." },
-    { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (CIF or BCIF)." },
+    { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (CIF or BCIF)." }
 ];
 
 export const CommonQueryParamsInfoMap = (function () {
@@ -110,6 +110,7 @@ const CommonParameters = {
 };
 
 export const QueryMap: { [id: string]: ApiQueryDescription } = {
+    "full": { query: () => Queries.everything(), description: "The full structure." },
     "het": { query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
     "cartoon": { query: () => Queries.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET groups + water." },
     "backbone": { query: () => Queries.backbone(), description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },

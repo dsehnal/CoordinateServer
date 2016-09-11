@@ -40,7 +40,7 @@ exports.CommonQueryParamsInfo = [
     { name: "modelId", type: QueryParamType.String, description: "If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field." },
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
     { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF)." },
-    { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (CIF or BCIF)." },
+    { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (CIF or BCIF)." }
 ];
 exports.CommonQueryParamsInfoMap = (function () {
     var map = new Map();
@@ -58,6 +58,7 @@ var CommonParameters = {
     authSeqNumber: { name: "authSeqNumber", type: QueryParamType.Integer, description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
 };
 exports.QueryMap = {
+    "full": { query: function () { return Queries.everything(); }, description: "The full structure." },
     "het": { query: function () { return Queries.hetGroups(); }, description: "All non-water 'HETATM' records." },
     "cartoon": { query: function () { return Queries.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET groups + water." },
     "backbone": { query: function () { return Queries.backbone(); }, description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },

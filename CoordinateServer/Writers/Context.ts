@@ -47,7 +47,7 @@ export interface Context {
 export type OutputStream = { write: (data: any) => boolean }
 
 export interface Writer {
-    writeCategory(category: CategoryProvider, context?: Context): void,
+    writeCategory(category: CategoryProvider, contexts?: Context[]): void,
     serialize(stream: OutputStream): void
 }
 
@@ -57,7 +57,7 @@ export interface FormatConfig {
     queryType: string,
     data: Core.Formats.CIF.Block,
     params: FilteredQueryParams,
-    includedCategories: string[],
+    includedCategories: string[]
 }
 
 export interface WritableFragments {
@@ -70,7 +70,9 @@ export const Encoders = {
     strings: E.by(E.stringArray),
     coordinates: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking(2)).and(E.int16),
     occupancy: E.by(E.fixedPoint(100)).and(E.delta).and(E.runLength).and(E.int32),
-    ids: E.by(E.delta).and(E.runLength).and(E.integerPacking(1)).and(E.int8)
+    ids: E.by(E.delta).and(E.runLength).and(E.integerPacking(1)).and(E.int8),
+    int32: E.by(E.int32),
+    float64: E.by(E.float64)
 }
 
 export function createParamsCategory(params: FilteredQueryParams): CategoryProvider {
@@ -160,7 +162,7 @@ export function createStatsCategory(molecule: Provider.MoleculeWrapper, queryTim
     };
 }
 
-export function createWriter(encoding: string, header: string) {
+export function createWriter(encoding: string, header: string): Writer {
     let isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
     return isBCif ? new BCifWriter(header) : new CifWriter(header);    
 }

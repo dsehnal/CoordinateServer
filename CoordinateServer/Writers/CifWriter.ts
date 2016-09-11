@@ -24,25 +24,30 @@ function writeCifSingleRecord(category: CategoryInstance<any>, writer: CifString
     writer.write('#\n');
 }
 
-function writeCifLoop(category: CategoryInstance<any>, writer: CifStringWriter) {
+function writeCifLoop(categories: CategoryInstance<any>[], writer: CifStringWriter) {
     writer.writeLine('loop_');
-    let fields = category.desc.fields;
-    let data = category.data;
+
+    let first = categories[0];
+    let fields = first.desc.fields;
     for (let f of fields) {
-        writer.writeLine(`${category.desc.name}.${f.name}`);
+        writer.writeLine(`${first.desc.name}.${f.name}`);
     }
-    let count = category.count;
-    for (let i = 0; i < count; i++) {
-        for (let f of fields) {
-            let val = f.string(data, i);
-            if (isMultiline(val)) {
-                writer.writeMultiline(val);
-                writer.writer.newline();
-            } else {
-                writer.writeChecked(val);
+
+    for (let category of categories) {
+        let data = category.data;
+        let count = category.count;
+        for (let i = 0; i < count; i++) {
+            for (let f of fields) {
+                let val = f.string(data, i);
+                if (isMultiline(val)) {
+                    writer.writeMultiline(val);
+                    writer.writer.newline();
+                } else {
+                    writer.writeChecked(val);
+                }
             }
+            writer.newline();
         }
-        writer.newline();
     }
     writer.write('#\n');
 }
@@ -50,13 +55,15 @@ function writeCifLoop(category: CategoryInstance<any>, writer: CifStringWriter) 
 export default class CifWriter implements Writer {
     private writer = new CifStringWriter();
 
-    writeCategory(category: CategoryProvider, context?: Context) {
-        let data = category(context);
-        if (!data) return;
-        let count = data.count === void 0 ? 1 : data.count;
-        if (count === 0) return;
+    writeCategory(category: CategoryProvider, contexts?: Context[]) {
+        let data = !contexts || !contexts.length ? [category(void 0)] : contexts.map(c => category(c));
+        data = data.filter(c => !!c || !!(c && (c.count === void 0 ? 1 : c.count)));
+        if (!data.length) return;
+        let count = data.reduce((a, c) => a + (c.count === void 0 ? 1 : c.count), 0);        
+        if (!count) return;
+
         else if (count === 1) {
-            writeCifSingleRecord(data, this.writer);
+            writeCifSingleRecord(data[0], this.writer);
         } else {
             writeCifLoop(data, this.writer);
         }

@@ -31,7 +31,7 @@ let port = process.env.port || ServerConfig.defaultPort;
 
 function startServer() {
     let app = express();
-    app.use(compression(<any>{ level: 1, memLevel: 9, chunkSize: 16 * 16384 }));
+    app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
     
     app.get(ServerConfig.appPrefix + '/documentation', (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });

@@ -293,7 +293,6 @@ function _chem_comp_bond(context) {
         return;
     var data = {
         rows: rows,
-        cat: cat,
         comp_id: cat.getColumn('_chem_comp_bond.comp_id'),
         pdbx_stereo_config: cat.getColumn('_chem_comp_bond.pdbx_stereo_config'),
         pdbx_ordinal: cat.getColumn('_chem_comp_bond.pdbx_ordinal'),
@@ -305,7 +304,7 @@ function _chem_comp_bond(context) {
     var fields = [
         { name: 'comp_id', string: function (data, i) { return data.comp_id.getString(data.rows[i]); } },
         { name: 'pdbx_stereo_config', string: function (data, i) { return data.pdbx_stereo_config.getString(data.rows[i]); } },
-        { name: 'pdbx_ordinal', string: function (data, i) { return data.pdbx_ordinal.getString(data.rows[i]); }, number: function (data, i) { return data.pdbx_ordinal.getInteger(data.rows[i]); }, typedArray: Uint32Array, encoder: Context_1.Encoders.ids },
+        { name: 'pdbx_ordinal', string: function (data, i) { return data.pdbx_ordinal.getString(data.rows[i]); }, number: function (data, i) { return data.pdbx_ordinal.getInteger(data.rows[i]); }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
         { name: 'pdbx_aromatic_flag', string: function (data, i) { return data.pdbx_aromatic_flag.getString(data.rows[i]); } },
         { name: 'atom_id_1', string: function (data, i) { return data.atom_id_1.getString(data.rows[i]); } },
         { name: 'atom_id_2', string: function (data, i) { return data.atom_id_2.getString(data.rows[i]); } },
@@ -316,6 +315,200 @@ function _chem_comp_bond(context) {
         count: rows.length,
         desc: {
             name: '_chem_comp_bond',
+            fields: fields
+        }
+    };
+}
+function float64field(name, value) {
+    return { name: name, string: function (data, i) { return value(data, i).toString(); }, number: value, typedArray: Float64Array, encoder: Context_1.Encoders.float64 };
+}
+function int32field(name, value) {
+    return { name: name, string: function (data, i) { return value(data, i).toString(); }, number: value, typedArray: Int32Array, encoder: Context_1.Encoders.int32 };
+}
+function _cell(context) {
+    var cat = context.data.getCategory('_cell');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[rows.length] = i;
+    }
+    var data = {
+        rows: rows,
+        entry_id: cat.getColumn('_cell.entry_id'),
+        length_a: cat.getColumn('_cell.length_a'),
+        length_b: cat.getColumn('_cell.length_b'),
+        length_c: cat.getColumn('_cell.length_c'),
+        angle_alpha: cat.getColumn('_cell.angle_alpha'),
+        angle_beta: cat.getColumn('_cell.angle_beta'),
+        angle_gamma: cat.getColumn('_cell.angle_gamma'),
+        Z_PDB: cat.getColumn('_cell.Z_PDB'),
+        pdbx_unique_axis: cat.getColumn('_cell.pdbx_unique_axis')
+    };
+    var fields = [
+        { name: 'entry_id', string: function (data, i) { return data.entry_id.getString(data.rows[i]); } },
+        float64field('length_a', function (data, i) { return data.length_a.getFloat(data.rows[i]); }),
+        float64field('length_b', function (data, i) { return data.length_b.getFloat(data.rows[i]); }),
+        float64field('length_c', function (data, i) { return data.length_c.getFloat(data.rows[i]); }),
+        float64field('angle_alpha', function (data, i) { return data.angle_alpha.getFloat(data.rows[i]); }),
+        float64field('angle_beta', function (data, i) { return data.angle_beta.getFloat(data.rows[i]); }),
+        float64field('angle_gamma', function (data, i) { return data.angle_gamma.getFloat(data.rows[i]); }),
+        int32field('Z_PDB', function (data, i) { return data.Z_PDB.getFloat(data.rows[i]); }),
+        { name: 'pdbx_unique_axis', string: function (data, i) { return data.pdbx_unique_axis.getString(data.rows[i]); } }
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_cell',
+            fields: fields
+        }
+    };
+}
+function _symmetry(context) {
+    var cat = context.data.getCategory('_symmetry');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[rows.length] = i;
+    }
+    var data = {
+        rows: rows,
+        entry_id: cat.getColumn('_symmetry.entry_id'),
+        space_group_name_HM: cat.getColumn('_symmetry.space_group_name_H-M'),
+        pdbx_full_space_group_name_HM: cat.getColumn('_symmetry.pdbx_full_space_group_name_H-M'),
+        cell_setting: cat.getColumn('_symmetry.cell_setting'),
+        Int_Tables_number: cat.getColumn('_symmetry.Int_Tables_number'),
+        space_group_name_Hall: cat.getColumn('_symmetry.space_group_name_Hall')
+    };
+    var fields = [
+        { name: 'entry_id', string: function (data, i) { return data.entry_id.getString(data.rows[i]); } },
+        { name: 'space_group_name_H-M', string: function (data, i) { return data.space_group_name_HM.getString(data.rows[i]); } },
+        { name: 'pdbx_full_space_group_name_H-M', string: function (data, i) { return data.pdbx_full_space_group_name_HM.getString(data.rows[i]); } },
+        { name: 'cell_setting', string: function (data, i) { return data.cell_setting.getString(data.rows[i]); } },
+        { name: 'Int_Tables_number', string: function (data, i) { return data.Int_Tables_number.getString(data.rows[i]); } },
+        { name: 'space_group_name_Hall', string: function (data, i) { return data.space_group_name_Hall.getString(data.rows[i]); } },
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_symmetry',
+            fields: fields
+        }
+    };
+}
+function _pdbx_struct_assembly(context) {
+    var cat = context.data.getCategory('_pdbx_struct_assembly');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[rows.length] = i;
+    }
+    var data = {
+        rows: rows,
+        id: cat.getColumn('_pdbx_struct_assembly.id'),
+        details: cat.getColumn('_pdbx_struct_assembly.details'),
+        method_details: cat.getColumn('_pdbx_struct_assembly.method_details'),
+        oligomeric_details: cat.getColumn('_pdbx_struct_assembly.oligomeric_details'),
+        oligomeric_count: cat.getColumn('_pdbx_struct_assembly.oligomeric_count')
+    };
+    var fields = [
+        { name: 'id', string: function (data, i) { return data.id.getString(data.rows[i]); } },
+        { name: 'details', string: function (data, i) { return data.details.getString(data.rows[i]); } },
+        { name: 'method_details', string: function (data, i) { return data.method_details.getString(data.rows[i]); } },
+        { name: 'oligomeric_details', string: function (data, i) { return data.oligomeric_details.getString(data.rows[i]); } },
+        int32field('oligomeric_count', function (data, i) { return data.oligomeric_count.getInteger(data.rows[i]); })
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_pdbx_struct_assembly',
+            fields: fields
+        }
+    };
+}
+function _pdbx_struct_assembly_gen(context) {
+    var cat = context.data.getCategory('_pdbx_struct_assembly_gen');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[rows.length] = i;
+    }
+    var data = {
+        rows: rows,
+        assembly_id: cat.getColumn('_pdbx_struct_assembly_gen.assembly_id'),
+        oper_expression: cat.getColumn('_pdbx_struct_assembly_gen.oper_expression'),
+        asym_id_list: cat.getColumn('_pdbx_struct_assembly_gen.asym_id_list')
+    };
+    var fields = [
+        { name: 'assembly_id', string: function (data, i) { return data.assembly_id.getString(data.rows[i]); } },
+        { name: 'oper_expression', string: function (data, i) { return data.oper_expression.getString(data.rows[i]); } },
+        { name: 'asym_id_list', string: function (data, i) { return data.asym_id_list.getString(data.rows[i]); } }
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_pdbx_struct_assembly_gen',
+            fields: fields
+        }
+    };
+}
+function _pdbx_struct_oper_list(context) {
+    var cat = context.data.getCategory('_pdbx_struct_oper_list');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[rows.length] = i;
+    }
+    var data = {
+        rows: rows,
+        id: cat.getColumn('_pdbx_struct_oper_list.id'),
+        type: cat.getColumn('_pdbx_struct_oper_list.type'),
+        name: cat.getColumn('_pdbx_struct_oper_list.name'),
+        symmetry_operation: cat.getColumn('_pdbx_struct_oper_list.symmetry_operation'),
+        matrix11: cat.getColumn('_pdbx_struct_oper_list.matrix[1][1]'),
+        matrix12: cat.getColumn('_pdbx_struct_oper_list.matrix[1][2]'),
+        matrix13: cat.getColumn('_pdbx_struct_oper_list.matrix[1][3]'),
+        vector1: cat.getColumn('_pdbx_struct_oper_list.vector[1]'),
+        matrix21: cat.getColumn('_pdbx_struct_oper_list.matrix[2][1]'),
+        matrix22: cat.getColumn('_pdbx_struct_oper_list.matrix[2][2]'),
+        matrix23: cat.getColumn('_pdbx_struct_oper_list.matrix[2][3]'),
+        vector2: cat.getColumn('_pdbx_struct_oper_list.vector[2]'),
+        matrix31: cat.getColumn('_pdbx_struct_oper_list.matrix[3][1]'),
+        matrix32: cat.getColumn('_pdbx_struct_oper_list.matrix[3][2]'),
+        matrix33: cat.getColumn('_pdbx_struct_oper_list.matrix[3][3]'),
+        vector3: cat.getColumn('_pdbx_struct_oper_list.vector[3]')
+    };
+    var fields = [
+        { name: 'id', string: function (data, i) { return data.id.getString(data.rows[i]); } },
+        { name: 'type', string: function (data, i) { return data.type.getString(data.rows[i]); } },
+        { name: 'name', string: function (data, i) { return data.name.getString(data.rows[i]); } },
+        { name: 'symmetry_operation', string: function (data, i) { return data.symmetry_operation.getString(data.rows[i]); } },
+        float64field('matrix[1][1]', function (data, i) { return data.matrix11.getFloat(data.rows[i]); }),
+        float64field('matrix[1][2]', function (data, i) { return data.matrix12.getFloat(data.rows[i]); }),
+        float64field('matrix[1][3]', function (data, i) { return data.matrix13.getFloat(data.rows[i]); }),
+        float64field('vector[1]', function (data, i) { return data.vector1.getFloat(data.rows[i]); }),
+        float64field('matrix[2][1]', function (data, i) { return data.matrix21.getFloat(data.rows[i]); }),
+        float64field('matrix[2][2]', function (data, i) { return data.matrix22.getFloat(data.rows[i]); }),
+        float64field('matrix[2][3]', function (data, i) { return data.matrix23.getFloat(data.rows[i]); }),
+        float64field('vector[2]', function (data, i) { return data.vector2.getFloat(data.rows[i]); }),
+        float64field('matrix[3][1]', function (data, i) { return data.matrix31.getFloat(data.rows[i]); }),
+        float64field('matrix[3][2]', function (data, i) { return data.matrix32.getFloat(data.rows[i]); }),
+        float64field('matrix[3][3]', function (data, i) { return data.matrix33.getFloat(data.rows[i]); }),
+        float64field('vector[3]', function (data, i) { return data.vector3.getFloat(data.rows[i]); })
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_pdbx_struct_oper_list',
             fields: fields
         }
     };
@@ -446,6 +639,54 @@ function _pdbx_struct_mod_residue(context) {
         }
     };
 }
+function _atom_sites(context) {
+    var cat = context.data.getCategory('_atom_sites');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[rows.length] = i;
+    }
+    var data = {
+        rows: rows,
+        entry_id: cat.getColumn('_atom_sites.entry_id'),
+        matrix11: cat.getColumn('_atom_sites.fract_transf_matrix[1][1]'),
+        matrix12: cat.getColumn('_atom_sites.fract_transf_matrix[1][2]'),
+        matrix13: cat.getColumn('_atom_sites.fract_transf_matrix[1][3]'),
+        vector1: cat.getColumn('_atom_sites.fract_transf_vector[1]'),
+        matrix21: cat.getColumn('_atom_sites.fract_transf_matrix[2][1]'),
+        matrix22: cat.getColumn('_atom_sites.fract_transf_matrix[2][2]'),
+        matrix23: cat.getColumn('_atom_sites.fract_transf_matrix[2][3]'),
+        vector2: cat.getColumn('_atom_sites.fract_transf_vector[2]'),
+        matrix31: cat.getColumn('_atom_sites.fract_transf_matrix[3][1]'),
+        matrix32: cat.getColumn('_atom_sites.fract_transf_matrix[3][2]'),
+        matrix33: cat.getColumn('_atom_sites.fract_transf_matrix[3][3]'),
+        vector3: cat.getColumn('_atom_sites.fract_transf_vector[3]')
+    };
+    var fields = [
+        { name: 'entry_id', string: function (data, i) { return data.entry_id.getString(data.rows[i]); } },
+        float64field('fract_transf_matrix[1][1]', function (data, i) { return data.matrix11.getFloat(data.rows[i]); }),
+        float64field('fract_transf_matrix[1][2]', function (data, i) { return data.matrix12.getFloat(data.rows[i]); }),
+        float64field('fract_transf_matrix[1][3]', function (data, i) { return data.matrix13.getFloat(data.rows[i]); }),
+        float64field('fract_transf_vector[1]', function (data, i) { return data.vector1.getFloat(data.rows[i]); }),
+        float64field('fract_transf_matrix[2][1]', function (data, i) { return data.matrix21.getFloat(data.rows[i]); }),
+        float64field('fract_transf_matrix[2][2]', function (data, i) { return data.matrix22.getFloat(data.rows[i]); }),
+        float64field('fract_transf_matrix[2][3]', function (data, i) { return data.matrix23.getFloat(data.rows[i]); }),
+        float64field('fract_transf_vector[2]', function (data, i) { return data.vector2.getFloat(data.rows[i]); }),
+        float64field('fract_transf_matrix[3][1]', function (data, i) { return data.matrix31.getFloat(data.rows[i]); }),
+        float64field('fract_transf_matrix[3][2]', function (data, i) { return data.matrix32.getFloat(data.rows[i]); }),
+        float64field('fract_transf_matrix[3][3]', function (data, i) { return data.matrix33.getFloat(data.rows[i]); }),
+        float64field('fract_transf_vector[3]', function (data, i) { return data.vector3.getFloat(data.rows[i]); })
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_atom_sites',
+            fields: fields
+        }
+    };
+}
 function _atom_site(context) {
     //_atom_site.Cartn_x_esd
     //_atom_site.Cartn_y_esd
@@ -455,40 +696,54 @@ function _atom_site(context) {
     //--_atom_site.pdbe_label_seq_id 
     var cat = context.data.getCategory('_atom_site');
     var data = {
-        xs: context.fragment.atomIndices,
+        is: context.fragment.atomIndices,
         atoms: context.model.atoms,
         residues: context.model.residues,
         chains: context.model.chains,
         entities: context.model.entities,
         modelId: context.model.modelId,
+        Cartn_x_esd: cat.getColumn('_atom_site.Cartn_x_esd'),
+        Cartn_y_esd: cat.getColumn('_atom_site.Cartn_y_esd'),
+        Cartn_z_esd: cat.getColumn('_atom_site.Cartn_z_esd'),
+        occupancy_esd: cat.getColumn('_atom_site.occupancy_esd'),
+        B_iso_or_equiv_esd: cat.getColumn('_atom_site.B_iso_or_equiv_esd'),
         pdbx_formal_charge: cat.getColumn('_atom_site.pdbx_formal_charge'),
     };
     var fields = [
-        { name: 'group_PDB', string: function (data, i) { return data.residues.isHet[data.atoms.residueIndex[data.xs[i]]] ? 'HETATM' : 'ATOM'; } },
-        { name: 'id', string: function (data, i) { return data.atoms.id[data.xs[i]].toString(); }, number: function (data, i) { return data.atoms.id[data.xs[i]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
-        { name: 'type_symbol', string: function (data, i) { return data.atoms.elementSymbol[data.xs[i]]; } },
-        { name: 'label_atom_id', string: function (data, i) { return data.atoms.name[data.xs[i]]; } },
-        { name: 'label_alt_id', string: function (data, i) { return data.atoms.altLoc[data.xs[i]]; } },
-        { name: 'label_comp_id', string: function (data, i) { return data.residues.name[data.atoms.residueIndex[data.xs[i]]]; } },
-        { name: 'label_asym_id', string: function (data, i) { return data.chains.asymId[data.atoms.chainIndex[data.xs[i]]]; } },
-        { name: 'label_entity_id', string: function (data, i) { return data.entities.entityId[data.atoms.entityIndex[data.xs[i]]]; } },
-        { name: 'label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.xs[i]]].toString(); }, number: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.xs[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
-        { name: 'pdbx_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.xs[i]]]; } },
-        { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(1000 * data.atoms.x[data.xs[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.x[data.xs[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(1000 * data.atoms.y[data.xs[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.y[data.xs[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'Cartn_z', string: function (data, i) { return '' + Math.round(1000 * data.atoms.z[data.xs[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.z[data.xs[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'occupancy', string: function (data, i) { return '' + Math.round(100 * data.atoms.occupancy[data.xs[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.occupancy[data.xs[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy },
-        { name: 'B_iso_or_equiv', string: function (data, i) { return '' + Math.round(100 * data.atoms.tempFactor[data.xs[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.tempFactor[data.xs[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'pdbx_formal_charge', string: function (data, i) { return data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.xs[i]]); } },
-        { name: 'auth_atom_id', string: function (data, i) { return data.atoms.authName[data.xs[i]]; } },
-        { name: 'auth_comp_id', string: function (data, i) { return data.residues.authName[data.atoms.residueIndex[data.xs[i]]]; } },
-        { name: 'auth_asym_id', string: function (data, i) { return data.chains.authAsymId[data.atoms.chainIndex[data.xs[i]]]; } },
-        { name: 'auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.xs[i]]].toString(); }, number: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.xs[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
-        { name: 'pdbx_PDB_model_num', string: function (data, i) { return data.modelId; } },
+        { name: 'group_PDB', string: function (data, i) { return data.residues.isHet[data.atoms.residueIndex[data.is[i]]] ? 'HETATM' : 'ATOM'; } },
+        { name: 'id', string: function (data, i) { return data.atoms.id[data.is[i]].toString(); }, number: function (data, i) { return data.atoms.id[data.is[i]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
+        { name: 'type_symbol', string: function (data, i) { return data.atoms.elementSymbol[data.is[i]]; } },
+        { name: 'label_atom_id', string: function (data, i) { return data.atoms.name[data.is[i]]; } },
+        { name: 'label_alt_id', string: function (data, i) { return data.atoms.altLoc[data.is[i]]; } },
+        { name: 'label_comp_id', string: function (data, i) { return data.residues.name[data.atoms.residueIndex[data.is[i]]]; } },
+        { name: 'label_asym_id', string: function (data, i) { return data.chains.asymId[data.atoms.chainIndex[data.is[i]]]; } },
+        { name: 'label_entity_id', string: function (data, i) { return data.entities.entityId[data.atoms.entityIndex[data.is[i]]]; } },
+        { name: 'label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.is[i]]].toString(); }, number: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.is[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
+        { name: 'pdbx_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.is[i]]]; } },
+        { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(1000 * data.atoms.x[data.is[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.x[data.is[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(1000 * data.atoms.y[data.is[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.y[data.is[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'Cartn_z', string: function (data, i) { return '' + Math.round(1000 * data.atoms.z[data.is[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.z[data.is[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'occupancy', string: function (data, i) { return '' + Math.round(100 * data.atoms.occupancy[data.is[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.occupancy[data.is[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy },
+        { name: 'B_iso_or_equiv', string: function (data, i) { return '' + Math.round(100 * data.atoms.tempFactor[data.is[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.tempFactor[data.is[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'pdbx_formal_charge', string: function (data, i) { return data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.is[i]]); } },
+        { name: 'auth_atom_id', string: function (data, i) { return data.atoms.authName[data.is[i]]; } },
+        { name: 'auth_comp_id', string: function (data, i) { return data.residues.authName[data.atoms.residueIndex[data.is[i]]]; } },
+        { name: 'auth_asym_id', string: function (data, i) { return data.chains.authAsymId[data.atoms.chainIndex[data.is[i]]]; } },
+        { name: 'auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.is[i]]].toString(); }, number: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.is[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
     ];
+    if (data.Cartn_x_esd && !data.Cartn_x_esd.isUndefined(data.is[0])) {
+        fields.push({ name: 'Cartn_x_esd', string: function (data, i) { return data.Cartn_x_esd.getString(data.is[i]); }, number: function (data, i) { return data.Cartn_x_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates }, { name: 'Cartn_y_esd', string: function (data, i) { return data.Cartn_y_esd.getString(data.is[i]); }, number: function (data, i) { return data.Cartn_y_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates }, { name: 'Cartn_z_esd', string: function (data, i) { return data.Cartn_z_esd.getString(data.is[i]); }, number: function (data, i) { return data.Cartn_z_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates });
+    }
+    if (data.occupancy_esd && !data.occupancy_esd.isUndefined(data.is[0])) {
+        fields.push({ name: 'occupancy_esd', string: function (data, i) { return data.occupancy_esd.getString(data.is[i]); }, number: function (data, i) { return data.occupancy_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy });
+    }
+    if (data.B_iso_or_equiv_esd && !data.B_iso_or_equiv_esd.isUndefined(data.is[0])) {
+        fields.push({ name: 'B_iso_or_equiv_esd', string: function (data, i) { return data.B_iso_or_equiv_esd.getString(data.is[i]); }, number: function (data, i) { return data.B_iso_or_equiv_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates });
+    }
+    fields.push({ name: 'pdbx_PDB_model_num', string: function (data, i) { return data.modelId; } });
     return {
         data: data,
-        count: data.xs.length,
+        count: data.is.length,
         desc: {
             name: '_atom_site',
             fields: fields
@@ -498,12 +753,18 @@ function _atom_site(context) {
 var Categories = {
     _entry: _entry,
     _entity: _entity,
+    _cell: _cell,
+    _symmetry: _symmetry,
     _struct_conf: _struct_conf,
     _struct_sheet_range: _struct_sheet_range,
     _chem_comp_bond: _chem_comp_bond,
+    _pdbx_struct_assembly: _pdbx_struct_assembly,
+    _pdbx_struct_assembly_gen: _pdbx_struct_assembly_gen,
+    _pdbx_struct_oper_list: _pdbx_struct_oper_list,
     _struct_asym: _struct_asym,
     _entity_poly: _entity_poly,
-    _pdbx_struct_mod_residue: _pdbx_struct_mod_residue
+    _pdbx_struct_mod_residue: _pdbx_struct_mod_residue,
+    _atom_sites: _atom_sites
 };
 function format(writer, config, models) {
     var isEmpty = !models || !models.length || !models.some(function (m) { return m.fragments.length > 0; });
@@ -511,15 +772,18 @@ function format(writer, config, models) {
     var params = Context_1.createParamsCategory(config.params);
     writer.writeCategory(header);
     writer.writeCategory(params);
-    var unionFragment = models[0].fragments.unionFragment();
-    var context = new mmCifContext(unionFragment, models[0].model, config.data);
+    var context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data);
     for (var _i = 0, _a = config.includedCategories; _i < _a.length; _i++) {
         var cat = _a[_i];
         var f = Categories[cat];
         if (!f)
             continue;
-        writer.writeCategory(f, context);
+        writer.writeCategory(f, [context]);
     }
-    writer.writeCategory(_atom_site, context);
+    var modelContexts = [context];
+    for (var i = 1; i < models.length; i++) {
+        modelContexts.push(new mmCifContext(models[i].fragments.unionFragment(), models[i].model, config.data));
+    }
+    writer.writeCategory(_atom_site, modelContexts);
 }
 exports.format = format;
