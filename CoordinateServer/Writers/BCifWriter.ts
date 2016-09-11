@@ -49,7 +49,7 @@ export default class BCifWriter implements Writer {
 
     serialize(stream: OutputStream) {
         //console.log(this.data);
-        let packed = Core.Formats.MsgPack.encode(this.data);
+        let packed = Core.Formats.MessagePack.encode(this.data);
         //console.log('packed', packed.length, packed.byteLength, this.totalLength, (Uint8Array as any).BYTES_PER_ELEMENT);
         let buffer = new Buffer(packed);
 

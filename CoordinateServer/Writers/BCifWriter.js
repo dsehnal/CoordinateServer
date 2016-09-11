@@ -49,7 +49,7 @@ var BCifWriter = (function () {
     };
     BCifWriter.prototype.serialize = function (stream) {
         //console.log(this.data);
-        var packed = Core.Formats.MsgPack.encode(this.data);
+        var packed = Core.Formats.MessagePack.encode(this.data);
         //console.log('packed', packed.length, packed.byteLength, this.totalLength, (Uint8Array as any).BYTES_PER_ELEMENT);
         var buffer = new Buffer(packed);
         //console.log(this.data);
