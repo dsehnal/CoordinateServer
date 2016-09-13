@@ -7,6 +7,15 @@ var WriterContext = require('../Writers/Context');
 var Provider = require('../Data/Provider');
 var Perf = Core.Utils.PerformanceMonitor;
 var querySerial = 0;
+function wrapOutputStream(outputStreamProvider) {
+    var stream;
+    return function () {
+        if (!stream) {
+            stream = outputStreamProvider();
+        }
+        return stream;
+    };
+}
 function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) {
     querySerial++;
     var molecule = moleculeWrapper.molecule;
@@ -32,8 +41,10 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
         writer: writer
     };
     Logger_1.default.log(reqId + ": Query params " + JSON.stringify(queryParams));
+    var wrappedOutput = wrapOutputStream(outputStreamProvider);
     CoordinateServer_1.CoordinateServer.process(reqId, molecule, query, serverConfig.params, WriterContext.getFormatter(commonParams.format), serverConfig, function (result) {
-        var stream = outputStreamProvider();
+        var stream = wrappedOutput();
+        var encodeTime = 0;
         if (result.error) {
             Logger_1.default.error(reqId + ": Failed. (" + result.error + ")");
             WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, result.error, { params: serverConfig.params, queryType: query.name });
@@ -41,14 +52,34 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
             return;
         }
         else {
-            var stats = WriterContext.createStatsCategory(moleculeWrapper, result.timeQuery, result.timeFormat);
-            writer.writeCategory(stats);
-            writer.serialize(stream);
-            stream.end();
+            var perf = new Core.Utils.PerformanceMonitor();
+            perf.start('encode');
+            try {
+                var stats = WriterContext.createStatsCategory(moleculeWrapper, result.timeQuery, result.timeFormat);
+                writer.writeCategory(stats);
+                writer.encode();
+            }
+            catch (e) {
+                Logger_1.default.error(reqId + ": Failed (Encode). (" + e + ")");
+                //WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, `Encoding error: ${e}`, { params: serverConfig.params, queryType: query.name });                
+                stream.end();
+                return;
+            }
+            perf.end('encode');
+            encodeTime = perf.time('encode');
+            try {
+                writer.flush(stream);
+            }
+            catch (e) {
+                Logger_1.default.error(reqId + ": Failed (Flush). (" + e + ")");
+            }
+            finally {
+                stream.end();
+            }
         }
-        var totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeFormat + result.timeQuery;
+        var totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeFormat + result.timeQuery + encodeTime;
         var cached = moleculeWrapper.source === Provider.MoleculeSource.Cache ? 'cached; ' : '';
-        Logger_1.default.log(reqId + ": Done in " + Perf.format(totalTime) + " (" + cached + "io " + Perf.format(moleculeWrapper.ioTime) + ", parse " + Perf.format(moleculeWrapper.parseTime) + ", query " + Perf.format(result.timeQuery) + ", format " + Perf.format(result.timeFormat) + ")");
+        Logger_1.default.log(reqId + ": Done in " + Perf.format(totalTime) + " (" + cached + "io " + Perf.format(moleculeWrapper.ioTime) + ", parse " + Perf.format(moleculeWrapper.parseTime) + ", query " + Perf.format(result.timeQuery) + ", format " + Perf.format(result.timeFormat) + ", encode " + Perf.format(encodeTime) + ")");
     });
 }
 exports.executeQuery = executeQuery;

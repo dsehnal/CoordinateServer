@@ -21,13 +21,15 @@ import CifWriter from './CifWriter'
 import BCifWriter from './BCifWriter'
 import * as Provider from '../Data/Provider'
 import * as mmCif from './Formats/mmCif'
+import CIF = Core.Formats.CIF
 
 export interface FieldDesc<Data> {
     name: string,
     string?: (data: Data, i: number) => string,
     number?: (data: Data, i: number) => number,
     typedArray?: any,
-    encoder?: Core.Formats.BinaryCIF.Encoder
+    encoder?: Core.Formats.BinaryCIF.Encoder,
+    presence?: (data: Data, i: number) => CIF.ValuePresence
 }
 
 export interface CategoryDesc<Data> {
@@ -41,21 +43,22 @@ export type CategoryProvider = (ctx: Context) => CategoryInstance<any>
 export interface Context {
     fragment: Core.Structure.Query.Fragment,
     model: Core.Structure.MoleculeModel,
-    data: Core.Formats.CIF.Block
+    data: CIF.DataBlock
 }
 
 export type OutputStream = { write: (data: any) => boolean }
 
 export interface Writer {
     writeCategory(category: CategoryProvider, contexts?: Context[]): void,
-    serialize(stream: OutputStream): void
+    encode(): void;
+    flush(stream: OutputStream): void
 }
 
 export type Formatter = (writer: Writer, config: FormatConfig, fs: WritableFragments[]) => void
 
 export interface FormatConfig {
     queryType: string,
-    data: Core.Formats.CIF.Block,
+    data: CIF.DataBlock,
     params: FilteredQueryParams,
     includedCategories: string[]
 }
@@ -87,7 +90,7 @@ export function createParamsCategory(params: FilteredQueryParams): CategoryProvi
     let data = prms;
     let fields: FieldDesc<typeof data>[] = [
         { name: 'name', string: (data, i) => data[i].name },
-        { name: 'value', string: (data, i) => data[i].value === undefined ? '.' : '' + data[i].value },
+        { name: 'value', string: (data, i) => data[i].value, presence: (data, i) => !data[i].value ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
     ];
 
     return () => <CategoryInstance<typeof data>>{
@@ -149,8 +152,7 @@ export function createStatsCategory(molecule: Provider.MoleculeWrapper, queryTim
         { name: 'io_time_ms', string: data => `${data.io}`, number: data => data.io, typedArray: Int32Array, encoder: E.by(E.int32) },
         { name: 'parse_time_ms', string: data => `${data.parse}`, number: data => data.parse, typedArray: Int32Array, encoder: E.by(E.int32) },
         { name: 'query_time_ms', string: data => `${data.query}`, number: data => data.query, typedArray: Int32Array, encoder: E.by(E.int32) },
-        { name: 'format_time_ms', string: data => `${data.format}`, number: data => data.format, typedArray: Int32Array, encoder: E.by(E.int32) },
-
+        { name: 'format_time_ms', string: data => `${data.format}`, number: data => data.format, typedArray: Int32Array, encoder: E.by(E.int32) }
     ];
 
     return () => <CategoryInstance<typeof data>>{
@@ -180,7 +182,7 @@ export function writeError(stream: OutputStream, encoding: string, header: strin
 
     let errorCat = createErrorCategory(message);
     w.writeCategory(errorCat);
-    w.serialize(stream);
+    w.flush(stream);
 }
 
 export function getFormatter(format: string) {

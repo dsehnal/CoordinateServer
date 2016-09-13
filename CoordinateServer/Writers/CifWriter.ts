@@ -1,4 +1,5 @@
-﻿import StringWriter from './StringWriter'
+﻿import * as Core from 'LiteMol-core'
+import StringWriter from './StringWriter'
 import { Context, Writer, CategoryInstance, CategoryProvider, OutputStream } from './Context'
 
 function isMultiline(value: string) {
@@ -12,12 +13,20 @@ function writeCifSingleRecord(category: CategoryInstance<any>, writer: CifString
 
     for (let f of fields) {
         writer.writer.writePadRight(`${category.desc.name}.${f.name}`, width);
-        let val = f.string(data, 0);
-        if (isMultiline(val)) {
-            writer.writeMultiline(val);
-            writer.writer.newline();
+
+        let presence = f.presence;
+        let p: Core.Formats.CIF.ValuePresence;
+        if (presence && (p = presence(data, 0)) !== Core.Formats.CIF.ValuePresence.Present) {
+            if (p === Core.Formats.CIF.ValuePresence.NotSpecified) writer.writeNotSpecified();
+            else writer.writeUnknown();
         } else {
-            writer.writeChecked(val);
+            let val = f.string(data, 0);
+            if (isMultiline(val)) {
+                writer.writeMultiline(val);
+                writer.writer.newline();
+            } else {
+                writer.writeChecked(val);
+            }
         }
         writer.writer.newline();
     }
@@ -38,12 +47,20 @@ function writeCifLoop(categories: CategoryInstance<any>[], writer: CifStringWrit
         let count = category.count;
         for (let i = 0; i < count; i++) {
             for (let f of fields) {
-                let val = f.string(data, i);
-                if (isMultiline(val)) {
-                    writer.writeMultiline(val);
-                    writer.writer.newline();
+
+                let presence = f.presence;
+                let p: Core.Formats.CIF.ValuePresence;
+                if (presence && (p = presence(data, i)) !== Core.Formats.CIF.ValuePresence.Present) {
+                    if (p === Core.Formats.CIF.ValuePresence.NotSpecified) writer.writeNotSpecified();
+                    else writer.writeUnknown();
                 } else {
-                    writer.writeChecked(val);
+                    let val = f.string(data, i);
+                    if (isMultiline(val)) {
+                        writer.writeMultiline(val);
+                        writer.writer.newline();
+                    } else {
+                        writer.writeChecked(val);
+                    }
                 }
             }
             writer.newline();
@@ -54,8 +71,13 @@ function writeCifLoop(categories: CategoryInstance<any>[], writer: CifStringWrit
 
 export default class CifWriter implements Writer {
     private writer = new CifStringWriter();
+    private encoded = false;
 
     writeCategory(category: CategoryProvider, contexts?: Context[]) {
+        if (this.encoded) {
+            throw new Error('The writer contents have already been encoded, no more writing.');
+        }
+
         let data = !contexts || !contexts.length ? [category(void 0)] : contexts.map(c => category(c));
         data = data.filter(c => !!c || !!(c && (c.count === void 0 ? 1 : c.count)));
         if (!data.length) return;
@@ -69,7 +91,11 @@ export default class CifWriter implements Writer {
         }
     }
 
-    serialize(stream: OutputStream) {
+    encode() {
+        this.encoded = true;
+    }
+
+    flush(stream: OutputStream) {
         this.writer.writer.writeTo(stream);
     }
 
@@ -99,11 +125,25 @@ class CifStringWriter {
         this.writer.writeSafe('' + val + ' ');
     }
 
-    /*
+    /**
      * eg writeFloat(123.2123, 100) -- 2 decim
      */
     writeFloat(val: number, precisionMultiplier: number) {
         this.writer.writeSafe('' + Math.round(precisionMultiplier * val) / precisionMultiplier + ' ')
+    }
+
+    /**
+     * Writes '. '
+     */
+    writeNotSpecified() {
+        this.writer.writeSafe('. ');
+    }
+
+    /**
+     * Writes '? '
+     */
+    writeUnknown() {
+        this.writer.writeSafe('? ');
     }
 
     writeChecked(val: string) {

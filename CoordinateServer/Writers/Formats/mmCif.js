@@ -1,5 +1,6 @@
 "use strict";
 var Core = require('LiteMol-core');
+var CIF = Core.Formats.CIF;
 var Context_1 = require('../Context');
 var mmCifContext = (function () {
     function mmCifContext(fragment, model, data) {
@@ -41,10 +42,15 @@ var mmCifContext = (function () {
         var _mod_res = this.data.getCategory('_pdbx_struct_mod_residue');
         if (!_mod_res)
             return map;
+        var label_asym_id = _mod_res.getColumn('label_asym_id');
+        var label_seq_id = _mod_res.getColumn('label_seq_id');
+        var PDB_ins_code = _mod_res.getColumn('PDB_ins_code');
+        var parent_comp_id = _mod_res.getColumn('parent_comp_id');
+        var label_comp_id = _mod_res.getColumn('label_comp_id');
         for (var i = 0; i < _mod_res.rowCount; i++) {
-            var key = _mod_res.getStringValue('_pdbx_struct_mod_residue.label_asym_id', i) + " " + _mod_res.getStringValue('_pdbx_struct_mod_residue.label_seq_id', i) + " " + _mod_res.getStringValue('_pdbx_struct_mod_residue.PDB_ins_code', i);
-            map.set(key, { i: i, original: _mod_res.getStringValue('_pdbx_struct_mod_residue.parent_comp_id', i) });
-            names.add(_mod_res.getStringValue('_pdbx_struct_mod_residue.label_comp_id', i));
+            var key = label_asym_id.getString(i) + " " + label_seq_id.getString(i) + " " + PDB_ins_code.getString(i);
+            map.set(key, { i: i, original: parent_comp_id.getString(i) });
+            names.add(label_comp_id.getString(i));
         }
     };
     Object.defineProperty(mmCifContext.prototype, "modifiedResidues", {
@@ -84,35 +90,58 @@ var SourceCategoryMap = (function () {
         var cat = context.data.getCategory(name);
         if (!cat)
             return;
-        var ci = cat.getColumnIndex(keyColumnName);
-        if (ci < 0)
+        var col = cat.getColumn(keyColumnName);
+        if (!col.isDefined)
             return;
         this.category = cat;
         for (var i = 0; i < cat.rowCount; i++) {
-            var id = cat.getStringValueFromIndex(ci, i);
+            var id = col.getString(i);
             this.byKey.set(id, i);
         }
     }
-    SourceCategoryMap.prototype.getValueOrDefault = function (id, columnName, def) {
+    SourceCategoryMap.prototype.getString = function (id, columnName) {
         if (!this.category)
-            return def;
+            return void 0;
         var row = this.byKey.get(id);
         if (row === void 0)
-            return def;
-        var v = this.category.getStringValue(columnName, row);
-        if (v === null)
-            return def;
-        return v;
+            return void 0;
+        var col = this.category.getColumn(columnName);
+        return col.getString(row);
+    };
+    SourceCategoryMap.prototype.getPresence = function (id, columnName) {
+        if (!this.category)
+            return 1 /* NotSpecified */;
+        var row = this.byKey.get(id);
+        if (row === void 0)
+            return 1 /* NotSpecified */;
+        var col = this.category.getColumn(columnName);
+        return col.getValuePresence(row);
     };
     return SourceCategoryMap;
 }());
+function stringColumn(name, column, row) {
+    return { name: name, string: function (data, i) { return column.getString(row(data, i)); }, presence: function (data, i) { return column.getValuePresence(row(data, i)); } };
+}
+exports.stringColumn = stringColumn;
+function int32column(name, column, row, encoder) {
+    return { name: name, string: function (data, i) { return column.getString(row(data, i)); }, number: function (data, i) { return column.getInteger(row(data, i)); }, presence: function (data, i) { return column.getValuePresence(row(data, i)); }, typedArray: Int32Array, encoder: encoder };
+}
+exports.int32column = int32column;
+function float64field(name, value) {
+    return { name: name, string: function (data, i) { return value(data, i).toString(); }, number: value, typedArray: Float64Array, encoder: Context_1.Encoders.float64 };
+}
+exports.float64field = float64field;
+function int32field(name, value) {
+    return { name: name, string: function (data, i) { return value(data, i).toString(); }, number: value, typedArray: Int32Array, encoder: Context_1.Encoders.int32 };
+}
+exports.int32field = int32field;
 function _entry(context) {
     return {
         data: context.model.id,
         desc: {
             name: '_entry',
             fields: [
-                { name: 'id', string: function (id) { return id; }, encoder: Context_1.Encoders.strings }
+                { name: 'id', string: function (id) { return id; }, encoder: Context_1.Encoders.strings, presence: function () { return 0 /* Present */; } }
             ]
         }
     };
@@ -133,19 +162,19 @@ function _entity(context) {
     }
     entityIndices.sort(function (i, j) { return i - j; });
     var e = context.model.entities;
-    var map = new SourceCategoryMap(context, '_entity', '_entity.id');
+    var map = new SourceCategoryMap(context, '_entity', 'id');
     var data = { id: e.entityId, type: e.type, index: entityIndices, map: map };
     var fields = [
         { name: 'id', string: function (data, i) { return data.id[data.index[i]]; } },
         { name: 'type', string: function (data, i) { return data.type[data.index[i]]; } },
-        { name: 'src_method', string: function (data, i) { return data.map.getValueOrDefault(data.id[data.index[i]], '_entity.src_method', '?'); } },
-        { name: 'pdbx_description', string: function (data, i) { return data.map.getValueOrDefault(data.id[data.index[i]], '_entity.pdbx_description', '?'); } },
-        { name: 'formula_weight', string: function (data, i) { return '?'; } },
-        { name: 'pdbx_number_of_molecules', string: function (data, i) { return '?'; } },
-        { name: 'details', string: function (data, i) { return '?'; } },
-        { name: 'pdbx_mutation', string: function (data, i) { return data.map.getValueOrDefault(data.id[data.index[i]], '_entity.pdbx_mutation', '?'); } },
-        { name: 'pdbx_fragment', string: function (data, i) { return data.map.getValueOrDefault(data.id[data.index[i]], '_entity.pdbx_fragment', '?'); } },
-        { name: 'pdbx_ec', string: function (data, i) { return data.map.getValueOrDefault(data.id[data.index[i]], '_entity.pdbx_ec', '?'); } }
+        { name: 'src_method', string: function (data, i) { return data.map.getString(data.id[data.index[i]], 'src_method'); }, presence: function (data, i) { return data.map.getPresence(data.id[data.index[i]], 'src_method'); } },
+        { name: 'pdbx_description', string: function (data, i) { return data.map.getString(data.id[data.index[i]], 'pdbx_description'); }, presence: function (data, i) { return data.map.getPresence(data.id[data.index[i]], 'pdbx_description'); } },
+        { name: 'formula_weight', presence: function () { return 2 /* Unknown */; } },
+        { name: 'pdbx_number_of_molecules', presence: function () { return 2 /* Unknown */; } },
+        { name: 'details', presence: function () { return 1 /* NotSpecified */; } },
+        { name: 'pdbx_mutation', string: function (data, i) { return data.map.getString(data.id[data.index[i]], 'pdbx_mutation'); }, presence: function (data, i) { return data.map.getPresence(data.id[data.index[i]], 'pdbx_mutation'); } },
+        { name: 'pdbx_fragment', string: function (data, i) { return data.map.getString(data.id[data.index[i]], 'pdbx_fragment'); }, presence: function (data, i) { return data.map.getPresence(data.id[data.index[i]], 'pdbx_fragment'); } },
+        { name: 'pdbx_ec', string: function (data, i) { return data.map.getString(data.id[data.index[i]], 'pdbx_ec'); }, presence: function (data, i) { return data.map.getPresence(data.id[data.index[i]], 'pdbx_ec'); } }
     ];
     return {
         data: data,
@@ -215,11 +244,11 @@ function _struct_conf(context) {
         { name: 'beg_label_comp_id', string: function (data, i) { return data.residues.name[data.indices.starts[i]]; } },
         { name: 'beg_label_asym_id', string: function (data, i) { return data.residues.asymId[data.indices.starts[i]]; } },
         { name: 'beg_label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.indices.starts[i]].toString(); } },
-        { name: 'pdbx_beg_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.indices.starts[i]]; } },
+        { name: 'pdbx_beg_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.indices.starts[i]]; }, presence: function (data, i) { return data.residues.insCode[data.indices.starts[i]] ? 0 /* Present */ : 1 /* NotSpecified */; } },
         { name: 'end_label_comp_id', string: function (data, i) { return data.residues.name[data.indices.ends[i]]; } },
         { name: 'end_label_asym_id', string: function (data, i) { return data.residues.asymId[data.indices.ends[i]]; } },
         { name: 'end_label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.indices.ends[i]].toString(); } },
-        { name: 'pdbx_end_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.indices.ends[i]]; } },
+        { name: 'pdbx_end_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.indices.ends[i]]; }, presence: function (data, i) { return data.residues.insCode[data.indices.ends[i]] ? 0 /* Present */ : 1 /* NotSpecified */; } },
         { name: 'beg_auth_comp_id', string: function (data, i) { return data.residues.authName[data.indices.starts[i]]; } },
         { name: 'beg_auth_asym_id', string: function (data, i) { return data.residues.authAsymId[data.indices.starts[i]]; } },
         { name: 'beg_auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.indices.starts[i]].toString(); } },
@@ -227,7 +256,7 @@ function _struct_conf(context) {
         { name: 'end_auth_asym_id', string: function (data, i) { return data.residues.authAsymId[data.indices.ends[i]]; } },
         { name: 'end_auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.indices.ends[i]].toString(); } },
         { name: 'pdbx_PDB_helix_class', string: function (data, i) { var val = data.indices.struct[data.indices.ssIndices[i]].info.helixClass; return val !== null && val !== undefined ? '' + val : '?'; } },
-        { name: 'details', string: function (data, i) { return '?'; } },
+        { name: 'details', presence: function () { return 2 /* Unknown */; } },
         { name: 'pdbx_PDB_helix_length', string: function (data, i) { return data.indices.lengths[i].toString(); } }
     ];
     return {
@@ -252,12 +281,12 @@ function _struct_sheet_range(context) {
         { name: 'beg_label_comp_id', string: function (data, i) { return data.residues.name[data.indices.starts[i]]; } },
         { name: 'beg_label_asym_id', string: function (data, i) { return data.residues.asymId[data.indices.starts[i]]; } },
         { name: 'beg_label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.indices.starts[i]].toString(); } },
-        { name: 'pdbx_beg_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.indices.starts[i]]; } },
+        { name: 'pdbx_beg_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.indices.starts[i]]; }, presence: function (data, i) { return data.residues.insCode[data.indices.starts[i]] ? 0 /* Present */ : 1 /* NotSpecified */; } },
         { name: 'end_label_comp_id', string: function (data, i) { return data.residues.name[data.indices.ends[i]]; } },
         { name: 'end_label_asym_id', string: function (data, i) { return data.residues.asymId[data.indices.ends[i]]; } },
         { name: 'end_label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.indices.ends[i]].toString(); } },
-        { name: 'pdbx_end_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.indices.ends[i]]; } },
-        { name: 'symmetry', string: function (data, i) { var val = data.indices.struct[data.indices.ssIndices[i]].info.symmetry; return val !== null && val !== undefined ? '' + val : '?'; } },
+        { name: 'pdbx_end_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.indices.ends[i]]; }, presence: function (data, i) { return data.residues.insCode[data.indices.ends[i]] ? 0 /* Present */ : 1 /* NotSpecified */; } },
+        { name: 'symmetry', string: function (data, i) { return '' + data.indices.struct[data.indices.ssIndices[i]].info.symmetry; }, presence: function (data, i) { return data.indices.struct[data.indices.ssIndices[i]].info.symmetry ? 0 /* Present */ : 2 /* Unknown */; } },
         { name: 'beg_auth_comp_id', string: function (data, i) { return data.residues.authName[data.indices.starts[i]]; } },
         { name: 'beg_auth_asym_id', string: function (data, i) { return data.residues.authAsymId[data.indices.starts[i]]; } },
         { name: 'beg_auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.indices.starts[i]].toString(); } },
@@ -278,8 +307,7 @@ function _chem_comp_bond(context) {
     var cat = context.data.getCategory('_chem_comp_bond');
     if (!cat)
         return;
-    var cols = cat.columnArray;
-    var nameCol = cat.getColumn('_chem_comp_bond.comp_id');
+    var nameCol = cat.getColumn('comp_id');
     if (!nameCol)
         return;
     var rows = [];
@@ -293,22 +321,22 @@ function _chem_comp_bond(context) {
         return;
     var data = {
         rows: rows,
-        comp_id: cat.getColumn('_chem_comp_bond.comp_id'),
-        pdbx_stereo_config: cat.getColumn('_chem_comp_bond.pdbx_stereo_config'),
-        pdbx_ordinal: cat.getColumn('_chem_comp_bond.pdbx_ordinal'),
-        pdbx_aromatic_flag: cat.getColumn('_chem_comp_bond.pdbx_aromatic_flag'),
-        atom_id_1: cat.getColumn('_chem_comp_bond.atom_id_1'),
-        atom_id_2: cat.getColumn('_chem_comp_bond.atom_id_2'),
-        value_order: cat.getColumn('_chem_comp_bond.value_order')
+        comp_id: cat.getColumn('comp_id'),
+        pdbx_stereo_config: cat.getColumn('pdbx_stereo_config'),
+        pdbx_ordinal: cat.getColumn('pdbx_ordinal'),
+        pdbx_aromatic_flag: cat.getColumn('pdbx_aromatic_flag'),
+        atom_id_1: cat.getColumn('atom_id_1'),
+        atom_id_2: cat.getColumn('atom_id_2'),
+        value_order: cat.getColumn('value_order')
     };
     var fields = [
-        { name: 'comp_id', string: function (data, i) { return data.comp_id.getString(data.rows[i]); } },
-        { name: 'pdbx_stereo_config', string: function (data, i) { return data.pdbx_stereo_config.getString(data.rows[i]); } },
-        { name: 'pdbx_ordinal', string: function (data, i) { return data.pdbx_ordinal.getString(data.rows[i]); }, number: function (data, i) { return data.pdbx_ordinal.getInteger(data.rows[i]); }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
-        { name: 'pdbx_aromatic_flag', string: function (data, i) { return data.pdbx_aromatic_flag.getString(data.rows[i]); } },
-        { name: 'atom_id_1', string: function (data, i) { return data.atom_id_1.getString(data.rows[i]); } },
-        { name: 'atom_id_2', string: function (data, i) { return data.atom_id_2.getString(data.rows[i]); } },
-        { name: 'value_order', string: function (data, i) { return data.value_order.getString(data.rows[i]); } }
+        stringColumn('comp_id', data.comp_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('pdbx_stereo_config', data.pdbx_stereo_config, function (data, i) { return data.rows[i]; }),
+        int32column('pdbx_ordinal', data.pdbx_ordinal, function (data, i) { return data.rows[i]; }, Context_1.Encoders.ids),
+        stringColumn('pdbx_aromatic_flag', data.pdbx_aromatic_flag, function (data, i) { return data.rows[i]; }),
+        stringColumn('atom_id_1', data.atom_id_1, function (data, i) { return data.rows[i]; }),
+        stringColumn('atom_id_2', data.atom_id_2, function (data, i) { return data.rows[i]; }),
+        stringColumn('value_order', data.value_order, function (data, i) { return data.rows[i]; })
     ];
     return {
         data: data,
@@ -318,12 +346,6 @@ function _chem_comp_bond(context) {
             fields: fields
         }
     };
-}
-function float64field(name, value) {
-    return { name: name, string: function (data, i) { return value(data, i).toString(); }, number: value, typedArray: Float64Array, encoder: Context_1.Encoders.float64 };
-}
-function int32field(name, value) {
-    return { name: name, string: function (data, i) { return value(data, i).toString(); }, number: value, typedArray: Int32Array, encoder: Context_1.Encoders.int32 };
 }
 function _cell(context) {
     var cat = context.data.getCategory('_cell');
@@ -335,18 +357,18 @@ function _cell(context) {
     }
     var data = {
         rows: rows,
-        entry_id: cat.getColumn('_cell.entry_id'),
-        length_a: cat.getColumn('_cell.length_a'),
-        length_b: cat.getColumn('_cell.length_b'),
-        length_c: cat.getColumn('_cell.length_c'),
-        angle_alpha: cat.getColumn('_cell.angle_alpha'),
-        angle_beta: cat.getColumn('_cell.angle_beta'),
-        angle_gamma: cat.getColumn('_cell.angle_gamma'),
-        Z_PDB: cat.getColumn('_cell.Z_PDB'),
-        pdbx_unique_axis: cat.getColumn('_cell.pdbx_unique_axis')
+        entry_id: cat.getColumn('entry_id'),
+        length_a: cat.getColumn('length_a'),
+        length_b: cat.getColumn('length_b'),
+        length_c: cat.getColumn('length_c'),
+        angle_alpha: cat.getColumn('angle_alpha'),
+        angle_beta: cat.getColumn('angle_beta'),
+        angle_gamma: cat.getColumn('angle_gamma'),
+        Z_PDB: cat.getColumn('Z_PDB'),
+        pdbx_unique_axis: cat.getColumn('pdbx_unique_axis')
     };
     var fields = [
-        { name: 'entry_id', string: function (data, i) { return data.entry_id.getString(data.rows[i]); } },
+        stringColumn('entry_id', data.entry_id, function (data, i) { return data.rows[i]; }),
         float64field('length_a', function (data, i) { return data.length_a.getFloat(data.rows[i]); }),
         float64field('length_b', function (data, i) { return data.length_b.getFloat(data.rows[i]); }),
         float64field('length_c', function (data, i) { return data.length_c.getFloat(data.rows[i]); }),
@@ -354,7 +376,7 @@ function _cell(context) {
         float64field('angle_beta', function (data, i) { return data.angle_beta.getFloat(data.rows[i]); }),
         float64field('angle_gamma', function (data, i) { return data.angle_gamma.getFloat(data.rows[i]); }),
         int32field('Z_PDB', function (data, i) { return data.Z_PDB.getFloat(data.rows[i]); }),
-        { name: 'pdbx_unique_axis', string: function (data, i) { return data.pdbx_unique_axis.getString(data.rows[i]); } }
+        stringColumn('pdbx_unique_axis', data.pdbx_unique_axis, function (data, i) { return data.rows[i]; })
     ];
     return {
         data: data,
@@ -375,20 +397,20 @@ function _symmetry(context) {
     }
     var data = {
         rows: rows,
-        entry_id: cat.getColumn('_symmetry.entry_id'),
-        space_group_name_HM: cat.getColumn('_symmetry.space_group_name_H-M'),
-        pdbx_full_space_group_name_HM: cat.getColumn('_symmetry.pdbx_full_space_group_name_H-M'),
-        cell_setting: cat.getColumn('_symmetry.cell_setting'),
-        Int_Tables_number: cat.getColumn('_symmetry.Int_Tables_number'),
-        space_group_name_Hall: cat.getColumn('_symmetry.space_group_name_Hall')
+        entry_id: cat.getColumn('entry_id'),
+        space_group_name_HM: cat.getColumn('space_group_name_H-M'),
+        pdbx_full_space_group_name_HM: cat.getColumn('pdbx_full_space_group_name_H-M'),
+        cell_setting: cat.getColumn('cell_setting'),
+        Int_Tables_number: cat.getColumn('Int_Tables_number'),
+        space_group_name_Hall: cat.getColumn('space_group_name_Hall')
     };
     var fields = [
-        { name: 'entry_id', string: function (data, i) { return data.entry_id.getString(data.rows[i]); } },
-        { name: 'space_group_name_H-M', string: function (data, i) { return data.space_group_name_HM.getString(data.rows[i]); } },
-        { name: 'pdbx_full_space_group_name_H-M', string: function (data, i) { return data.pdbx_full_space_group_name_HM.getString(data.rows[i]); } },
-        { name: 'cell_setting', string: function (data, i) { return data.cell_setting.getString(data.rows[i]); } },
-        { name: 'Int_Tables_number', string: function (data, i) { return data.Int_Tables_number.getString(data.rows[i]); } },
-        { name: 'space_group_name_Hall', string: function (data, i) { return data.space_group_name_Hall.getString(data.rows[i]); } },
+        stringColumn('entry_id', data.entry_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('space_group_name_H-M', data.space_group_name_HM, function (data, i) { return data.rows[i]; }),
+        stringColumn('pdbx_full_space_group_name_H-M', data.pdbx_full_space_group_name_HM, function (data, i) { return data.rows[i]; }),
+        stringColumn('cell_setting', data.cell_setting, function (data, i) { return data.rows[i]; }),
+        stringColumn('Int_Tables_number', data.Int_Tables_number, function (data, i) { return data.rows[i]; }),
+        stringColumn('space_group_name_Hall', data.space_group_name_Hall, function (data, i) { return data.rows[i]; })
     ];
     return {
         data: data,
@@ -409,17 +431,17 @@ function _pdbx_struct_assembly(context) {
     }
     var data = {
         rows: rows,
-        id: cat.getColumn('_pdbx_struct_assembly.id'),
-        details: cat.getColumn('_pdbx_struct_assembly.details'),
-        method_details: cat.getColumn('_pdbx_struct_assembly.method_details'),
-        oligomeric_details: cat.getColumn('_pdbx_struct_assembly.oligomeric_details'),
-        oligomeric_count: cat.getColumn('_pdbx_struct_assembly.oligomeric_count')
+        id: cat.getColumn('id'),
+        details: cat.getColumn('details'),
+        method_details: cat.getColumn('method_details'),
+        oligomeric_details: cat.getColumn('oligomeric_details'),
+        oligomeric_count: cat.getColumn('oligomeric_count')
     };
     var fields = [
-        { name: 'id', string: function (data, i) { return data.id.getString(data.rows[i]); } },
-        { name: 'details', string: function (data, i) { return data.details.getString(data.rows[i]); } },
-        { name: 'method_details', string: function (data, i) { return data.method_details.getString(data.rows[i]); } },
-        { name: 'oligomeric_details', string: function (data, i) { return data.oligomeric_details.getString(data.rows[i]); } },
+        stringColumn('id', data.id, function (data, i) { return data.rows[i]; }),
+        stringColumn('details', data.details, function (data, i) { return data.rows[i]; }),
+        stringColumn('method_details', data.method_details, function (data, i) { return data.rows[i]; }),
+        stringColumn('oligomeric_details', data.oligomeric_details, function (data, i) { return data.rows[i]; }),
         int32field('oligomeric_count', function (data, i) { return data.oligomeric_count.getInteger(data.rows[i]); })
     ];
     return {
@@ -441,14 +463,14 @@ function _pdbx_struct_assembly_gen(context) {
     }
     var data = {
         rows: rows,
-        assembly_id: cat.getColumn('_pdbx_struct_assembly_gen.assembly_id'),
-        oper_expression: cat.getColumn('_pdbx_struct_assembly_gen.oper_expression'),
-        asym_id_list: cat.getColumn('_pdbx_struct_assembly_gen.asym_id_list')
+        assembly_id: cat.getColumn('assembly_id'),
+        oper_expression: cat.getColumn('oper_expression'),
+        asym_id_list: cat.getColumn('asym_id_list')
     };
     var fields = [
-        { name: 'assembly_id', string: function (data, i) { return data.assembly_id.getString(data.rows[i]); } },
-        { name: 'oper_expression', string: function (data, i) { return data.oper_expression.getString(data.rows[i]); } },
-        { name: 'asym_id_list', string: function (data, i) { return data.asym_id_list.getString(data.rows[i]); } }
+        stringColumn('assembly_id', data.assembly_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('oper_expression', data.oper_expression, function (data, i) { return data.rows[i]; }),
+        stringColumn('asym_id_list', data.asym_id_list, function (data, i) { return data.rows[i]; })
     ];
     return {
         data: data,
@@ -469,28 +491,28 @@ function _pdbx_struct_oper_list(context) {
     }
     var data = {
         rows: rows,
-        id: cat.getColumn('_pdbx_struct_oper_list.id'),
-        type: cat.getColumn('_pdbx_struct_oper_list.type'),
-        name: cat.getColumn('_pdbx_struct_oper_list.name'),
-        symmetry_operation: cat.getColumn('_pdbx_struct_oper_list.symmetry_operation'),
-        matrix11: cat.getColumn('_pdbx_struct_oper_list.matrix[1][1]'),
-        matrix12: cat.getColumn('_pdbx_struct_oper_list.matrix[1][2]'),
-        matrix13: cat.getColumn('_pdbx_struct_oper_list.matrix[1][3]'),
-        vector1: cat.getColumn('_pdbx_struct_oper_list.vector[1]'),
-        matrix21: cat.getColumn('_pdbx_struct_oper_list.matrix[2][1]'),
-        matrix22: cat.getColumn('_pdbx_struct_oper_list.matrix[2][2]'),
-        matrix23: cat.getColumn('_pdbx_struct_oper_list.matrix[2][3]'),
-        vector2: cat.getColumn('_pdbx_struct_oper_list.vector[2]'),
-        matrix31: cat.getColumn('_pdbx_struct_oper_list.matrix[3][1]'),
-        matrix32: cat.getColumn('_pdbx_struct_oper_list.matrix[3][2]'),
-        matrix33: cat.getColumn('_pdbx_struct_oper_list.matrix[3][3]'),
-        vector3: cat.getColumn('_pdbx_struct_oper_list.vector[3]')
+        id: cat.getColumn('id'),
+        type: cat.getColumn('type'),
+        name: cat.getColumn('name'),
+        symmetry_operation: cat.getColumn('symmetry_operation'),
+        matrix11: cat.getColumn('matrix[1][1]'),
+        matrix12: cat.getColumn('matrix[1][2]'),
+        matrix13: cat.getColumn('matrix[1][3]'),
+        vector1: cat.getColumn('vector[1]'),
+        matrix21: cat.getColumn('matrix[2][1]'),
+        matrix22: cat.getColumn('matrix[2][2]'),
+        matrix23: cat.getColumn('matrix[2][3]'),
+        vector2: cat.getColumn('vector[2]'),
+        matrix31: cat.getColumn('matrix[3][1]'),
+        matrix32: cat.getColumn('matrix[3][2]'),
+        matrix33: cat.getColumn('matrix[3][3]'),
+        vector3: cat.getColumn('vector[3]')
     };
     var fields = [
-        { name: 'id', string: function (data, i) { return data.id.getString(data.rows[i]); } },
-        { name: 'type', string: function (data, i) { return data.type.getString(data.rows[i]); } },
-        { name: 'name', string: function (data, i) { return data.name.getString(data.rows[i]); } },
-        { name: 'symmetry_operation', string: function (data, i) { return data.symmetry_operation.getString(data.rows[i]); } },
+        stringColumn('id', data.id, function (data, i) { return data.rows[i]; }),
+        stringColumn('type', data.type, function (data, i) { return data.rows[i]; }),
+        stringColumn('name', data.name, function (data, i) { return data.rows[i]; }),
+        stringColumn('symmetry_operation', data.symmetry_operation, function (data, i) { return data.rows[i]; }),
         float64field('matrix[1][1]', function (data, i) { return data.matrix11.getFloat(data.rows[i]); }),
         float64field('matrix[1][2]', function (data, i) { return data.matrix12.getFloat(data.rows[i]); }),
         float64field('matrix[1][3]', function (data, i) { return data.matrix13.getFloat(data.rows[i]); }),
@@ -547,15 +569,23 @@ function _entity_poly(context) {
         return;
     var entityMap = new Map();
     var poly = [];
+    var _entity = {
+        entity_id: cat.getColumn('entity_id'),
+        type: cat.getColumn('type'),
+        nstd_linkage: cat.getColumn('nstd_linkage'),
+        nstd_monomer: cat.getColumn('nstd_monomer'),
+        pdbx_seq_one_letter_code: cat.getColumn('pdbx_seq_one_letter_code'),
+        pdbx_seq_one_letter_code_can: cat.getColumn('pdbx_seq_one_letter_code_can')
+    };
     for (var i = 0; i < cat.rowCount; i++) {
-        var eId = cat.getStringValue('_entity_poly.entity_id', i);
+        var eId = _entity.entity_id.getString(i);
         var e = {
             entity_id: eId,
-            type: cat.getStringValue('_entity_poly.type', i),
-            nstd_linkage: cat.getStringValue('_entity_poly.nstd_linkage', i),
-            nstd_monomer: cat.getStringValue('_entity_poly.nstd_monomer', i),
-            pdbx_seq_one_letter_code: cat.getStringValue('_entity_poly.pdbx_seq_one_letter_code', i),
-            pdbx_seq_one_letter_code_can: cat.getStringValue('_entity_poly.pdbx_seq_one_letter_code_can', i),
+            type: _entity.type.getString(i),
+            nstd_linkage: _entity.nstd_linkage.getString(i),
+            nstd_monomer: _entity.nstd_monomer.getString(i),
+            pdbx_seq_one_letter_code: _entity.pdbx_seq_one_letter_code.getString(i),
+            pdbx_seq_one_letter_code_can: _entity.pdbx_seq_one_letter_code_can.getString(i),
             pdbx_strand_id: '',
             strand_set: new Set()
         };
@@ -582,12 +612,12 @@ function _entity_poly(context) {
     var data = poly;
     var fields = [
         { name: 'entity_id', string: function (data, i) { return data[i].entity_id; } },
-        { name: 'type', string: function (data, i) { return data[i].type; } },
-        { name: 'nstd_linkage', string: function (data, i) { return data[i].nstd_linkage; } },
-        { name: 'nstd_monomer', string: function (data, i) { return data[i].nstd_monomer; } },
-        { name: 'pdbx_seq_one_letter_code', string: function (data, i) { return data[i].pdbx_seq_one_letter_code; } },
-        { name: 'pdbx_seq_one_letter_code_can', string: function (data, i) { return data[i].pdbx_seq_one_letter_code_can; } },
-        { name: 'pdbx_strand_id', string: function (data, i) { return data[i].pdbx_strand_id; } }
+        { name: 'type', string: function (data, i) { return data[i].type; }, presence: function (data, i) { return data[i].type ? 0 /* Present */ : 2 /* Unknown */; } },
+        { name: 'nstd_linkage', string: function (data, i) { return data[i].nstd_linkage; }, presence: function (data, i) { return data[i].nstd_linkage ? 0 /* Present */ : 2 /* Unknown */; } },
+        { name: 'nstd_monomer', string: function (data, i) { return data[i].nstd_monomer; }, presence: function (data, i) { return data[i].nstd_monomer ? 0 /* Present */ : 2 /* Unknown */; } },
+        { name: 'pdbx_seq_one_letter_code', string: function (data, i) { return data[i].pdbx_seq_one_letter_code; }, presence: function (data, i) { return data[i].pdbx_seq_one_letter_code ? 0 /* Present */ : 2 /* Unknown */; } },
+        { name: 'pdbx_seq_one_letter_code_can', string: function (data, i) { return data[i].pdbx_seq_one_letter_code_can; }, presence: function (data, i) { return data[i].pdbx_seq_one_letter_code_can ? 0 /* Present */ : 2 /* Unknown */; } },
+        { name: 'pdbx_strand_id', string: function (data, i) { return data[i].pdbx_strand_id; }, presence: function (data, i) { return data[i].pdbx_strand_id ? 0 /* Present */ : 2 /* Unknown */; } }
     ];
     return {
         data: data,
@@ -617,7 +647,13 @@ function _pdbx_struct_mod_residue(context) {
             residues[residues.length] = res;
         }
     }
-    var data = { cat: cat, modResIndices: modResIndices, residues: residues, resTable: context.model.residues };
+    var data = {
+        modResIndices: modResIndices,
+        residues: residues,
+        parent_comp_id: cat.getColumn('parent_comp_id'),
+        details: cat.getColumn('details'),
+        resTable: context.model.residues
+    };
     var fields = [
         { name: 'id', string: function (data, i) { return (i + 1).toString(); } },
         { name: 'label_asym_id', string: function (data, i) { return data.resTable.asymId[data.residues[i]]; } },
@@ -626,9 +662,9 @@ function _pdbx_struct_mod_residue(context) {
         { name: 'auth_asym_id', string: function (data, i) { return data.resTable.authAsymId[data.residues[i]]; } },
         { name: 'auth_seq_id', string: function (data, i) { return data.resTable.authSeqNumber[data.residues[i]].toString(); }, number: function (data, i) { return data.resTable.authSeqNumber[data.residues[i]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
         { name: 'auth_comp_id', string: function (data, i) { return data.resTable.authName[data.residues[i]]; } },
-        { name: 'PDB_ins_code', string: function (data, i) { return data.resTable.insCode[data.residues[i]]; } },
-        { name: 'parent_comp_id', string: function (data, i) { return data.cat.getStringValue('_pdbx_struct_mod_residue.parent_comp_id', data.modResIndices[i]); } },
-        { name: 'details', string: function (data, i) { return data.cat.getStringValue('_pdbx_struct_mod_residue.details', data.modResIndices[i]); } }
+        { name: 'PDB_ins_code', string: function (data, i) { return data.resTable.insCode[data.residues[i]]; }, presence: function (data, i) { return data.resTable.insCode[data.residues[i]] ? 0 /* Present */ : 1 /* NotSpecified */; } },
+        { name: 'parent_comp_id', string: function (data, i) { return data.parent_comp_id.getString(data.modResIndices[i]); }, presence: function (data, i) { return data.parent_comp_id.getValuePresence(data.modResIndices[i]); } },
+        { name: 'details', string: function (data, i) { return data.details.getString(data.modResIndices[i]); }, presence: function (data, i) { return data.details.getValuePresence(data.modResIndices[i]); } }
     ];
     return {
         data: data,
@@ -649,22 +685,22 @@ function _atom_sites(context) {
     }
     var data = {
         rows: rows,
-        entry_id: cat.getColumn('_atom_sites.entry_id'),
-        matrix11: cat.getColumn('_atom_sites.fract_transf_matrix[1][1]'),
-        matrix12: cat.getColumn('_atom_sites.fract_transf_matrix[1][2]'),
-        matrix13: cat.getColumn('_atom_sites.fract_transf_matrix[1][3]'),
-        vector1: cat.getColumn('_atom_sites.fract_transf_vector[1]'),
-        matrix21: cat.getColumn('_atom_sites.fract_transf_matrix[2][1]'),
-        matrix22: cat.getColumn('_atom_sites.fract_transf_matrix[2][2]'),
-        matrix23: cat.getColumn('_atom_sites.fract_transf_matrix[2][3]'),
-        vector2: cat.getColumn('_atom_sites.fract_transf_vector[2]'),
-        matrix31: cat.getColumn('_atom_sites.fract_transf_matrix[3][1]'),
-        matrix32: cat.getColumn('_atom_sites.fract_transf_matrix[3][2]'),
-        matrix33: cat.getColumn('_atom_sites.fract_transf_matrix[3][3]'),
-        vector3: cat.getColumn('_atom_sites.fract_transf_vector[3]')
+        entry_id: cat.getColumn('entry_id'),
+        matrix11: cat.getColumn('fract_transf_matrix[1][1]'),
+        matrix12: cat.getColumn('fract_transf_matrix[1][2]'),
+        matrix13: cat.getColumn('fract_transf_matrix[1][3]'),
+        vector1: cat.getColumn('fract_transf_vector[1]'),
+        matrix21: cat.getColumn('fract_transf_matrix[2][1]'),
+        matrix22: cat.getColumn('fract_transf_matrix[2][2]'),
+        matrix23: cat.getColumn('fract_transf_matrix[2][3]'),
+        vector2: cat.getColumn('fract_transf_vector[2]'),
+        matrix31: cat.getColumn('fract_transf_matrix[3][1]'),
+        matrix32: cat.getColumn('fract_transf_matrix[3][2]'),
+        matrix33: cat.getColumn('fract_transf_matrix[3][3]'),
+        vector3: cat.getColumn('fract_transf_vector[3]')
     };
     var fields = [
-        { name: 'entry_id', string: function (data, i) { return data.entry_id.getString(data.rows[i]); } },
+        stringColumn('entry_id', data.entry_id, function (data, i) { return data.rows[i]; }),
         float64field('fract_transf_matrix[1][1]', function (data, i) { return data.matrix11.getFloat(data.rows[i]); }),
         float64field('fract_transf_matrix[1][2]', function (data, i) { return data.matrix12.getFloat(data.rows[i]); }),
         float64field('fract_transf_matrix[1][3]', function (data, i) { return data.matrix13.getFloat(data.rows[i]); }),
@@ -696,54 +732,54 @@ function _atom_site(context) {
     //--_atom_site.pdbe_label_seq_id 
     var cat = context.data.getCategory('_atom_site');
     var data = {
-        is: context.fragment.atomIndices,
+        atomIndex: context.fragment.atomIndices,
         atoms: context.model.atoms,
         residues: context.model.residues,
         chains: context.model.chains,
         entities: context.model.entities,
         modelId: context.model.modelId,
-        Cartn_x_esd: cat.getColumn('_atom_site.Cartn_x_esd'),
-        Cartn_y_esd: cat.getColumn('_atom_site.Cartn_y_esd'),
-        Cartn_z_esd: cat.getColumn('_atom_site.Cartn_z_esd'),
-        occupancy_esd: cat.getColumn('_atom_site.occupancy_esd'),
-        B_iso_or_equiv_esd: cat.getColumn('_atom_site.B_iso_or_equiv_esd'),
-        pdbx_formal_charge: cat.getColumn('_atom_site.pdbx_formal_charge'),
+        Cartn_x_esd: cat.getColumn('Cartn_x_esd'),
+        Cartn_y_esd: cat.getColumn('Cartn_y_esd'),
+        Cartn_z_esd: cat.getColumn('Cartn_z_esd'),
+        occupancy_esd: cat.getColumn('occupancy_esd'),
+        B_iso_or_equiv_esd: cat.getColumn('B_iso_or_equiv_esd'),
+        pdbx_formal_charge: cat.getColumn('pdbx_formal_charge'),
     };
     var fields = [
-        { name: 'group_PDB', string: function (data, i) { return data.residues.isHet[data.atoms.residueIndex[data.is[i]]] ? 'HETATM' : 'ATOM'; } },
-        { name: 'id', string: function (data, i) { return data.atoms.id[data.is[i]].toString(); }, number: function (data, i) { return data.atoms.id[data.is[i]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
-        { name: 'type_symbol', string: function (data, i) { return data.atoms.elementSymbol[data.is[i]]; } },
-        { name: 'label_atom_id', string: function (data, i) { return data.atoms.name[data.is[i]]; } },
-        { name: 'label_alt_id', string: function (data, i) { return data.atoms.altLoc[data.is[i]]; } },
-        { name: 'label_comp_id', string: function (data, i) { return data.residues.name[data.atoms.residueIndex[data.is[i]]]; } },
-        { name: 'label_asym_id', string: function (data, i) { return data.chains.asymId[data.atoms.chainIndex[data.is[i]]]; } },
-        { name: 'label_entity_id', string: function (data, i) { return data.entities.entityId[data.atoms.entityIndex[data.is[i]]]; } },
-        { name: 'label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.is[i]]].toString(); }, number: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.is[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
-        { name: 'pdbx_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.is[i]]]; } },
-        { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(1000 * data.atoms.x[data.is[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.x[data.is[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(1000 * data.atoms.y[data.is[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.y[data.is[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'Cartn_z', string: function (data, i) { return '' + Math.round(1000 * data.atoms.z[data.is[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.z[data.is[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'occupancy', string: function (data, i) { return '' + Math.round(100 * data.atoms.occupancy[data.is[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.occupancy[data.is[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy },
-        { name: 'B_iso_or_equiv', string: function (data, i) { return '' + Math.round(100 * data.atoms.tempFactor[data.is[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.tempFactor[data.is[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'pdbx_formal_charge', string: function (data, i) { return data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.is[i]]); } },
-        { name: 'auth_atom_id', string: function (data, i) { return data.atoms.authName[data.is[i]]; } },
-        { name: 'auth_comp_id', string: function (data, i) { return data.residues.authName[data.atoms.residueIndex[data.is[i]]]; } },
-        { name: 'auth_asym_id', string: function (data, i) { return data.chains.authAsymId[data.atoms.chainIndex[data.is[i]]]; } },
-        { name: 'auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.is[i]]].toString(); }, number: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.is[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
+        { name: 'group_PDB', string: function (data, i) { return data.residues.isHet[data.atoms.residueIndex[data.atomIndex[i]]] ? 'HETATM' : 'ATOM'; } },
+        { name: 'id', string: function (data, i) { return data.atoms.id[data.atomIndex[i]].toString(); }, number: function (data, i) { return data.atoms.id[data.atomIndex[i]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
+        { name: 'type_symbol', string: function (data, i) { return data.atoms.elementSymbol[data.atomIndex[i]]; } },
+        { name: 'label_atom_id', string: function (data, i) { return data.atoms.name[data.atomIndex[i]]; } },
+        { name: 'label_alt_id', string: function (data, i) { return data.atoms.altLoc[data.atomIndex[i]]; } },
+        { name: 'label_comp_id', string: function (data, i) { return data.residues.name[data.atoms.residueIndex[data.atomIndex[i]]]; } },
+        { name: 'label_asym_id', string: function (data, i) { return data.chains.asymId[data.atoms.chainIndex[data.atomIndex[i]]]; } },
+        { name: 'label_entity_id', string: function (data, i) { return data.entities.entityId[data.atoms.entityIndex[data.atomIndex[i]]]; } },
+        { name: 'label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(); }, number: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
+        { name: 'pdbx_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]]; } },
+        { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'Cartn_z', string: function (data, i) { return '' + Math.round(1000 * data.atoms.z[data.atomIndex[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.z[data.atomIndex[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'occupancy', string: function (data, i) { return '' + Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy },
+        { name: 'B_iso_or_equiv', string: function (data, i) { return '' + Math.round(100 * data.atoms.tempFactor[data.atomIndex[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.tempFactor[data.atomIndex[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'pdbx_formal_charge', string: function (data, i) { return data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.atomIndex[i]]); }, presence: function (data, i) { return data.pdbx_formal_charge.getValuePresence(data.atoms.rowIndex[data.atomIndex[i]]); } },
+        { name: 'auth_atom_id', string: function (data, i) { return data.atoms.authName[data.atomIndex[i]]; } },
+        { name: 'auth_comp_id', string: function (data, i) { return data.residues.authName[data.atoms.residueIndex[data.atomIndex[i]]]; } },
+        { name: 'auth_asym_id', string: function (data, i) { return data.chains.authAsymId[data.atoms.chainIndex[data.atomIndex[i]]]; } },
+        { name: 'auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(); }, number: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
     ];
-    if (data.Cartn_x_esd && !data.Cartn_x_esd.isUndefined(data.is[0])) {
-        fields.push({ name: 'Cartn_x_esd', string: function (data, i) { return data.Cartn_x_esd.getString(data.is[i]); }, number: function (data, i) { return data.Cartn_x_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates }, { name: 'Cartn_y_esd', string: function (data, i) { return data.Cartn_y_esd.getString(data.is[i]); }, number: function (data, i) { return data.Cartn_y_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates }, { name: 'Cartn_z_esd', string: function (data, i) { return data.Cartn_z_esd.getString(data.is[i]); }, number: function (data, i) { return data.Cartn_z_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates });
+    if (data.Cartn_x_esd && data.Cartn_x_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
+        fields.push({ name: 'Cartn_x_esd', string: function (data, i) { return data.Cartn_x_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_x_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates }, { name: 'Cartn_y_esd', string: function (data, i) { return data.Cartn_y_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_y_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates }, { name: 'Cartn_z_esd', string: function (data, i) { return data.Cartn_z_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_z_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates });
     }
-    if (data.occupancy_esd && !data.occupancy_esd.isUndefined(data.is[0])) {
-        fields.push({ name: 'occupancy_esd', string: function (data, i) { return data.occupancy_esd.getString(data.is[i]); }, number: function (data, i) { return data.occupancy_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy });
+    if (data.occupancy_esd && data.occupancy_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
+        fields.push({ name: 'occupancy_esd', string: function (data, i) { return data.occupancy_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.occupancy_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy });
     }
-    if (data.B_iso_or_equiv_esd && !data.B_iso_or_equiv_esd.isUndefined(data.is[0])) {
-        fields.push({ name: 'B_iso_or_equiv_esd', string: function (data, i) { return data.B_iso_or_equiv_esd.getString(data.is[i]); }, number: function (data, i) { return data.B_iso_or_equiv_esd.getFloat(data.is[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates });
+    if (data.B_iso_or_equiv_esd && data.B_iso_or_equiv_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
+        fields.push({ name: 'B_iso_or_equiv_esd', string: function (data, i) { return data.B_iso_or_equiv_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.B_iso_or_equiv_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates });
     }
     fields.push({ name: 'pdbx_PDB_model_num', string: function (data, i) { return data.modelId; } });
     return {
         data: data,
-        count: data.is.length,
+        count: data.atomIndex.length,
         desc: {
             name: '_atom_site',
             fields: fields
@@ -773,12 +809,14 @@ function format(writer, config, models) {
     writer.writeCategory(header);
     writer.writeCategory(params);
     var context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data);
-    for (var _i = 0, _a = config.includedCategories; _i < _a.length; _i++) {
-        var cat = _a[_i];
-        var f = Categories[cat];
-        if (!f)
-            continue;
-        writer.writeCategory(f, [context]);
+    if (!config.params.common.atomSitesOnly) {
+        for (var _i = 0, _a = config.includedCategories; _i < _a.length; _i++) {
+            var cat = _a[_i];
+            var f = Categories[cat];
+            if (!f)
+                continue;
+            writer.writeCategory(f, [context]);
+        }
     }
     var modelContexts = [context];
     for (var i = 1; i < models.length; i++) {

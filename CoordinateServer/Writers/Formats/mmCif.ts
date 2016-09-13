@@ -1,4 +1,5 @@
 ﻿import * as Core from 'LiteMol-core'
+import CIF = Core.Formats.CIF
 import { Context, CategoryInstance, CategoryProvider, FieldDesc, Encoders, FormatConfig, WritableFragments, Writer, createResultHeaderCategory, createParamsCategory } from '../Context'
 
 export class mmCifContext implements Context {
@@ -34,11 +35,16 @@ export class mmCifContext implements Context {
         let _mod_res = this.data.getCategory('_pdbx_struct_mod_residue');
         if (!_mod_res) return map;
 
+        let label_asym_id = _mod_res.getColumn('label_asym_id');
+        let label_seq_id = _mod_res.getColumn('label_seq_id');
+        let PDB_ins_code = _mod_res.getColumn('PDB_ins_code');
+        let parent_comp_id = _mod_res.getColumn('parent_comp_id');
+        let label_comp_id = _mod_res.getColumn('label_comp_id');
 
         for (let i = 0; i < _mod_res.rowCount; i++) {
-            let key = `${_mod_res.getStringValue('_pdbx_struct_mod_residue.label_asym_id', i)} ${_mod_res.getStringValue('_pdbx_struct_mod_residue.label_seq_id', i)} ${_mod_res.getStringValue('_pdbx_struct_mod_residue.PDB_ins_code', i)}`;
-            map.set(key, { i, original: _mod_res.getStringValue('_pdbx_struct_mod_residue.parent_comp_id', i) });
-            names.add(_mod_res.getStringValue('_pdbx_struct_mod_residue.label_comp_id', i));
+            let key = `${label_asym_id.getString(i)} ${label_seq_id.getString(i)} ${PDB_ins_code.getString(i)}`;
+            map.set(key, { i, original: parent_comp_id.getString(i) });
+            names.add(label_comp_id.getString(i));
         }
     }
 
@@ -62,7 +68,7 @@ export class mmCifContext implements Context {
         return `${asymId} ${res.seqNumber[i]} ${res.insCode[i]}`;
     }
 
-    constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.CIF.Block) {
+    constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.CIF.DataBlock) {
     }
 }
 
@@ -70,27 +76,52 @@ class SourceCategoryMap {
     private byKey = new Map<string, number>();
     private category: LiteMol.Core.Formats.CIF.Category = null;
 
-    getValueOrDefault(id: string, columnName: string, def: string) {
-        if (!this.category) return def;
+    getString(id: string, columnName: string) {
+        if (!this.category) return void 0;
         let row = this.byKey.get(id);
-        if (row === void 0) return def;
-        let v = this.category.getStringValue(columnName, row);
-        if (v === null) return def;
-        return v;
+        if (row === void 0) return void 0;
+        let col = this.category.getColumn(columnName);
+        return col.getString(row);
+    }
+
+    getPresence(id: string, columnName: string) {
+        if (!this.category) return CIF.ValuePresence.NotSpecified;
+        let row = this.byKey.get(id);
+        if (row === void 0) return CIF.ValuePresence.NotSpecified;
+        let col = this.category.getColumn(columnName);
+        return col.getValuePresence(row);
     }
 
     constructor(private context: mmCifContext, private name: string, private keyColumnName: string) {
         let cat = context.data.getCategory(name);
         if (!cat) return;
-        let ci = cat.getColumnIndex(keyColumnName);
-        if (ci < 0) return;
+        let col = cat.getColumn(keyColumnName);
+        if (!col.isDefined) return;
         this.category = cat;
         for (let i = 0; i < cat.rowCount; i++) {
-            let id = cat.getStringValueFromIndex(ci, i);
+            let id = col.getString(i);
             this.byKey.set(id, i);
         }
     }
 }
+
+
+export function stringColumn<T>(name: string, column: CIF.Column, row: (data: T, i: number) => number): FieldDesc<T> {
+    return { name, string: (data, i) => column.getString(row(data, i)), presence: (data, i) => column.getValuePresence(row(data, i)) };
+}
+
+export function int32column<T>(name: string, column: CIF.Column, row: (data: T, i: number) => number, encoder: Core.Formats.BinaryCIF.Encoder): FieldDesc<T> {
+    return { name, string: (data, i) => column.getString(row(data, i)), number: (data, i) => column.getInteger(row(data, i)), presence: (data, i) => column.getValuePresence(row(data, i)), typedArray: Int32Array, encoder };
+}
+
+export function float64field<T>(name: string, value: (data: T, i: number) => number): FieldDesc<T> {
+    return { name, string: (data, i) => value(data, i).toString(), number: value, typedArray: Float64Array, encoder: Encoders.float64 };
+}
+
+export function int32field<T>(name: string, value: (data: T, i: number) => number): FieldDesc<T> {
+    return { name, string: (data, i) => value(data, i).toString(), number: value, typedArray: Int32Array, encoder: Encoders.int32 };
+}
+
 
 
 function _entry(context: mmCifContext) {    
@@ -99,7 +130,7 @@ function _entry(context: mmCifContext) {
         desc: {
             name: '_entry',
             fields: [
-                { name: 'id', string: id => id, encoder: Encoders.strings }
+                { name: 'id', string: id => id, encoder: Encoders.strings, presence: () => CIF.ValuePresence.Present }
             ]
         }
     };
@@ -123,20 +154,21 @@ function _entity(context: mmCifContext) {
 
     let e = context.model.entities;
 
-    let map = new SourceCategoryMap(context, '_entity', '_entity.id');
+    let map = new SourceCategoryMap(context, '_entity', 'id');
 
     let data = { id: e.entityId, type: e.type, index: entityIndices, map };
     let fields: FieldDesc<typeof data>[] = [
         { name: 'id', string: (data, i) => data.id[data.index[i]] },
         { name: 'type', string: (data, i) => data.type[data.index[i]] },
-        { name: 'src_method', string: (data, i) => data.map.getValueOrDefault(data.id[data.index[i]], '_entity.src_method', '?') },
-        { name: 'pdbx_description', string: (data, i) => data.map.getValueOrDefault(data.id[data.index[i]], '_entity.pdbx_description', '?') },
-        { name: 'formula_weight', string: (data, i) => '?' },
-        { name: 'pdbx_number_of_molecules', string: (data, i) => '?' },
-        { name: 'details', string: (data, i) => '?' },
-        { name: 'pdbx_mutation', string: (data, i) => data.map.getValueOrDefault(data.id[data.index[i]], '_entity.pdbx_mutation', '?') },
-        { name: 'pdbx_fragment', string: (data, i) => data.map.getValueOrDefault(data.id[data.index[i]], '_entity.pdbx_fragment', '?') },
-        { name: 'pdbx_ec', string: (data, i) => data.map.getValueOrDefault(data.id[data.index[i]], '_entity.pdbx_ec', '?') }
+        { name: 'src_method', string: (data, i) => data.map.getString(data.id[data.index[i]], 'src_method'), presence: (data, i) => data.map.getPresence(data.id[data.index[i]], 'src_method') },
+        { name: 'pdbx_description', string: (data, i) => data.map.getString(data.id[data.index[i]], 'pdbx_description'), presence: (data, i) => data.map.getPresence(data.id[data.index[i]], 'pdbx_description') },
+        { name: 'formula_weight', presence: () => CIF.ValuePresence.Unknown },
+        { name: 'pdbx_number_of_molecules', presence: () => CIF.ValuePresence.Unknown },
+        { name: 'details', presence: () => CIF.ValuePresence.NotSpecified },
+
+        { name: 'pdbx_mutation', string: (data, i) => data.map.getString(data.id[data.index[i]], 'pdbx_mutation'), presence: (data, i) => data.map.getPresence(data.id[data.index[i]], 'pdbx_mutation') },
+        { name: 'pdbx_fragment', string: (data, i) => data.map.getString(data.id[data.index[i]], 'pdbx_fragment'), presence: (data, i) => data.map.getPresence(data.id[data.index[i]], 'pdbx_fragment') },
+        { name: 'pdbx_ec', string: (data, i) => data.map.getString(data.id[data.index[i]], 'pdbx_ec'), presence: (data, i) => data.map.getPresence(data.id[data.index[i]], 'pdbx_ec') }
     ];
 
     return <CategoryInstance<typeof data>>{
@@ -218,12 +250,12 @@ function _struct_conf(context: mmCifContext) {
         { name: 'beg_label_comp_id', string: (data, i) => data.residues.name[data.indices.starts[i]] },
         { name: 'beg_label_asym_id', string: (data, i) => data.residues.asymId[data.indices.starts[i]] },
         { name: 'beg_label_seq_id', string: (data, i) => data.residues.seqNumber[data.indices.starts[i]].toString() },
-        { name: 'pdbx_beg_PDB_ins_code', string: (data, i) => data.residues.insCode[data.indices.starts[i]] },
+        { name: 'pdbx_beg_PDB_ins_code', string: (data, i) => data.residues.insCode[data.indices.starts[i]], presence: (data, i) => data.residues.insCode[data.indices.starts[i]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
         { name: 'end_label_comp_id', string: (data, i) => data.residues.name[data.indices.ends[i]] },
         { name: 'end_label_asym_id', string: (data, i) => data.residues.asymId[data.indices.ends[i]] },
         { name: 'end_label_seq_id', string: (data, i) => data.residues.seqNumber[data.indices.ends[i]].toString() },
-        { name: 'pdbx_end_PDB_ins_code', string: (data, i) => data.residues.insCode[data.indices.ends[i]] },
+        { name: 'pdbx_end_PDB_ins_code', string: (data, i) => data.residues.insCode[data.indices.ends[i]], presence: (data, i) => data.residues.insCode[data.indices.ends[i]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
         { name: 'beg_auth_comp_id', string: (data, i) => data.residues.authName[data.indices.starts[i]] },
         { name: 'beg_auth_asym_id', string: (data, i) => data.residues.authAsymId[data.indices.starts[i]] },
@@ -234,7 +266,7 @@ function _struct_conf(context: mmCifContext) {
         { name: 'end_auth_seq_id', string: (data, i) => data.residues.authSeqNumber[data.indices.ends[i]].toString() },
 
         { name: 'pdbx_PDB_helix_class', string: (data, i) => { let val = data.indices.struct[data.indices.ssIndices[i]].info.helixClass; return val !== null && val !== undefined ? '' + val : '?' } },
-        { name: 'details', string: (data, i) => '?' },
+        { name: 'details', presence: () => CIF.ValuePresence.Unknown },
 
         { name: 'pdbx_PDB_helix_length', string: (data, i) => data.indices.lengths[i].toString() }
     ];
@@ -263,14 +295,14 @@ function _struct_sheet_range(context: mmCifContext) {
         { name: 'beg_label_comp_id', string: (data, i) => data.residues.name[data.indices.starts[i]] },
         { name: 'beg_label_asym_id', string: (data, i) => data.residues.asymId[data.indices.starts[i]] },
         { name: 'beg_label_seq_id', string: (data, i) => data.residues.seqNumber[data.indices.starts[i]].toString() },
-        { name: 'pdbx_beg_PDB_ins_code', string: (data, i) => data.residues.insCode[data.indices.starts[i]] },
+        { name: 'pdbx_beg_PDB_ins_code', string: (data, i) => data.residues.insCode[data.indices.starts[i]], presence: (data, i) => data.residues.insCode[data.indices.starts[i]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
         { name: 'end_label_comp_id', string: (data, i) => data.residues.name[data.indices.ends[i]] },
         { name: 'end_label_asym_id', string: (data, i) => data.residues.asymId[data.indices.ends[i]] },
         { name: 'end_label_seq_id', string: (data, i) => data.residues.seqNumber[data.indices.ends[i]].toString() },
-        { name: 'pdbx_end_PDB_ins_code', string: (data, i) => data.residues.insCode[data.indices.ends[i]] },
+        { name: 'pdbx_end_PDB_ins_code', string: (data, i) => data.residues.insCode[data.indices.ends[i]], presence: (data, i) => data.residues.insCode[data.indices.ends[i]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
-        { name: 'symmetry', string: (data, i) => { let val = data.indices.struct[data.indices.ssIndices[i]].info.symmetry; return val !== null && val !== undefined ? '' + val : '?' } },
+        { name: 'symmetry', string: (data, i) => '' + data.indices.struct[data.indices.ssIndices[i]].info.symmetry, presence: (data, i) => data.indices.struct[data.indices.ssIndices[i]].info.symmetry ? CIF.ValuePresence.Present : CIF.ValuePresence.Unknown },
 
         { name: 'beg_auth_comp_id', string: (data, i) => data.residues.authName[data.indices.starts[i]] },
         { name: 'beg_auth_asym_id', string: (data, i) => data.residues.authAsymId[data.indices.starts[i]] },
@@ -295,8 +327,7 @@ function _chem_comp_bond(context: mmCifContext) {
     let cat = context.data.getCategory('_chem_comp_bond');
     if (!cat) return;
         
-    let cols = cat.columnArray;
-    let nameCol = cat.getColumn('_chem_comp_bond.comp_id');
+    let nameCol = cat.getColumn('comp_id');
     if (!nameCol) return;
     let rows: number[] = [];
     let names = context.residueNameSet;
@@ -310,26 +341,27 @@ function _chem_comp_bond(context: mmCifContext) {
 
     let data = {
         rows,
-        comp_id: cat.getColumn('_chem_comp_bond.comp_id'),
-        pdbx_stereo_config: cat.getColumn('_chem_comp_bond.pdbx_stereo_config'),
-        pdbx_ordinal: cat.getColumn('_chem_comp_bond.pdbx_ordinal'),
-        pdbx_aromatic_flag: cat.getColumn('_chem_comp_bond.pdbx_aromatic_flag'),
-        atom_id_1: cat.getColumn('_chem_comp_bond.atom_id_1'),
-        atom_id_2: cat.getColumn('_chem_comp_bond.atom_id_2'),
-        value_order: cat.getColumn('_chem_comp_bond.value_order')
+        comp_id: cat.getColumn('comp_id'),
+        pdbx_stereo_config: cat.getColumn('pdbx_stereo_config'),
+        pdbx_ordinal: cat.getColumn('pdbx_ordinal'),
+        pdbx_aromatic_flag: cat.getColumn('pdbx_aromatic_flag'),
+        atom_id_1: cat.getColumn('atom_id_1'),
+        atom_id_2: cat.getColumn('atom_id_2'),
+        value_order: cat.getColumn('value_order')
     };
 
-    let fields: FieldDesc<typeof data>[] = [
-        { name: 'comp_id', string: (data, i) => data.comp_id.getString(data.rows[i]) },
-        { name: 'pdbx_stereo_config', string: (data, i) => data.pdbx_stereo_config.getString(data.rows[i]) },
-        { name: 'pdbx_ordinal', string: (data, i) => data.pdbx_ordinal.getString(data.rows[i]), number: (data, i) => data.pdbx_ordinal.getInteger(data.rows[i]), typedArray: Int32Array, encoder: Encoders.ids },
-        { name: 'pdbx_aromatic_flag', string: (data, i) => data.pdbx_aromatic_flag.getString(data.rows[i]) },
-        { name: 'atom_id_1', string: (data, i) => data.atom_id_1.getString(data.rows[i]) },
-        { name: 'atom_id_2', string: (data, i) => data.atom_id_2.getString(data.rows[i]) },
-        { name: 'value_order', string: (data, i) => data.value_order.getString(data.rows[i]) }
+    type T = typeof data;
+    let fields: FieldDesc<T>[] = [
+        stringColumn<T>('comp_id', data.comp_id, (data, i) => data.rows[i]),
+        stringColumn<T>('pdbx_stereo_config', data.pdbx_stereo_config, (data, i) => data.rows[i]),
+        int32column<T>('pdbx_ordinal', data.pdbx_ordinal, (data, i) => data.rows[i], Encoders.ids),
+        stringColumn<T>('pdbx_aromatic_flag', data.pdbx_aromatic_flag, (data, i) => data.rows[i]),
+        stringColumn<T>('atom_id_1', data.atom_id_1, (data, i) => data.rows[i]),
+        stringColumn<T>('atom_id_2', data.atom_id_2, (data, i) => data.rows[i]),
+        stringColumn<T>('value_order', data.value_order, (data, i) => data.rows[i])
     ];
 
-    return <CategoryInstance<typeof data>>{
+    return <CategoryInstance<T>>{
         data,
         count: rows.length,
         desc: {
@@ -337,14 +369,6 @@ function _chem_comp_bond(context: mmCifContext) {
             fields
         }
     };
-}
-
-function float64field<T>(name: string, value: (data: T, i: number) => number): FieldDesc<T> {
-    return { name, string: (data, i) => value(data, i).toString(), number: value, typedArray: Float64Array, encoder: Encoders.float64 };
-}
-
-function int32field<T>(name: string, value: (data: T, i: number) => number): FieldDesc<T> {
-    return { name, string: (data, i) => value(data, i).toString(), number: value, typedArray: Int32Array, encoder: Encoders.int32 };
 }
 
 function _cell(context: mmCifContext) {
@@ -358,20 +382,20 @@ function _cell(context: mmCifContext) {
 
     let data = {
         rows,
-        entry_id: cat.getColumn('_cell.entry_id'),
-        length_a: cat.getColumn('_cell.length_a'),
-        length_b: cat.getColumn('_cell.length_b'),
-        length_c: cat.getColumn('_cell.length_c'),
-        angle_alpha: cat.getColumn('_cell.angle_alpha'),
-        angle_beta: cat.getColumn('_cell.angle_beta'),
-        angle_gamma: cat.getColumn('_cell.angle_gamma'),
-        Z_PDB: cat.getColumn('_cell.Z_PDB'),
-        pdbx_unique_axis: cat.getColumn('_cell.pdbx_unique_axis')
+        entry_id: cat.getColumn('entry_id'),
+        length_a: cat.getColumn('length_a'),
+        length_b: cat.getColumn('length_b'),
+        length_c: cat.getColumn('length_c'),
+        angle_alpha: cat.getColumn('angle_alpha'),
+        angle_beta: cat.getColumn('angle_beta'),
+        angle_gamma: cat.getColumn('angle_gamma'),
+        Z_PDB: cat.getColumn('Z_PDB'),
+        pdbx_unique_axis: cat.getColumn('pdbx_unique_axis')
     };
 
     type T = typeof data;
     let fields: FieldDesc<T>[] = [
-        { name: 'entry_id', string: (data, i) => data.entry_id.getString(data.rows[i]) },
+        stringColumn<T>('entry_id', data.entry_id, (data, i) => data.rows[i]),
         float64field<T>('length_a', (data, i) => data.length_a.getFloat(data.rows[i])),
         float64field<T>('length_b', (data, i) => data.length_b.getFloat(data.rows[i])),
         float64field<T>('length_c', (data, i) => data.length_c.getFloat(data.rows[i])),
@@ -379,7 +403,7 @@ function _cell(context: mmCifContext) {
         float64field<T>('angle_beta', (data, i) => data.angle_beta.getFloat(data.rows[i])),
         float64field<T>('angle_gamma', (data, i) => data.angle_gamma.getFloat(data.rows[i])),
         int32field<T>('Z_PDB', (data, i) => data.Z_PDB.getFloat(data.rows[i])),
-        { name: 'pdbx_unique_axis', string: (data, i) => data.pdbx_unique_axis.getString(data.rows[i]) }
+        stringColumn<T>('pdbx_unique_axis', data.pdbx_unique_axis, (data, i) => data.rows[i])
     ];
 
     return <CategoryInstance<T>>{
@@ -403,24 +427,25 @@ function _symmetry(context: mmCifContext) {
 
     let data = {
         rows,
-        entry_id: cat.getColumn('_symmetry.entry_id'),
-        space_group_name_HM: cat.getColumn('_symmetry.space_group_name_H-M'),
-        pdbx_full_space_group_name_HM: cat.getColumn('_symmetry.pdbx_full_space_group_name_H-M'),
-        cell_setting: cat.getColumn('_symmetry.cell_setting'),
-        Int_Tables_number: cat.getColumn('_symmetry.Int_Tables_number'),
-        space_group_name_Hall: cat.getColumn('_symmetry.space_group_name_Hall')
+        entry_id: cat.getColumn('entry_id'),
+        space_group_name_HM: cat.getColumn('space_group_name_H-M'),
+        pdbx_full_space_group_name_HM: cat.getColumn('pdbx_full_space_group_name_H-M'),
+        cell_setting: cat.getColumn('cell_setting'),
+        Int_Tables_number: cat.getColumn('Int_Tables_number'),
+        space_group_name_Hall: cat.getColumn('space_group_name_Hall')
     };
 
-    let fields: FieldDesc<typeof data>[] = [
-        { name: 'entry_id', string: (data, i) => data.entry_id.getString(data.rows[i]) },
-        { name: 'space_group_name_H-M', string: (data, i) => data.space_group_name_HM.getString(data.rows[i]) },
-        { name: 'pdbx_full_space_group_name_H-M', string: (data, i) => data.pdbx_full_space_group_name_HM.getString(data.rows[i]) },
-        { name: 'cell_setting', string: (data, i) => data.cell_setting.getString(data.rows[i]) },
-        { name: 'Int_Tables_number', string: (data, i) => data.Int_Tables_number.getString(data.rows[i]) },
-        { name: 'space_group_name_Hall', string: (data, i) => data.space_group_name_Hall.getString(data.rows[i]) },
+    type T = typeof data;
+    let fields: FieldDesc<T>[] = [
+        stringColumn<T>('entry_id', data.entry_id, (data, i) => data.rows[i]),
+        stringColumn<T>('space_group_name_H-M', data.space_group_name_HM, (data, i) => data.rows[i]),
+        stringColumn<T>('pdbx_full_space_group_name_H-M', data.pdbx_full_space_group_name_HM, (data, i) => data.rows[i]),
+        stringColumn<T>('cell_setting', data.cell_setting, (data, i) => data.rows[i]),
+        stringColumn<T>('Int_Tables_number', data.Int_Tables_number, (data, i) => data.rows[i]),
+        stringColumn<T>('space_group_name_Hall', data.space_group_name_Hall, (data, i) => data.rows[i])
     ];
 
-    return <CategoryInstance<typeof data>>{
+    return <CategoryInstance<T>>{
         data,
         count: rows.length,
         desc: {
@@ -442,22 +467,23 @@ function _pdbx_struct_assembly(context: mmCifContext) {
 
     let data = {
         rows,
-        id: cat.getColumn('_pdbx_struct_assembly.id'),
-        details: cat.getColumn('_pdbx_struct_assembly.details'),
-        method_details: cat.getColumn('_pdbx_struct_assembly.method_details'),
-        oligomeric_details: cat.getColumn('_pdbx_struct_assembly.oligomeric_details'),
-        oligomeric_count: cat.getColumn('_pdbx_struct_assembly.oligomeric_count')
+        id: cat.getColumn('id'),
+        details: cat.getColumn('details'),
+        method_details: cat.getColumn('method_details'),
+        oligomeric_details: cat.getColumn('oligomeric_details'),
+        oligomeric_count: cat.getColumn('oligomeric_count')
     };
 
-    let fields: FieldDesc<typeof data>[] = [
-        { name: 'id', string: (data, i) => data.id.getString(data.rows[i]) },
-        { name: 'details', string: (data, i) => data.details.getString(data.rows[i]) },
-        { name: 'method_details', string: (data, i) => data.method_details.getString(data.rows[i]) },
-        { name: 'oligomeric_details', string: (data, i) => data.oligomeric_details.getString(data.rows[i]) },
+    type T = typeof data;
+    let fields: FieldDesc<T>[] = [
+        stringColumn<T>('id', data.id, (data, i) => data.rows[i]),
+        stringColumn<T>('details', data.details, (data, i) => data.rows[i]),
+        stringColumn<T>('method_details', data.method_details, (data, i) => data.rows[i]),
+        stringColumn<T>('oligomeric_details', data.oligomeric_details, (data, i) => data.rows[i]),
         int32field<typeof data>('oligomeric_count', (data, i) => data.oligomeric_count.getInteger(data.rows[i]))
     ];
 
-    return <CategoryInstance<typeof data>>{
+    return <CategoryInstance<T>>{
         data,
         count: rows.length,
         desc: {
@@ -478,18 +504,19 @@ function _pdbx_struct_assembly_gen(context: mmCifContext) {
 
     let data = {
         rows,
-        assembly_id: cat.getColumn('_pdbx_struct_assembly_gen.assembly_id'),
-        oper_expression: cat.getColumn('_pdbx_struct_assembly_gen.oper_expression'),
-        asym_id_list: cat.getColumn('_pdbx_struct_assembly_gen.asym_id_list')
+        assembly_id: cat.getColumn('assembly_id'),
+        oper_expression: cat.getColumn('oper_expression'),
+        asym_id_list: cat.getColumn('asym_id_list')
     };
 
-    let fields: FieldDesc<typeof data>[] = [
-        { name: 'assembly_id', string: (data, i) => data.assembly_id.getString(data.rows[i]) },
-        { name: 'oper_expression', string: (data, i) => data.oper_expression.getString(data.rows[i]) },
-        { name: 'asym_id_list', string: (data, i) => data.asym_id_list.getString(data.rows[i]) }
+    type T = typeof data;
+    let fields: FieldDesc<T>[] = [
+        stringColumn<T>('assembly_id', data.assembly_id, (data, i) => data.rows[i]),
+        stringColumn<T>('oper_expression', data.oper_expression, (data, i) => data.rows[i]),
+        stringColumn<T>('asym_id_list', data.asym_id_list, (data, i) => data.rows[i])
     ];
 
-    return <CategoryInstance<typeof data>>{
+    return <CategoryInstance<T>>{
         data,
         count: rows.length,
         desc: {
@@ -510,31 +537,31 @@ function _pdbx_struct_oper_list(context: mmCifContext) {
 
     let data = {
         rows,
-        id: cat.getColumn('_pdbx_struct_oper_list.id'),
-        type: cat.getColumn('_pdbx_struct_oper_list.type'),
-        name: cat.getColumn('_pdbx_struct_oper_list.name'),
-        symmetry_operation: cat.getColumn('_pdbx_struct_oper_list.symmetry_operation'),
-        matrix11: cat.getColumn('_pdbx_struct_oper_list.matrix[1][1]'),
-        matrix12: cat.getColumn('_pdbx_struct_oper_list.matrix[1][2]'),
-        matrix13: cat.getColumn('_pdbx_struct_oper_list.matrix[1][3]'),
-        vector1:  cat.getColumn('_pdbx_struct_oper_list.vector[1]'),
-        matrix21: cat.getColumn('_pdbx_struct_oper_list.matrix[2][1]'),
-        matrix22: cat.getColumn('_pdbx_struct_oper_list.matrix[2][2]'),
-        matrix23: cat.getColumn('_pdbx_struct_oper_list.matrix[2][3]'),
-        vector2:  cat.getColumn('_pdbx_struct_oper_list.vector[2]'),
-        matrix31: cat.getColumn('_pdbx_struct_oper_list.matrix[3][1]'),
-        matrix32: cat.getColumn('_pdbx_struct_oper_list.matrix[3][2]'),
-        matrix33: cat.getColumn('_pdbx_struct_oper_list.matrix[3][3]'),
-        vector3:  cat.getColumn('_pdbx_struct_oper_list.vector[3]')
+        id: cat.getColumn('id'),
+        type: cat.getColumn('type'),
+        name: cat.getColumn('name'),
+        symmetry_operation: cat.getColumn('symmetry_operation'),
+        matrix11: cat.getColumn('matrix[1][1]'),
+        matrix12: cat.getColumn('matrix[1][2]'),
+        matrix13: cat.getColumn('matrix[1][3]'),
+        vector1:  cat.getColumn('vector[1]'),
+        matrix21: cat.getColumn('matrix[2][1]'),
+        matrix22: cat.getColumn('matrix[2][2]'),
+        matrix23: cat.getColumn('matrix[2][3]'),
+        vector2:  cat.getColumn('vector[2]'),
+        matrix31: cat.getColumn('matrix[3][1]'),
+        matrix32: cat.getColumn('matrix[3][2]'),
+        matrix33: cat.getColumn('matrix[3][3]'),
+        vector3:  cat.getColumn('vector[3]')
     };
 
     type T = typeof data;
     let fields: FieldDesc<T>[] = [
-        { name: 'id', string: (data, i) => data.id.getString(data.rows[i]) },
-        { name: 'type', string: (data, i) => data.type.getString(data.rows[i]) },
-        { name: 'name', string: (data, i) => data.name.getString(data.rows[i]) },
-        { name: 'symmetry_operation', string: (data, i) => data.symmetry_operation.getString(data.rows[i]) },
-
+        stringColumn<T>('id', data.id, (data, i) => data.rows[i]),
+        stringColumn<T>('type', data.type, (data, i) => data.rows[i]),
+        stringColumn<T>('name', data.name, (data, i) => data.rows[i]),
+        stringColumn<T>('symmetry_operation', data.symmetry_operation, (data, i) => data.rows[i]),
+                
         float64field<T>('matrix[1][1]', (data, i) => data.matrix11.getFloat(data.rows[i])),
         float64field<T>('matrix[1][2]', (data, i) => data.matrix12.getFloat(data.rows[i])),
         float64field<T>('matrix[1][3]', (data, i) => data.matrix13.getFloat(data.rows[i])),
@@ -610,16 +637,24 @@ function _entity_poly(context: mmCifContext) {
     let entityMap = new Map<string, EntityPolyEntry>();
 
     let poly: EntityPolyEntry[] = [];
+    let _entity = {
+        entity_id: cat.getColumn('entity_id'),
+        type: cat.getColumn('type'),
+        nstd_linkage: cat.getColumn('nstd_linkage'),
+        nstd_monomer: cat.getColumn('nstd_monomer'),
+        pdbx_seq_one_letter_code: cat.getColumn('pdbx_seq_one_letter_code'),
+        pdbx_seq_one_letter_code_can: cat.getColumn('pdbx_seq_one_letter_code_can')
+    }
     for (let i = 0; i < cat.rowCount; i++) {
-        let eId = cat.getStringValue('_entity_poly.entity_id', i);
+        let eId = _entity.entity_id.getString(i);
 
         let e = <EntityPolyEntry>{
             entity_id: eId,
-            type: cat.getStringValue('_entity_poly.type', i),
-            nstd_linkage: cat.getStringValue('_entity_poly.nstd_linkage', i),
-            nstd_monomer: cat.getStringValue('_entity_poly.nstd_monomer', i),
-            pdbx_seq_one_letter_code: cat.getStringValue('_entity_poly.pdbx_seq_one_letter_code', i),
-            pdbx_seq_one_letter_code_can: cat.getStringValue('_entity_poly.pdbx_seq_one_letter_code_can', i),
+            type: _entity.type.getString(i),
+            nstd_linkage: _entity.nstd_linkage.getString(i),
+            nstd_monomer: _entity.nstd_monomer.getString(i),
+            pdbx_seq_one_letter_code: _entity.pdbx_seq_one_letter_code.getString(i),
+            pdbx_seq_one_letter_code_can: _entity.pdbx_seq_one_letter_code_can.getString(i),
             pdbx_strand_id: '',
             strand_set: new Set<string>()
         };
@@ -651,12 +686,12 @@ function _entity_poly(context: mmCifContext) {
     let data = poly;
     let fields: FieldDesc<typeof data>[] = [
         { name: 'entity_id', string: (data, i) => data[i].entity_id },
-        { name: 'type', string: (data, i) => data[i].type },
-        { name: 'nstd_linkage', string: (data, i) => data[i].nstd_linkage },
-        { name: 'nstd_monomer', string: (data, i) => data[i].nstd_monomer },
-        { name: 'pdbx_seq_one_letter_code', string: (data, i) => data[i].pdbx_seq_one_letter_code },
-        { name: 'pdbx_seq_one_letter_code_can', string: (data, i) => data[i].pdbx_seq_one_letter_code_can },
-        { name: 'pdbx_strand_id', string: (data, i) => data[i].pdbx_strand_id }
+        { name: 'type', string: (data, i) => data[i].type, presence: (data, i) => data[i].type ? CIF.ValuePresence.Present : CIF.ValuePresence.Unknown },
+        { name: 'nstd_linkage', string: (data, i) => data[i].nstd_linkage, presence: (data, i) => data[i].nstd_linkage ? CIF.ValuePresence.Present : CIF.ValuePresence.Unknown },
+        { name: 'nstd_monomer', string: (data, i) => data[i].nstd_monomer, presence: (data, i) => data[i].nstd_monomer ? CIF.ValuePresence.Present : CIF.ValuePresence.Unknown },
+        { name: 'pdbx_seq_one_letter_code', string: (data, i) => data[i].pdbx_seq_one_letter_code, presence: (data, i) => data[i].pdbx_seq_one_letter_code ? CIF.ValuePresence.Present : CIF.ValuePresence.Unknown },
+        { name: 'pdbx_seq_one_letter_code_can', string: (data, i) => data[i].pdbx_seq_one_letter_code_can, presence: (data, i) => data[i].pdbx_seq_one_letter_code_can ? CIF.ValuePresence.Present : CIF.ValuePresence.Unknown },
+        { name: 'pdbx_strand_id', string: (data, i) => data[i].pdbx_strand_id, presence: (data, i) => data[i].pdbx_strand_id ? CIF.ValuePresence.Present : CIF.ValuePresence.Unknown }
     ];
 
     return <CategoryInstance<typeof data>>{
@@ -689,7 +724,13 @@ function _pdbx_struct_mod_residue(context: mmCifContext) {
         }
     }
 
-    let data = { cat, modResIndices, residues, resTable: context.model.residues };
+    let data = {
+        modResIndices,
+        residues,
+        parent_comp_id: cat.getColumn('parent_comp_id'),
+        details: cat.getColumn('details'),
+        resTable: context.model.residues
+    };
     let fields: FieldDesc<typeof data>[] = [
         { name: 'id', string: (data, i) => (i + 1).toString() },
 
@@ -701,10 +742,10 @@ function _pdbx_struct_mod_residue(context: mmCifContext) {
         { name: 'auth_seq_id', string: (data, i) => data.resTable.authSeqNumber[data.residues[i]].toString(), number: (data, i) => data.resTable.authSeqNumber[data.residues[i]], typedArray: Int32Array, encoder: Encoders.ids },
         { name: 'auth_comp_id', string: (data, i) => data.resTable.authName[data.residues[i]] },
 
-        { name: 'PDB_ins_code', string: (data, i) => data.resTable.insCode[data.residues[i]] },
+        { name: 'PDB_ins_code', string: (data, i) => data.resTable.insCode[data.residues[i]], presence: (data, i) => data.resTable.insCode[data.residues[i]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
-        { name: 'parent_comp_id', string: (data, i) => data.cat.getStringValue('_pdbx_struct_mod_residue.parent_comp_id', data.modResIndices[i]) },
-        { name: 'details', string: (data, i) => data.cat.getStringValue('_pdbx_struct_mod_residue.details', data.modResIndices[i]) }
+        { name: 'parent_comp_id', string: (data, i) => data.parent_comp_id.getString(data.modResIndices[i]), presence: (data, i) => data.parent_comp_id.getValuePresence(data.modResIndices[i]) },
+        { name: 'details', string: (data, i) => data.details.getString(data.modResIndices[i]), presence: (data, i) => data.details.getValuePresence(data.modResIndices[i]) }
     ];
 
     return <CategoryInstance<typeof data>>{
@@ -729,25 +770,25 @@ function _atom_sites(context: mmCifContext) {
 
     let data = {
         rows,
-        entry_id: cat.getColumn('_atom_sites.entry_id'),
+        entry_id: cat.getColumn('entry_id'),
 
-        matrix11: cat.getColumn('_atom_sites.fract_transf_matrix[1][1]'),
-        matrix12: cat.getColumn('_atom_sites.fract_transf_matrix[1][2]'),
-        matrix13: cat.getColumn('_atom_sites.fract_transf_matrix[1][3]'),
-        vector1: cat.getColumn('_atom_sites.fract_transf_vector[1]'),
-        matrix21: cat.getColumn('_atom_sites.fract_transf_matrix[2][1]'),
-        matrix22: cat.getColumn('_atom_sites.fract_transf_matrix[2][2]'),
-        matrix23: cat.getColumn('_atom_sites.fract_transf_matrix[2][3]'),
-        vector2: cat.getColumn('_atom_sites.fract_transf_vector[2]'),
-        matrix31: cat.getColumn('_atom_sites.fract_transf_matrix[3][1]'),
-        matrix32: cat.getColumn('_atom_sites.fract_transf_matrix[3][2]'),
-        matrix33: cat.getColumn('_atom_sites.fract_transf_matrix[3][3]'),
-        vector3: cat.getColumn('_atom_sites.fract_transf_vector[3]')
+        matrix11: cat.getColumn('fract_transf_matrix[1][1]'),
+        matrix12: cat.getColumn('fract_transf_matrix[1][2]'),
+        matrix13: cat.getColumn('fract_transf_matrix[1][3]'),
+        vector1: cat.getColumn('fract_transf_vector[1]'),
+        matrix21: cat.getColumn('fract_transf_matrix[2][1]'),
+        matrix22: cat.getColumn('fract_transf_matrix[2][2]'),
+        matrix23: cat.getColumn('fract_transf_matrix[2][3]'),
+        vector2: cat.getColumn('fract_transf_vector[2]'),
+        matrix31: cat.getColumn('fract_transf_matrix[3][1]'),
+        matrix32: cat.getColumn('fract_transf_matrix[3][2]'),
+        matrix33: cat.getColumn('fract_transf_matrix[3][3]'),
+        vector3: cat.getColumn('fract_transf_vector[3]')
     };
 
     type T = typeof data;
     let fields: FieldDesc<T>[] = [
-        { name: 'entry_id', string: (data, i) => data.entry_id.getString(data.rows[i]) },
+        stringColumn<T>('entry_id', data.entry_id, (data, i) => data.rows[i]),
 
         float64field<T>('fract_transf_matrix[1][1]', (data, i) => data.matrix11.getFloat(data.rows[i])),
         float64field<T>('fract_transf_matrix[1][2]', (data, i) => data.matrix12.getFloat(data.rows[i])),
@@ -787,74 +828,74 @@ function _atom_site(context: mmCifContext) {
 
     let cat = context.data.getCategory('_atom_site');
     let data = {
-        is: context.fragment.atomIndices,
+        atomIndex: context.fragment.atomIndices,
         atoms: context.model.atoms,
         residues: context.model.residues,
         chains: context.model.chains,
         entities: context.model.entities,
         modelId: context.model.modelId,
 
-        Cartn_x_esd: cat.getColumn('_atom_site.Cartn_x_esd'),
-        Cartn_y_esd: cat.getColumn('_atom_site.Cartn_y_esd'),
-        Cartn_z_esd: cat.getColumn('_atom_site.Cartn_z_esd'),
-        occupancy_esd: cat.getColumn('_atom_site.occupancy_esd'),
-        B_iso_or_equiv_esd: cat.getColumn('_atom_site.B_iso_or_equiv_esd'),
+        Cartn_x_esd: cat.getColumn('Cartn_x_esd'),
+        Cartn_y_esd: cat.getColumn('Cartn_y_esd'),
+        Cartn_z_esd: cat.getColumn('Cartn_z_esd'),
+        occupancy_esd: cat.getColumn('occupancy_esd'),
+        B_iso_or_equiv_esd: cat.getColumn('B_iso_or_equiv_esd'),
 
-        pdbx_formal_charge: cat.getColumn('_atom_site.pdbx_formal_charge'),
+        pdbx_formal_charge: cat.getColumn('pdbx_formal_charge'),
     }
     
     let fields: FieldDesc<typeof data>[] = [
-        { name: 'group_PDB', string: (data, i) => data.residues.isHet[data.atoms.residueIndex[data.is[i]]] ? 'HETATM' : 'ATOM' },
+        { name: 'group_PDB', string: (data, i) => data.residues.isHet[data.atoms.residueIndex[data.atomIndex[i]]] ? 'HETATM' : 'ATOM' },
 
-        { name: 'id', string: (data, i) => data.atoms.id[data.is[i]].toString(), number: (data, i) => data.atoms.id[data.is[i]], typedArray: Int32Array, encoder: Encoders.ids },
+        { name: 'id', string: (data, i) => data.atoms.id[data.atomIndex[i]].toString(), number: (data, i) => data.atoms.id[data.atomIndex[i]], typedArray: Int32Array, encoder: Encoders.ids },
 
-        { name: 'type_symbol', string: (data, i) => data.atoms.elementSymbol[data.is[i]] },
+        { name: 'type_symbol', string: (data, i) => data.atoms.elementSymbol[data.atomIndex[i]] },
 
-        { name: 'label_atom_id', string: (data, i) => data.atoms.name[data.is[i]] },
-        { name: 'label_alt_id', string: (data, i) => data.atoms.altLoc[data.is[i]] },
-        { name: 'label_comp_id', string: (data, i) => data.residues.name[data.atoms.residueIndex[data.is[i]]] },
-        { name: 'label_asym_id', string: (data, i) => data.chains.asymId[data.atoms.chainIndex[data.is[i]]] },
-        { name: 'label_entity_id', string: (data, i) => data.entities.entityId[data.atoms.entityIndex[data.is[i]]] },
-        { name: 'label_seq_id', string: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.is[i]]].toString(), number: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.is[i]]], typedArray: Int32Array, encoder: Encoders.ids },
+        { name: 'label_atom_id', string: (data, i) => data.atoms.name[data.atomIndex[i]] },
+        { name: 'label_alt_id', string: (data, i) => data.atoms.altLoc[data.atomIndex[i]] },
+        { name: 'label_comp_id', string: (data, i) => data.residues.name[data.atoms.residueIndex[data.atomIndex[i]]] },
+        { name: 'label_asym_id', string: (data, i) => data.chains.asymId[data.atoms.chainIndex[data.atomIndex[i]]] },
+        { name: 'label_entity_id', string: (data, i) => data.entities.entityId[data.atoms.entityIndex[data.atomIndex[i]]] },
+        { name: 'label_seq_id', string: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(), number: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]], typedArray: Int32Array, encoder: Encoders.ids },
 
-        { name: 'pdbx_PDB_ins_code', string: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.is[i]]] },
+        { name: 'pdbx_PDB_ins_code', string: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] },
 
-        { name: 'Cartn_x', string: (data, i) => '' + Math.round(1000 * data.atoms.x[data.is[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.x[data.is[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
-        { name: 'Cartn_y', string: (data, i) => '' + Math.round(1000 * data.atoms.y[data.is[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.y[data.is[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
-        { name: 'Cartn_z', string: (data, i) => '' + Math.round(1000 * data.atoms.z[data.is[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.z[data.is[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
+        { name: 'Cartn_x', string: (data, i) => '' + Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
+        { name: 'Cartn_y', string: (data, i) => '' + Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
+        { name: 'Cartn_z', string: (data, i) => '' + Math.round(1000 * data.atoms.z[data.atomIndex[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.z[data.atomIndex[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
 
-        { name: 'occupancy', string: (data, i) => '' + Math.round(100 * data.atoms.occupancy[data.is[i]]) / 100, number: (data, i) => Math.round(100 * data.atoms.occupancy[data.is[i]]) / 100, typedArray: Float32Array, encoder: Encoders.occupancy },
-        { name: 'B_iso_or_equiv', string: (data, i) => '' + Math.round(100 * data.atoms.tempFactor[data.is[i]]) / 100, number: (data, i) => Math.round(100 * data.atoms.tempFactor[data.is[i]]) / 100, typedArray: Float32Array, encoder: Encoders.coordinates },
+        { name: 'occupancy', string: (data, i) => '' + Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100, number: (data, i) => Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100, typedArray: Float32Array, encoder: Encoders.occupancy },
+        { name: 'B_iso_or_equiv', string: (data, i) => '' + Math.round(100 * data.atoms.tempFactor[data.atomIndex[i]]) / 100, number: (data, i) => Math.round(100 * data.atoms.tempFactor[data.atomIndex[i]]) / 100, typedArray: Float32Array, encoder: Encoders.coordinates },
 
-        { name: 'pdbx_formal_charge', string: (data, i) => data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.is[i]]) },
+        { name: 'pdbx_formal_charge', string: (data, i) => data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.atomIndex[i]]), presence: (data, i) => data.pdbx_formal_charge.getValuePresence(data.atoms.rowIndex[data.atomIndex[i]]) },
 
-        { name: 'auth_atom_id', string: (data, i) => data.atoms.authName[data.is[i]] },
-        { name: 'auth_comp_id', string: (data, i) => data.residues.authName[data.atoms.residueIndex[data.is[i]]] },
-        { name: 'auth_asym_id', string: (data, i) => data.chains.authAsymId[data.atoms.chainIndex[data.is[i]]] },
-        { name: 'auth_seq_id', string: (data, i) => data.residues.authSeqNumber[data.atoms.residueIndex[data.is[i]]].toString(), number: (data, i) => data.residues.authSeqNumber[data.atoms.residueIndex[data.is[i]]], typedArray: Int32Array, encoder: Encoders.ids },
+        { name: 'auth_atom_id', string: (data, i) => data.atoms.authName[data.atomIndex[i]] },
+        { name: 'auth_comp_id', string: (data, i) => data.residues.authName[data.atoms.residueIndex[data.atomIndex[i]]] },
+        { name: 'auth_asym_id', string: (data, i) => data.chains.authAsymId[data.atoms.chainIndex[data.atomIndex[i]]] },
+        { name: 'auth_seq_id', string: (data, i) => data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(), number: (data, i) => data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]], typedArray: Int32Array, encoder: Encoders.ids },
     ];
 
-    if (data.Cartn_x_esd && !data.Cartn_x_esd.isUndefined(data.is[0])) {
+    if (data.Cartn_x_esd && data.Cartn_x_esd.getValuePresence(data.atomIndex[0]) === CIF.ValuePresence.Present) {
         fields.push(
-            { name: 'Cartn_x_esd', string: (data, i) => data.Cartn_x_esd.getString(data.is[i]), number: (data, i) => data.Cartn_x_esd.getFloat(data.is[i]), typedArray: Float32Array, encoder: Encoders.coordinates },
-            { name: 'Cartn_y_esd', string: (data, i) => data.Cartn_y_esd.getString(data.is[i]), number: (data, i) => data.Cartn_y_esd.getFloat(data.is[i]), typedArray: Float32Array, encoder: Encoders.coordinates },
-            { name: 'Cartn_z_esd', string: (data, i) => data.Cartn_z_esd.getString(data.is[i]), number: (data, i) => data.Cartn_z_esd.getFloat(data.is[i]), typedArray: Float32Array, encoder: Encoders.coordinates }
+            { name: 'Cartn_x_esd', string: (data, i) => data.Cartn_x_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_x_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.coordinates },
+            { name: 'Cartn_y_esd', string: (data, i) => data.Cartn_y_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_y_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.coordinates },
+            { name: 'Cartn_z_esd', string: (data, i) => data.Cartn_z_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_z_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.coordinates }
         )
     }
 
-    if (data.occupancy_esd && !data.occupancy_esd.isUndefined(data.is[0])) {
-        fields.push({ name: 'occupancy_esd', string: (data, i) => data.occupancy_esd.getString(data.is[i]), number: (data, i) => data.occupancy_esd.getFloat(data.is[i]), typedArray: Float32Array, encoder: Encoders.occupancy });
+    if (data.occupancy_esd && data.occupancy_esd.getValuePresence(data.atomIndex[0]) === CIF.ValuePresence.Present) {
+        fields.push({ name: 'occupancy_esd', string: (data, i) => data.occupancy_esd.getString(data.atomIndex[i]), number: (data, i) => data.occupancy_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.occupancy });
     }
 
-    if (data.B_iso_or_equiv_esd && !data.B_iso_or_equiv_esd.isUndefined(data.is[0])) {
-        fields.push({ name: 'B_iso_or_equiv_esd', string: (data, i) => data.B_iso_or_equiv_esd.getString(data.is[i]), number: (data, i) => data.B_iso_or_equiv_esd.getFloat(data.is[i]), typedArray: Float32Array, encoder: Encoders.coordinates });
+    if (data.B_iso_or_equiv_esd && data.B_iso_or_equiv_esd.getValuePresence(data.atomIndex[0]) === CIF.ValuePresence.Present) {
+        fields.push({ name: 'B_iso_or_equiv_esd', string: (data, i) => data.B_iso_or_equiv_esd.getString(data.atomIndex[i]), number: (data, i) => data.B_iso_or_equiv_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.coordinates });
     }
 
     fields.push({ name: 'pdbx_PDB_model_num', string: (data, i) => data.modelId });
 
     return <CategoryInstance<typeof data>>{
         data,
-        count: data.is.length,
+        count: data.atomIndex.length,
         desc: {
             name: '_atom_site',
             fields
@@ -889,11 +930,13 @@ export function format(writer: Writer, config: FormatConfig, models: WritableFra
     writer.writeCategory(params);
 
     let context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data);
-    
-    for (let cat of config.includedCategories) {
-        let f = (Categories as any)[cat] as CategoryProvider;
-        if (!f) continue;
-        writer.writeCategory(f, [context]);
+
+    if (!config.params.common.atomSitesOnly) {
+        for (let cat of config.includedCategories) {
+            let f = (Categories as any)[cat] as CategoryProvider;
+            if (!f) continue;
+            writer.writeCategory(f, [context]);
+        }
     }
     let modelContexts: mmCifContext[] = [context];
     for (let i = 1; i < models.length; i++) {

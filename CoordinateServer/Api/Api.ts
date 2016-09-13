@@ -16,6 +16,17 @@ import Perf = Core.Utils.PerformanceMonitor;
 
 let querySerial = 0;
 
+function wrapOutputStream(outputStreamProvider: () => { write: (data: string) => boolean, end: (data?: string) => void }): () => { write: (data: string) => boolean, end: (data?: string) => void } {
+
+    let stream: any;
+    return () => {
+        if (!stream) {
+            stream = outputStreamProvider();
+        }
+        return stream;
+    };
+}
+
 export function executeQuery(
     moleculeWrapper: Provider.MoleculeWrapper,
     query: Queries.ApiQuery,
@@ -54,7 +65,9 @@ export function executeQuery(
     }
 
     Logger.log(`${reqId}: Query params ${JSON.stringify(queryParams)}`);
-    
+
+    let wrappedOutput = wrapOutputStream(outputStreamProvider);
+
     CoordinateServer.process(
         reqId,
         molecule,
@@ -67,24 +80,44 @@ export function executeQuery(
         serverConfig,
 
         result => {
-            let stream = outputStreamProvider();
-            
-            if (result.error) {
+            let stream = wrappedOutput();            
 
+            let encodeTime = 0;
+            if (result.error) {
                 Logger.error(`${reqId}: Failed. (${result.error})`);
                 WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, result.error, { params: serverConfig.params, queryType: query.name });                
                 stream.end();
                 return;
             } else {
-                let stats = WriterContext.createStatsCategory(moleculeWrapper, result.timeQuery, result.timeFormat);
-                writer.writeCategory(stats);
-                writer.serialize(stream);
-                stream.end();
+
+                let perf = new Core.Utils.PerformanceMonitor();
+
+                perf.start('encode');
+                try {
+                    let stats = WriterContext.createStatsCategory(moleculeWrapper, result.timeQuery, result.timeFormat);
+                    writer.writeCategory(stats);
+                    writer.encode();
+                } catch (e) {
+                    Logger.error(`${reqId}: Failed (Encode). (${e})`);
+                    //WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, `Encoding error: ${e}`, { params: serverConfig.params, queryType: query.name });                
+                    stream.end();
+                    return;
+                }
+                perf.end('encode');
+                encodeTime = perf.time('encode');
+
+                try {
+                    writer.flush(stream);
+                } catch (e) {
+                    Logger.error(`${reqId}: Failed (Flush). (${e})`);
+                } finally {
+                    stream.end();
+                }
             }
 
-            let totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeFormat + result.timeQuery;
+            let totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeFormat + result.timeQuery + encodeTime;
 
             let cached = moleculeWrapper.source === Provider.MoleculeSource.Cache ? 'cached; ' : '';
-            Logger.log(`${reqId}: Done in ${Perf.format(totalTime)} (${cached}io ${Perf.format(moleculeWrapper.ioTime)}, parse ${Perf.format(moleculeWrapper.parseTime)}, query ${Perf.format(result.timeQuery)}, format ${Perf.format(result.timeFormat)})`);
+            Logger.log(`${reqId}: Done in ${Perf.format(totalTime)} (${cached}io ${Perf.format(moleculeWrapper.ioTime)}, parse ${Perf.format(moleculeWrapper.parseTime)}, query ${Perf.format(result.timeQuery)}, format ${Perf.format(result.timeFormat)}, encode ${Perf.format(encodeTime)})`);
         });
 }

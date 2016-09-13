@@ -1,4 +1,5 @@
 "use strict";
+var Core = require('LiteMol-core');
 var StringWriter_1 = require('./StringWriter');
 function isMultiline(value) {
     return !!value && value.indexOf('\n') >= 0;
@@ -10,13 +11,23 @@ function writeCifSingleRecord(category, writer) {
     for (var _i = 0, fields_1 = fields; _i < fields_1.length; _i++) {
         var f = fields_1[_i];
         writer.writer.writePadRight(category.desc.name + "." + f.name, width);
-        var val = f.string(data, 0);
-        if (isMultiline(val)) {
-            writer.writeMultiline(val);
-            writer.writer.newline();
+        var presence = f.presence;
+        var p = void 0;
+        if (presence && (p = presence(data, 0)) !== 0 /* Present */) {
+            if (p === 1 /* NotSpecified */)
+                writer.writeNotSpecified();
+            else
+                writer.writeUnknown();
         }
         else {
-            writer.writeChecked(val);
+            var val = f.string(data, 0);
+            if (isMultiline(val)) {
+                writer.writeMultiline(val);
+                writer.writer.newline();
+            }
+            else {
+                writer.writeChecked(val);
+            }
         }
         writer.writer.newline();
     }
@@ -37,13 +48,23 @@ function writeCifLoop(categories, writer) {
         for (var i = 0; i < count; i++) {
             for (var _b = 0, fields_3 = fields; _b < fields_3.length; _b++) {
                 var f = fields_3[_b];
-                var val = f.string(data, i);
-                if (isMultiline(val)) {
-                    writer.writeMultiline(val);
-                    writer.writer.newline();
+                var presence = f.presence;
+                var p = void 0;
+                if (presence && (p = presence(data, i)) !== 0 /* Present */) {
+                    if (p === 1 /* NotSpecified */)
+                        writer.writeNotSpecified();
+                    else
+                        writer.writeUnknown();
                 }
                 else {
-                    writer.writeChecked(val);
+                    var val = f.string(data, i);
+                    if (isMultiline(val)) {
+                        writer.writeMultiline(val);
+                        writer.writer.newline();
+                    }
+                    else {
+                        writer.writeChecked(val);
+                    }
                 }
             }
             writer.newline();
@@ -54,9 +75,13 @@ function writeCifLoop(categories, writer) {
 var CifWriter = (function () {
     function CifWriter(header) {
         this.writer = new CifStringWriter();
+        this.encoded = false;
         this.writer.write("data_" + (header || '').replace(/[ \n\t]/g, '').toUpperCase() + "\n#\n");
     }
     CifWriter.prototype.writeCategory = function (category, contexts) {
+        if (this.encoded) {
+            throw new Error('The writer contents have already been encoded, no more writing.');
+        }
         var data = !contexts || !contexts.length ? [category(void 0)] : contexts.map(function (c) { return category(c); });
         data = data.filter(function (c) { return !!c || !!(c && (c.count === void 0 ? 1 : c.count)); });
         if (!data.length)
@@ -71,7 +96,10 @@ var CifWriter = (function () {
             writeCifLoop(data, this.writer);
         }
     };
-    CifWriter.prototype.serialize = function (stream) {
+    CifWriter.prototype.encode = function () {
+        this.encoded = true;
+    };
+    CifWriter.prototype.flush = function (stream) {
         this.writer.writer.writeTo(stream);
     };
     return CifWriter;
@@ -95,11 +123,23 @@ var CifStringWriter = (function () {
     CifStringWriter.prototype.writeInteger = function (val) {
         this.writer.writeSafe('' + val + ' ');
     };
-    /*
+    /**
      * eg writeFloat(123.2123, 100) -- 2 decim
      */
     CifStringWriter.prototype.writeFloat = function (val, precisionMultiplier) {
         this.writer.writeSafe('' + Math.round(precisionMultiplier * val) / precisionMultiplier + ' ');
+    };
+    /**
+     * Writes '. '
+     */
+    CifStringWriter.prototype.writeNotSpecified = function () {
+        this.writer.writeSafe('. ');
+    };
+    /**
+     * Writes '? '
+     */
+    CifStringWriter.prototype.writeUnknown = function () {
+        this.writer.writeSafe('? ');
     };
     CifStringWriter.prototype.writeChecked = function (val) {
         if (!val) {

@@ -17,10 +17,12 @@ function makePath(p: string) {
 
 const WebApiCache = new Cache.Cache(ServerConfig.cacheParams);
 
-function writeHeader(response: any, id: string, queryType: string, encoding: string) {
+function writeHeader(response: express.Response, id: string, queryType: string, encoding: string) {
+    if (response.headersSent) return;
+
     let isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
     let ct = isBCif ? 'application/octet-stream' : 'text/plain; charset=utf-8';
-
+    
     if (isBCif) {
         response.writeHead(200, {
             'Content-Type': 'application/octet-stream',
@@ -38,7 +40,7 @@ function writeHeader(response: any, id: string, queryType: string, encoding: str
 }
 
 
-function execute(response: any, query: Queries.ApiQuery, molecule: Provider.MoleculeWrapper, params: any) {
+function execute(response: express.Response, query: Queries.ApiQuery, molecule: Provider.MoleculeWrapper, params: any) {
     Api.executeQuery(molecule, query, params, () => {
         writeHeader(response, molecule.molecule.molecule.id, query.name, params.encoding);
         return response;
@@ -50,7 +52,7 @@ function do404(response: any) {
     response.end();
 }
 
-function doCifError(response: any, message: string, id: string, queryName: string, params: any) {
+function doCifError(response: express.Response, message: string, id: string, queryName: string, params: any) {
     writeHeader(response, id, queryName, params.encoding);
     WriterContext.writeError(response, params.encoding, id, message, { queryType: queryName });
     response.end();

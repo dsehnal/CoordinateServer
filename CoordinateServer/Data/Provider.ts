@@ -61,7 +61,7 @@ export function readMolecule(filename: string,
             }
 
             perf.start('parse');
-            let dict = CIF.parse(data);
+            let dict = CIF.Text.parse(data);
 
             if (dict.error) {
                 let error = dict.error.toString();
@@ -79,7 +79,7 @@ export function readMolecule(filename: string,
             let rawMol = mmCIF.ofDataBlock(block);
             perf.end('parse');
 
-            let mol = new Molecule.Molecule(Molecule.Molecule.createKey(filename), block, rawMol);
+            let mol = new Molecule.Molecule(Molecule.Molecule.createKey(filename), block, rawMol, data.length);
             onParsed(undefined, new MoleculeWrapper(mol, MoleculeSource.File, perf.time('io'), perf.time('parse')));
         } catch (e) {
             onUnexpectedError('' + e);

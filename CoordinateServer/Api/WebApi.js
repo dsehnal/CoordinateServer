@@ -12,6 +12,8 @@ function makePath(p) {
 }
 var WebApiCache = new Cache.Cache(ServerConfig_1.default.cacheParams);
 function writeHeader(response, id, queryType, encoding) {
+    if (response.headersSent)
+        return;
     var isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
     var ct = isBCif ? 'application/octet-stream' : 'text/plain; charset=utf-8';
     if (isBCif) {

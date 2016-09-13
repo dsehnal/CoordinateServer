@@ -1,18 +1,18 @@
 /*
-* Copyright (c) 2016 David Sehnal
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
+ * Copyright (c) 2016 David Sehnal
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 "use strict";
 var Core = require('LiteMol-core');
 var Version_1 = require('../Api/Version');
@@ -20,6 +20,7 @@ var CifWriter_1 = require('./CifWriter');
 var BCifWriter_1 = require('./BCifWriter');
 var Provider = require('../Data/Provider');
 var mmCif = require('./Formats/mmCif');
+var CIF = Core.Formats.CIF;
 var E = Core.Formats.BinaryCIF.Encoder;
 exports.Encoders = {
     strings: E.by(E.stringArray),
@@ -42,7 +43,7 @@ function createParamsCategory(params) {
     var data = prms;
     var fields = [
         { name: 'name', string: function (data, i) { return data[i].name; } },
-        { name: 'value', string: function (data, i) { return data[i].value === undefined ? '.' : '' + data[i].value; } },
+        { name: 'value', string: function (data, i) { return data[i].value; }, presence: function (data, i) { return !data[i].value ? 0 /* Present */ : 1 /* NotSpecified */; } },
     ];
     return function () { return {
         data: data,
@@ -102,7 +103,7 @@ function createStatsCategory(molecule, queryTime, formatTime) {
         { name: 'io_time_ms', string: function (data) { return ("" + data.io); }, number: function (data) { return data.io; }, typedArray: Int32Array, encoder: E.by(E.int32) },
         { name: 'parse_time_ms', string: function (data) { return ("" + data.parse); }, number: function (data) { return data.parse; }, typedArray: Int32Array, encoder: E.by(E.int32) },
         { name: 'query_time_ms', string: function (data) { return ("" + data.query); }, number: function (data) { return data.query; }, typedArray: Int32Array, encoder: E.by(E.int32) },
-        { name: 'format_time_ms', string: function (data) { return ("" + data.format); }, number: function (data) { return data.format; }, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'format_time_ms', string: function (data) { return ("" + data.format); }, number: function (data) { return data.format; }, typedArray: Int32Array, encoder: E.by(E.int32) }
     ];
     return function () { return {
         data: data,
@@ -129,7 +130,7 @@ function writeError(stream, encoding, header, message, optional) {
     }
     var errorCat = createErrorCategory(message);
     w.writeCategory(errorCat);
-    w.serialize(stream);
+    w.flush(stream);
 }
 exports.writeError = writeError;
 function getFormatter(format) {

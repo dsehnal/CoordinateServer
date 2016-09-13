@@ -15,8 +15,8 @@ export class Molecule {
     
     approximateSize: number;
 
-    constructor(public key: string, public cif: Core.Formats.CIF.Block, public molecule: Core.Structure.Molecule) {
+    constructor(public key: string, public cif: Core.Formats.CIF.DataBlock, public molecule: Core.Structure.Molecule, public dataSize: number) {
         this.models = molecule.models.map(m => new Model(m));
-        this.approximateSize = cif.data.length * 3;
+        this.approximateSize = dataSize * 3;
     }
 }
