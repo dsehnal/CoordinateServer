@@ -110,7 +110,7 @@ export function stringColumn<T>(name: string, column: CIF.Column, row: (data: T,
     return { name, string: (data, i) => column.getString(row(data, i)), presence: (data, i) => column.getValuePresence(row(data, i)) };
 }
 
-export function int32column<T>(name: string, column: CIF.Column, row: (data: T, i: number) => number, encoder: Core.Formats.BinaryCIF.Encoder): FieldDesc<T> {
+export function int32column<T>(name: string, column: CIF.Column, row: (data: T, i: number) => number, encoder: Core.Formats.CIF.Binary.Encoder): FieldDesc<T> {
     return { name, string: (data, i) => column.getString(row(data, i)), number: (data, i) => column.getInteger(row(data, i)), presence: (data, i) => column.getValuePresence(row(data, i)), typedArray: Int32Array, encoder };
 }
 
@@ -835,6 +835,7 @@ function _atom_site(context: mmCifContext) {
         entities: context.model.entities,
         modelId: context.model.modelId,
 
+        label_seq_id: cat.getColumn('label_seq_id'),
         Cartn_x_esd: cat.getColumn('Cartn_x_esd'),
         Cartn_y_esd: cat.getColumn('Cartn_y_esd'),
         Cartn_z_esd: cat.getColumn('Cartn_z_esd'),
@@ -852,13 +853,13 @@ function _atom_site(context: mmCifContext) {
         { name: 'type_symbol', string: (data, i) => data.atoms.elementSymbol[data.atomIndex[i]] },
 
         { name: 'label_atom_id', string: (data, i) => data.atoms.name[data.atomIndex[i]] },
-        { name: 'label_alt_id', string: (data, i) => data.atoms.altLoc[data.atomIndex[i]] },
+        { name: 'label_alt_id', string: (data, i) => data.atoms.altLoc[data.atomIndex[i]], presence: (data, i) => data.atoms.altLoc[data.atomIndex[i]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
         { name: 'label_comp_id', string: (data, i) => data.residues.name[data.atoms.residueIndex[data.atomIndex[i]]] },
         { name: 'label_asym_id', string: (data, i) => data.chains.asymId[data.atoms.chainIndex[data.atomIndex[i]]] },
         { name: 'label_entity_id', string: (data, i) => data.entities.entityId[data.atoms.entityIndex[data.atomIndex[i]]] },
-        { name: 'label_seq_id', string: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(), number: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]], typedArray: Int32Array, encoder: Encoders.ids },
+        { name: 'label_seq_id', string: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(), number: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]], typedArray: Int32Array, encoder: Encoders.ids, presence: (data, i) => data.label_seq_id.getValuePresence(data.atomIndex[i]) },
 
-        { name: 'pdbx_PDB_ins_code', string: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] },
+        { name: 'pdbx_PDB_ins_code', string: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]], presence: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
         { name: 'Cartn_x', string: (data, i) => '' + Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
         { name: 'Cartn_y', string: (data, i) => '' + Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },

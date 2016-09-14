@@ -21,7 +21,7 @@ var BCifWriter_1 = require('./BCifWriter');
 var Provider = require('../Data/Provider');
 var mmCif = require('./Formats/mmCif');
 var CIF = Core.Formats.CIF;
-var E = Core.Formats.BinaryCIF.Encoder;
+var E = Core.Formats.CIF.Binary.Encoder;
 exports.Encoders = {
     strings: E.by(E.stringArray),
     coordinates: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking(2)).and(E.int16),

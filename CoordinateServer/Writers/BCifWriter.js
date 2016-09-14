@@ -1,6 +1,6 @@
 "use strict";
 var Core = require('LiteMol-core');
-var BCIF = Core.Formats.BinaryCIF;
+var BCIF = Core.Formats.CIF.Binary;
 var Context_1 = require('./Context');
 var Version_1 = require('../Api/Version');
 var BCifWriter = (function () {
@@ -78,7 +78,7 @@ var BCifWriter = (function () {
         if (!count)
             return;
         var first = categories[0];
-        var cat = { name: first.desc.name, columns: [] };
+        var cat = { name: first.desc.name, columns: [], rowCount: count };
         var data = categories.map(function (c) { return ({ data: c.data, count: c.count === void 0 ? 1 : c.count }); });
         for (var _i = 0, _a = first.desc.fields; _i < _a.length; _i++) {
             var f = _a[_i];

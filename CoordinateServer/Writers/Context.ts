@@ -28,7 +28,7 @@ export interface FieldDesc<Data> {
     string?: (data: Data, i: number) => string,
     number?: (data: Data, i: number) => number,
     typedArray?: any,
-    encoder?: Core.Formats.BinaryCIF.Encoder,
+    encoder?: Core.Formats.CIF.Binary.Encoder,
     presence?: (data: Data, i: number) => CIF.ValuePresence
 }
 
@@ -68,7 +68,7 @@ export interface WritableFragments {
     fragments: Core.Structure.Query.FragmentSeq
 }
 
-import E = Core.Formats.BinaryCIF.Encoder
+import E = Core.Formats.CIF.Binary.Encoder
 export const Encoders = {
     strings: E.by(E.stringArray),
     coordinates: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking(2)).and(E.int16),

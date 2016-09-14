@@ -1,6 +1,6 @@
 ﻿
 import * as Core from 'LiteMol-core'
-import BCIF = Core.Formats.BinaryCIF
+import BCIF = Core.Formats.CIF.Binary
 import { Context, Writer, CategoryInstance, CategoryProvider, OutputStream, FieldDesc, Encoders } from './Context'
 import ApiVersion from '../Api/Version'
 
@@ -73,7 +73,7 @@ export default class BCifWriter implements Writer {
         if (!count) return;
 
         let first = categories[0];
-        let cat: BCIF.EncodedCategory = { name: first.desc.name, columns: [] };
+        let cat: BCIF.EncodedCategory = { name: first.desc.name, columns: [], rowCount: count };
         let data = categories.map(c => ({ data: c.data, count: c.count === void 0 ? 1 : c.count }));
         for (let f of first.desc.fields) {
             cat.columns.push(this.encodeField(f, data, count));
