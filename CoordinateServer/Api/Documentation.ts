@@ -22,7 +22,9 @@ function createDocumentationHTML(appPrefix: string) {
         `<title>LiteMol Coordinate Server (${ApiVersion})</title>`,
         `<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">`,
         `<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">`,
-        //`<style> h2 { margin-bottom: 5px } </style>`,
+        `<script>`,
+        `   function toggle(id) { var e = document.getElementById(id); e.style.display = e.style.display !== 'none' ? 'none' : 'block' }`,
+        `</script>`,
         `</head>`,
         `<body>`,
         `<div class="container">`
@@ -48,16 +50,18 @@ function createDocumentationHTML(appPrefix: string) {
         let q = entry.description;
 
         html.push(`<a name="${id}"></a>`)
-        html.push(`<h2>${id}</h2>`);
+        html.push(`<h2>${id} <button class='btn' onclick='javascript:toggle("coordserver-documentation-${id}-params")'>Show Parameters</button></h2>`);
         html.push(`<i>${q.description}</i><br/>`);
         
         let url = "",
             params = q.queryParams.concat(Queries.CommonQueryParamsInfo);
 
         if (params.length > 0) {
-            html.push(`<br/>`, `<ul>`);
+            html.push(`<br/>`);            
+            html.push(`<div id='coordserver-documentation-${id}-params' style='display: none'>`);
+            html.push(`<ul>`);
             for (let p of params) {
-                html.push(`<li><b>${p.name}</b> :: ${Queries.QueryParamType[p.type]}`);
+                html.push(`<li style='margin-bottom: 3px'><b>${p.name}</b> <span style='font-size: smaller; color: #666'>:: ${Queries.QueryParamType[p.type]}</span>`);
                 if (p.defaultValue !== void 0) {
                     html.push(`= ${p.defaultValue}</i>`);
                 }
@@ -67,14 +71,20 @@ function createDocumentationHTML(appPrefix: string) {
                 html.push(`</li>`);
             }
             html.push(`</ul>`);
+            html.push(`<div style='margin: 10px 0'><b>Included categories:</b><br/>${(q.includedCategories || Queries.DefaultCategories).concat('_atom_site').join(', ')}</div>`);
+            html.push(`</div>`);
 
-            url = `${appPrefix}/pdbid/${id}?${params.map(p => p.name + "=").join('&')}`;
+            url = `${appPrefix}/PDBID/${id}?${params.map(p => p.name + "=").join('&')}`;
         } else {
-            url = `${appPrefix}/pdbid/${id}`;
+            url = `${appPrefix}/PDBID/${id}`;
         }
-        html.push(`<a href="${url}" title="Fill in the desired values. Empty-string parameters are ignored by the server." target="_blank"><code>${url}</code></a>`);
+        
+        html.push(
+            `<div style='margin: 0 20px'>`,
+                `<span style='color: #424242; font-size: smaller'>Fill in <i>PDBID</i> and other parameters to customize the query:</span><br/>`,
+                `<a href="${url}" title="Fill in the desired values. Empty-string parameters are ignored by the server." target="_blank"><code>${url}</code></a>`,
+            `</div>`);
 
-        html.push(`<div style='color: #424242; margin-top: 10px'><small style='color: #424242'><b>Included categories:</b><br/>${(q.includedCategories || Queries.DefaultCategories).concat('_atom_site').join(', ')}</small></div>`);
 
         html.push(`<hr>`);
     }
