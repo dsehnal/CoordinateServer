@@ -3,10 +3,11 @@ var Core = require('LiteMol-core');
 var CIF = Core.Formats.CIF;
 var Context_1 = require('../Context');
 var mmCifContext = (function () {
-    function mmCifContext(fragment, model, data) {
+    function mmCifContext(fragment, model, data, lowPrecisionCoords) {
         this.fragment = fragment;
         this.model = model;
         this.data = data;
+        this.lowPrecisionCoords = lowPrecisionCoords;
     }
     Object.defineProperty(mmCifContext.prototype, "isComplete", {
         get: function () {
@@ -745,7 +746,10 @@ function _atom_site(context) {
         occupancy_esd: cat.getColumn('occupancy_esd'),
         B_iso_or_equiv_esd: cat.getColumn('B_iso_or_equiv_esd'),
         pdbx_formal_charge: cat.getColumn('pdbx_formal_charge'),
+        coordRoundFactor: context.lowPrecisionCoords ? 10 : 1000,
+        bRoundFactor: context.lowPrecisionCoords ? 10 : 100,
     };
+    var coordinateEncoder = context.lowPrecisionCoords ? Context_1.Encoders.coordinates1 : Context_1.Encoders.coordinates3;
     var fields = [
         { name: 'group_PDB', string: function (data, i) { return data.residues.isHet[data.atoms.residueIndex[data.atomIndex[i]]] ? 'HETATM' : 'ATOM'; } },
         { name: 'id', string: function (data, i) { return data.atoms.id[data.atomIndex[i]].toString(); }, number: function (data, i) { return data.atoms.id[data.atomIndex[i]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
@@ -757,11 +761,11 @@ function _atom_site(context) {
         { name: 'label_entity_id', string: function (data, i) { return data.entities.entityId[data.atoms.entityIndex[data.atomIndex[i]]]; } },
         { name: 'label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(); }, number: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids, presence: function (data, i) { return data.label_seq_id.getValuePresence(data.atomIndex[i]); } },
         { name: 'pdbx_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]]; }, presence: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] ? 0 /* Present */ : 1 /* NotSpecified */; } },
-        { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'Cartn_z', string: function (data, i) { return '' + Math.round(1000 * data.atoms.z[data.atomIndex[i]]) / 1000; }, number: function (data, i) { return Math.round(1000 * data.atoms.z[data.atomIndex[i]]) / 1000; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
-        { name: 'occupancy', string: function (data, i) { return '' + Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy },
-        { name: 'B_iso_or_equiv', string: function (data, i) { return '' + Math.round(100 * data.atoms.tempFactor[data.atomIndex[i]]) / 100; }, number: function (data, i) { return Math.round(100 * data.atoms.tempFactor[data.atomIndex[i]]) / 100; }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates },
+        { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.atoms.x[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.atoms.x[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.atoms.y[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.atoms.y[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_z', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.atoms.z[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.atoms.z[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'occupancy', string: function (data, i) { return '' + Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100; }, number: function (data, i) { return data.atoms.occupancy[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy },
+        { name: 'B_iso_or_equiv', string: function (data, i) { return '' + Math.round(data.bRoundFactor * data.atoms.tempFactor[data.atomIndex[i]]) / data.bRoundFactor; }, number: function (data, i) { return data.atoms.tempFactor[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
         { name: 'pdbx_formal_charge', string: function (data, i) { return data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.atomIndex[i]]); }, presence: function (data, i) { return data.pdbx_formal_charge.getValuePresence(data.atoms.rowIndex[data.atomIndex[i]]); } },
         { name: 'auth_atom_id', string: function (data, i) { return data.atoms.authName[data.atomIndex[i]]; } },
         { name: 'auth_comp_id', string: function (data, i) { return data.residues.authName[data.atoms.residueIndex[data.atomIndex[i]]]; } },
@@ -769,13 +773,13 @@ function _atom_site(context) {
         { name: 'auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(); }, number: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids },
     ];
     if (data.Cartn_x_esd && data.Cartn_x_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
-        fields.push({ name: 'Cartn_x_esd', string: function (data, i) { return data.Cartn_x_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_x_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates }, { name: 'Cartn_y_esd', string: function (data, i) { return data.Cartn_y_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_y_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates }, { name: 'Cartn_z_esd', string: function (data, i) { return data.Cartn_z_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_z_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates });
+        fields.push({ name: 'Cartn_x_esd', string: function (data, i) { return data.Cartn_x_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_x_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: coordinateEncoder }, { name: 'Cartn_y_esd', string: function (data, i) { return data.Cartn_y_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_y_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: coordinateEncoder }, { name: 'Cartn_z_esd', string: function (data, i) { return data.Cartn_z_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_z_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: coordinateEncoder });
     }
     if (data.occupancy_esd && data.occupancy_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
         fields.push({ name: 'occupancy_esd', string: function (data, i) { return data.occupancy_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.occupancy_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy });
     }
     if (data.B_iso_or_equiv_esd && data.B_iso_or_equiv_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
-        fields.push({ name: 'B_iso_or_equiv_esd', string: function (data, i) { return data.B_iso_or_equiv_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.B_iso_or_equiv_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: Context_1.Encoders.coordinates });
+        fields.push({ name: 'B_iso_or_equiv_esd', string: function (data, i) { return data.B_iso_or_equiv_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.B_iso_or_equiv_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: coordinateEncoder });
     }
     fields.push({ name: 'pdbx_PDB_model_num', string: function (data, i) { return data.modelId; } });
     return {
@@ -809,7 +813,7 @@ function format(writer, config, models) {
     var params = Context_1.createParamsCategory(config.params);
     writer.writeCategory(header);
     writer.writeCategory(params);
-    var context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data);
+    var context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data, config.params.common.lowPrecisionCoords);
     if (!config.params.common.atomSitesOnly) {
         for (var _i = 0, _a = config.includedCategories; _i < _a.length; _i++) {
             var cat = _a[_i];
@@ -821,7 +825,7 @@ function format(writer, config, models) {
     }
     var modelContexts = [context];
     for (var i = 1; i < models.length; i++) {
-        modelContexts.push(new mmCifContext(models[i].fragments.unionFragment(), models[i].model, config.data));
+        modelContexts.push(new mmCifContext(models[i].fragments.unionFragment(), models[i].model, config.data, config.params.common.lowPrecisionCoords));
     }
     writer.writeCategory(_atom_site, modelContexts);
 }

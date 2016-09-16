@@ -1,3 +1,3 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = "1.3.0";
+exports.default = "1.3.1";

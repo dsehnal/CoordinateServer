@@ -68,7 +68,7 @@ export class mmCifContext implements Context {
         return `${asymId} ${res.seqNumber[i]} ${res.insCode[i]}`;
     }
 
-    constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.CIF.DataBlock) {
+    constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.CIF.DataBlock, public lowPrecisionCoords: boolean) {
     }
 }
 
@@ -843,7 +843,12 @@ function _atom_site(context: mmCifContext) {
         B_iso_or_equiv_esd: cat.getColumn('B_iso_or_equiv_esd'),
 
         pdbx_formal_charge: cat.getColumn('pdbx_formal_charge'),
+
+        coordRoundFactor: context.lowPrecisionCoords ? 10 : 1000,
+        bRoundFactor: context.lowPrecisionCoords ? 10 : 100,
     }
+
+    let coordinateEncoder = context.lowPrecisionCoords ? Encoders.coordinates1 : Encoders.coordinates3;
     
     let fields: FieldDesc<typeof data>[] = [
         { name: 'group_PDB', string: (data, i) => data.residues.isHet[data.atoms.residueIndex[data.atomIndex[i]]] ? 'HETATM' : 'ATOM' },
@@ -861,12 +866,12 @@ function _atom_site(context: mmCifContext) {
 
         { name: 'pdbx_PDB_ins_code', string: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]], presence: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
-        { name: 'Cartn_x', string: (data, i) => '' + Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.x[data.atomIndex[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
-        { name: 'Cartn_y', string: (data, i) => '' + Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.y[data.atomIndex[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
-        { name: 'Cartn_z', string: (data, i) => '' + Math.round(1000 * data.atoms.z[data.atomIndex[i]]) / 1000, number: (data, i) => Math.round(1000 * data.atoms.z[data.atomIndex[i]]) / 1000, typedArray: Float32Array, encoder: Encoders.coordinates },
+        { name: 'Cartn_x', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.atoms.x[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.atoms.x[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_y', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.atoms.y[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.atoms.y[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_z', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.atoms.z[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.atoms.z[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
 
-        { name: 'occupancy', string: (data, i) => '' + Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100, number: (data, i) => Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100, typedArray: Float32Array, encoder: Encoders.occupancy },
-        { name: 'B_iso_or_equiv', string: (data, i) => '' + Math.round(100 * data.atoms.tempFactor[data.atomIndex[i]]) / 100, number: (data, i) => Math.round(100 * data.atoms.tempFactor[data.atomIndex[i]]) / 100, typedArray: Float32Array, encoder: Encoders.coordinates },
+        { name: 'occupancy', string: (data, i) => '' + Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100, number: (data, i) => data.atoms.occupancy[data.atomIndex[i]], typedArray: Float32Array, encoder: Encoders.occupancy },
+        { name: 'B_iso_or_equiv', string: (data, i) => '' + Math.round(data.bRoundFactor * data.atoms.tempFactor[data.atomIndex[i]]) / data.bRoundFactor, number: (data, i) => data.atoms.tempFactor[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
 
         { name: 'pdbx_formal_charge', string: (data, i) => data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.atomIndex[i]]), presence: (data, i) => data.pdbx_formal_charge.getValuePresence(data.atoms.rowIndex[data.atomIndex[i]]) },
 
@@ -878,9 +883,9 @@ function _atom_site(context: mmCifContext) {
 
     if (data.Cartn_x_esd && data.Cartn_x_esd.getValuePresence(data.atomIndex[0]) === CIF.ValuePresence.Present) {
         fields.push(
-            { name: 'Cartn_x_esd', string: (data, i) => data.Cartn_x_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_x_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.coordinates },
-            { name: 'Cartn_y_esd', string: (data, i) => data.Cartn_y_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_y_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.coordinates },
-            { name: 'Cartn_z_esd', string: (data, i) => data.Cartn_z_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_z_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.coordinates }
+            { name: 'Cartn_x_esd', string: (data, i) => data.Cartn_x_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_x_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: coordinateEncoder },
+            { name: 'Cartn_y_esd', string: (data, i) => data.Cartn_y_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_y_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: coordinateEncoder },
+            { name: 'Cartn_z_esd', string: (data, i) => data.Cartn_z_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_z_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: coordinateEncoder }
         )
     }
 
@@ -889,7 +894,7 @@ function _atom_site(context: mmCifContext) {
     }
 
     if (data.B_iso_or_equiv_esd && data.B_iso_or_equiv_esd.getValuePresence(data.atomIndex[0]) === CIF.ValuePresence.Present) {
-        fields.push({ name: 'B_iso_or_equiv_esd', string: (data, i) => data.B_iso_or_equiv_esd.getString(data.atomIndex[i]), number: (data, i) => data.B_iso_or_equiv_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.coordinates });
+        fields.push({ name: 'B_iso_or_equiv_esd', string: (data, i) => data.B_iso_or_equiv_esd.getString(data.atomIndex[i]), number: (data, i) => data.B_iso_or_equiv_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: coordinateEncoder });
     }
 
     fields.push({ name: 'pdbx_PDB_model_num', string: (data, i) => data.modelId });
@@ -930,7 +935,7 @@ export function format(writer: Writer, config: FormatConfig, models: WritableFra
     writer.writeCategory(header);
     writer.writeCategory(params);
 
-    let context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data);
+    let context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data, config.params.common.lowPrecisionCoords);
 
     if (!config.params.common.atomSitesOnly) {
         for (let cat of config.includedCategories) {
@@ -941,7 +946,7 @@ export function format(writer: Writer, config: FormatConfig, models: WritableFra
     }
     let modelContexts: mmCifContext[] = [context];
     for (let i = 1; i < models.length; i++) {
-        modelContexts.push(new mmCifContext(models[i].fragments.unionFragment(), models[i].model, config.data));
+        modelContexts.push(new mmCifContext(models[i].fragments.unionFragment(), models[i].model, config.data, config.params.common.lowPrecisionCoords));
     }
     writer.writeCategory(_atom_site, modelContexts)
 }

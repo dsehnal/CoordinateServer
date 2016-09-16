@@ -71,7 +71,8 @@ export interface WritableFragments {
 import E = Core.Formats.CIF.Binary.Encoder
 export const Encoders = {
     strings: E.by(E.stringArray),
-    coordinates: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking(2)).and(E.int16),
+    coordinates1: E.by(E.fixedPoint(10)).and(E.delta).and(E.integerPacking(1)).and(E.int8),
+    coordinates3: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking(2)).and(E.int16),
     occupancy: E.by(E.fixedPoint(100)).and(E.delta).and(E.runLength).and(E.int32),
     ids: E.by(E.delta).and(E.runLength).and(E.integerPacking(1)).and(E.int8),
     int32: E.by(E.int32),
@@ -86,6 +87,7 @@ export function createParamsCategory(params: FilteredQueryParams): CategoryProvi
     prms.push({ name: 'modelId', value: params.common.modelId });
     prms.push({ name: 'format', value: params.common.format });
     prms.push({ name: 'encoding', value: params.common.encoding });
+    prms.push({ name: 'lowPrecisionCoords', value: params.common.lowPrecisionCoords });
     
     let data = prms;
     let fields: FieldDesc<typeof data>[] = [
