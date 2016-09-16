@@ -61,7 +61,7 @@ var CommonParameters = {
 exports.QueryMap = {
     "full": { query: function () { return Queries.everything(); }, description: "The full structure." },
     "het": { query: function () { return Queries.hetGroups(); }, description: "All non-water 'HETATM' records." },
-    "cartoon": { query: function () { return Queries.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET groups + water." },
+    "cartoon": { query: function () { return Queries.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET atoms + water." },
     "backbone": { query: function () { return Queries.backbone(); }, description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
     "sidechain": { query: function () { return Queries.sidechain(); }, description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
     "water": { query: function () { return Queries.entities({ type: 'water' }); }, description: "Atoms from entities with type water." },
@@ -94,6 +94,21 @@ exports.QueryMap = {
             CommonParameters.insCode,
             CommonParameters.seqNumber,
             CommonParameters.authSeqNumber
+        ]
+    },
+    "trace": {
+        description: "Atoms named CA, O5', C3' from polymer entities + optionally HET and/or water atoms.",
+        query: function (p) {
+            var parts = [Queries.atomsByName('CA', "O5'", "C3'", 'N3').inside(Queries.entities({ type: 'polymer' }))];
+            if (!!p.het)
+                parts.push(Queries.hetGroups());
+            if (!!p.water)
+                parts.push(Queries.entities({ type: 'water' }));
+            return Queries.or.apply(null, parts);
+        },
+        queryParams: [
+            { name: "het", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, include HET atoms." },
+            { name: "water", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, include water atoms." }
         ]
     },
     "ambientResidues": {
