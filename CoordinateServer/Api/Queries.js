@@ -97,7 +97,7 @@ exports.QueryMap = {
         ]
     },
     "trace": {
-        description: "Atoms named CA, O5', C3' from polymer entities + optionally HET and/or water atoms.",
+        description: "Atoms named CA, O5', C3', N3 from polymer entities + optionally HET and/or water atoms.",
         query: function (p) {
             var parts = [Queries.atomsByName('CA', "O5'", "C3'", 'N3').inside(Queries.entities({ type: 'polymer' }))];
             if (!!p.het)
