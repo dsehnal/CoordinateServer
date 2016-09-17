@@ -39,9 +39,9 @@ var SymmetryCategories = [
 exports.CommonQueryParamsInfo = [
     { name: "modelId", type: QueryParamType.String, description: "If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field." },
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
-    { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: mmCIF)." },
-    { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (CIF or BCIF)." },
-    { name: "lowPrecisionCoords", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, stores coordinates with 1 digit instead of 3 digit precision (B-factors are stored with 1 digit precision instead of 2)." }
+    { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: 'mmCIF')." },
+    { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (text based 'CIF' or binary 'BCIF')." },
+    { name: "lowPrecisionCoords", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, stores coordinates with 1 digit instead of 3 digit precision (B-factors are stored with 1 digit precision instead of 2 when using the low precision)." }
 ];
 exports.CommonQueryParamsInfoMap = (function () {
     var map = new Map();
