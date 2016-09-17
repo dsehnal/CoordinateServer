@@ -16,7 +16,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7331b339-6b75-47a9-9452-587b4b7ec955</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>server.js</StartupFile>
+    <StartupFile>build\server.js</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -35,51 +35,51 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="ChangeLog.txt" />
-    <Content Include="default.html" />
     <None Include="Dev.pubxml" />
     <Content Include="package.json" />
     <Content Include="README.md" />
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="Api\LocalApi.ts" />
-    <TypeScriptCompile Include="Api\Documentation.ts" />
-    <TypeScriptCompile Include="Api\ExperimentalWebApi.ts" />
-    <TypeScriptCompile Include="Api\WebApi.ts" />
-    <TypeScriptCompile Include="Api\Api.ts" />
-    <TypeScriptCompile Include="Api\CoordinateServer.ts" />
-    <TypeScriptCompile Include="Api\Queries.ts" />
-    <TypeScriptCompile Include="Api\Version.ts" />
-    <TypeScriptCompile Include="Data\Provider.ts" />
-    <TypeScriptCompile Include="Data\Cache.ts" />
-    <TypeScriptCompile Include="Data\Molecule.ts" />
-    <TypeScriptCompile Include="Scripts\typings\LiteMol-core.d.ts" />
-    <TypeScriptCompile Include="Experimental.ts" />
-    <TypeScriptCompile Include="local.ts" />
-    <TypeScriptCompile Include="Utils\Logger.ts" />
-    <TypeScriptCompile Include="Writers\BCifWriter.ts" />
-    <TypeScriptCompile Include="Writers\CifWriter.ts" />
-    <TypeScriptCompile Include="Scripts\typings\compression.d.ts" />
-    <TypeScriptCompile Include="ServerConfig.ts" />
-    <TypeScriptCompile Include="Scripts\typings\es6-collections.d.ts" />
-    <TypeScriptCompile Include="Scripts\typings\express.d.ts" />
-    <TypeScriptCompile Include="Scripts\typings\node.d.ts" />
-    <TypeScriptCompile Include="server.ts" />
-    <TypeScriptCompile Include="Writers\Formats\mmCif.ts" />
-    <TypeScriptCompile Include="Writers\StringWriter.ts">
+    <TypeScriptCompile Include="src\Api\LocalApi.ts" />
+    <TypeScriptCompile Include="src\Api\Documentation.ts" />
+    <TypeScriptCompile Include="src\Api\ExperimentalWebApi.ts" />
+    <TypeScriptCompile Include="src\Api\WebApi.ts" />
+    <TypeScriptCompile Include="src\Api\Api.ts" />
+    <TypeScriptCompile Include="src\Api\CoordinateServer.ts" />
+    <TypeScriptCompile Include="src\Api\Queries.ts" />
+    <TypeScriptCompile Include="src\Api\Version.ts" />
+    <TypeScriptCompile Include="src\Data\Provider.ts" />
+    <TypeScriptCompile Include="src\Data\Cache.ts" />
+    <TypeScriptCompile Include="src\Data\Molecule.ts" />
+    <TypeScriptCompile Include="src\typings\LiteMol-core.d.ts" />
+    <TypeScriptCompile Include="src\Experimental.ts" />
+    <TypeScriptCompile Include="src\local.ts" />
+    <TypeScriptCompile Include="src\Utils\Logger.ts" />
+    <TypeScriptCompile Include="src\Writers\BCifWriter.ts" />
+    <TypeScriptCompile Include="src\Writers\CifWriter.ts" />
+    <TypeScriptCompile Include="src\typings\compression.d.ts" />
+    <TypeScriptCompile Include="src\ServerConfig.ts" />
+    <TypeScriptCompile Include="src\typings\es6-collections.d.ts" />
+    <TypeScriptCompile Include="src\typings\express.d.ts" />
+    <TypeScriptCompile Include="src\typings\node.d.ts" />
+    <TypeScriptCompile Include="src\server.ts" />
+    <TypeScriptCompile Include="src\Writers\Formats\mmCif.ts" />
+    <TypeScriptCompile Include="src\Writers\StringWriter.ts">
       <SubType>Code</SubType>
       <TestFramework>ExportRunner</TestFramework>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="Writers\Context.ts" />
+    <TypeScriptCompile Include="src\Writers\Context.ts" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Api\" />
-    <Folder Include="Data\" />
+    <Folder Include="src\Api\" />
+    <Folder Include="src\Data\" />
+    <Folder Include="src\" />
     <Folder Include="Scripts\" />
-    <Folder Include="Utils\" />
-    <Folder Include="Writers\" />
-    <Folder Include="Scripts\typings\" />
-    <Folder Include="Writers\Formats\" />
+    <Folder Include="src\Utils\" />
+    <Folder Include="src\Writers\" />
+    <Folder Include="src\typings\" />
+    <Folder Include="src\Writers\Formats\" />
   </ItemGroup>
   <!-- Do not delete the following Import Project.  While this appears to do nothing it is a marker for setting TypeScript properties before our import that depends on them. -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Any CPU'">
@@ -97,11 +97,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <TypeScriptTarget>ES5</TypeScriptTarget>
     <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
-    <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
+    <TypeScriptCompileOnSaveEnabled>False</TypeScriptCompileOnSaveEnabled>
     <TypeScriptNoImplicitAny>True</TypeScriptNoImplicitAny>
     <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
     <TypeScriptOutFile />
-    <TypeScriptOutDir />
+    <TypeScriptOutDir>build</TypeScriptOutDir>
     <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
     <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
     <TypeScriptMapRoot />
@@ -163,7 +163,7 @@
   <PropertyGroup>
     <PreBuildEvent>
       copy $(ProjectDir)..\..\LiteMol\dist\LiteMol-core.js $(ProjectDir)node_modules\LiteMol-core.js
-      copy $(ProjectDir)..\..\LiteMol\dist\LiteMol-core.d.ts $(ProjectDir)Scripts\typings\LiteMol-core.d.ts
+      copy $(ProjectDir)..\..\LiteMol\dist\LiteMol-core.d.ts $(ProjectDir)src\typings\LiteMol-core.d.ts
     </PreBuildEvent>
   </PropertyGroup>
 </Project>
