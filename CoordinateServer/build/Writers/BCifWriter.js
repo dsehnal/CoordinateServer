@@ -22,7 +22,7 @@ var BCifWriter = (function () {
         }
         else {
             isNative = true;
-            array = [];
+            array = new Array(totalCount);
         }
         var mask = new Uint8Array(totalCount);
         var presence = field.presence;
@@ -67,6 +67,8 @@ var BCifWriter = (function () {
         };
     };
     BCifWriter.prototype.writeCategory = function (category, contexts) {
+        //let perf = new Core.Utils.PerformanceMonitor();
+        //perf.start('cat');
         if (!this.data) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -85,6 +87,8 @@ var BCifWriter = (function () {
             cat.columns.push(this.encodeField(f, data, count));
         }
         this.dataBlock.categories.push(cat);
+        //perf.end('cat');
+        //console.log(first.desc.name, perf.formatTime('cat'));
     };
     BCifWriter.prototype.encode = function () {
         var packed = Core.Formats.MessagePack.encode(this.data);

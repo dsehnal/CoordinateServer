@@ -16,7 +16,7 @@ export default class BCifWriter implements Writer {
             array = new field.typedArray(totalCount);
         } else {
             isNative = true;
-            array = [];
+            array = new Array(totalCount);
         }
         let mask = new Uint8Array(totalCount);
         let presence = field.presence;
@@ -62,6 +62,8 @@ export default class BCifWriter implements Writer {
     }
 
     writeCategory(category: CategoryProvider, contexts?: Context[]) {
+        //let perf = new Core.Utils.PerformanceMonitor();
+        //perf.start('cat');
         if (!this.data) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -79,6 +81,8 @@ export default class BCifWriter implements Writer {
             cat.columns.push(this.encodeField(f, data, count));
         }
         this.dataBlock.categories.push(cat);
+        //perf.end('cat');
+        //console.log(first.desc.name, perf.formatTime('cat'));
     }
 
     encode() {
