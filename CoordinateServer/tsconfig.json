@@ -5,17 +5,17 @@
     "noImplicitAny": true,
     "sourceMap": false,
     "noEmitOnError": true,
-    "rootDir": ".",
-    "outDir": "build"
+    "rootDir": "./src",
+    "outDir": "./build"
   },
   "files": [  
-    "src/typings/compression.d.ts",
-    "src/typings/es6-collections.d.ts",
-    "src/typings/express.d.ts",
-    "src/typings/node.d.ts",
-    "src/typings/LiteMol-core.d.ts",
+    "./src/typings/compression.d.ts",
+    "./src/typings/es6-collections.d.ts",
+    "./src/typings/express.d.ts",
+    "./src/typings/node.d.ts",
+    "./src/typings/LiteMol-core.d.ts",
 
-    "src/server.ts",
-    "src/local.ts"
+    "./src/server.ts",
+    "./src/local.ts"
   ]
 }
