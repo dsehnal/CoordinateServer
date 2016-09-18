@@ -41,7 +41,7 @@ export default class BCifWriter implements Writer {
         }
         let encoder = field.encoder ? field.encoder : Encoders.strings;
         let encoded = encoder.encode(array);
-
+        
         let maskData: BCIF.EncodedData;// = null;
 
         if (!allPresent) {

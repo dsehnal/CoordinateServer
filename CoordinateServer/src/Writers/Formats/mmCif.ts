@@ -137,9 +137,9 @@ function _entry(context: mmCifContext) {
 }
 
 function _entity(context: mmCifContext) {
-    let f = context.fragment;
+    let f = context.fragment;    
     if (!f.entityIndices.length) return void 0;
-
+    
     let uniqueEntities = new Set<string>();
     let entityIndices: number[] = [];
     for (let i of f.entityIndices) {
