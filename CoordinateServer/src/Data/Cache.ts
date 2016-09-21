@@ -22,14 +22,14 @@ export interface CacheParams {
 
 export class Cache {
 
-    entries = new LinkedList<CacheEntry>();
+    entries = LinkedList.create<CacheEntry>();
     entryMap = new Map<string, CacheEntry>();
     approximateSize = 0;
 
     private dispose(e: CacheEntry) {
         if (e.timeoutId !== undefined) clearTimeout(e.timeoutId);
         if (e.inList) {
-            this.entries.remove(e);
+            LinkedList.remove(this.entries, e);
             this.approximateSize -= e.molecule.approximateSize;
         }
         this.entryMap.delete(e.molecule.key);
@@ -38,8 +38,8 @@ export class Cache {
     private refresh(e: CacheEntry) {
         if (e.timeoutId !== undefined) clearTimeout(e.timeoutId);
         e.timeoutId = setTimeout(() => this.expire(e), this.params.entryTimeoutInMs);
-        this.entries.remove(e);
-        this.entries.addFirst(e);
+        LinkedList.remove(this.entries, e);
+        LinkedList.addFirst(this.entries, e);
     }
 
     private expire(e: CacheEntry, notify = true) {
@@ -60,7 +60,7 @@ export class Cache {
 
         this.approximateSize += m.approximateSize;
         let e = new CacheEntry(m);
-        this.entries.addFirst(e);
+        LinkedList.addFirst(this.entries, e);
         this.entryMap.set(m.key, e);
         this.refresh(e);
         Logger.log(`[Cache] ${e.molecule.molecule.id} added.`);
@@ -84,31 +84,37 @@ export class Cache {
 
 interface LinkedElement<T> { previous: T; next: T; inList: boolean }
 
-class LinkedList<T extends LinkedElement<T>> {
+interface LinkedList<T extends LinkedElement<T>> { first: T, last: T }
 
-    first: T = null;
-    last: T = null;
+namespace LinkedList {
 
-    addFirst(item: T) {
-        item.inList = true;
-        if (this.first) this.first.previous = item;
-        item.next = this.first;
-        this.first = item;
+    export function create<T extends LinkedElement<T>>(): LinkedList<T> {
+        return {
+            first: null,
+            last: null
+        }
     }
 
-    addLast(item: T) {
-        if (this.last != null) {
-            this.last.next = item;
+    export function addFirst<T extends LinkedElement<T>>(list: LinkedList<T>, item: T) {
+        item.inList = true;
+        if (list.first) list.first.previous = item;
+        item.next = list.first;
+        list.first = item;
+    }
+
+    export function addLast<T extends LinkedElement<T>>(list: LinkedList<T>, item: T) {
+        if (list.last != null) {
+            list.last.next = item;
         }
-        item.previous = this.last;
-        this.last = item;
-        if (this.first == null) {
-            this.first = item;
+        item.previous = list.last;
+        list.last = item;
+        if (list.first == null) {
+            list.first = item;
         }
         item.inList = true;
     }
 
-    remove(item: T) {
+    export function remove<T extends LinkedElement<T>>(list: LinkedList<T>, item: T) {
         if (!item.inList) return;
 
         item.inList = false;
@@ -117,14 +123,14 @@ class LinkedList<T extends LinkedElement<T>> {
             item.previous.next = item.next;
         }
         else if (/*first == item*/ item.previous === null) {
-            this.first = item.next;
+            list.first = item.next;
         }
 
         if (item.next !== null) {
             item.next.previous = item.previous;
         }
         else if (/*last == item*/ item.next === null) {
-            this.last = item.previous;
+            list.last = item.previous;
         }
 
         item.next = null;

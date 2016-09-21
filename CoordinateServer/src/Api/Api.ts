@@ -3,7 +3,7 @@
 import Logger from '../Utils/Logger'
 
 import * as Core from 'LiteMol-core'
-import { CoordinateServerConfig, CoordinateServer } from './CoordinateServer'
+import { CoordinateServerConfig, processQuery } from './CoordinateServer'
 
 import CifWriter from '../Writers/CifWriter'
 import * as WriterContext from '../Writers/Context'
@@ -68,7 +68,7 @@ export function executeQuery(
 
     let wrappedOutput = wrapOutputStream(outputStreamProvider);
 
-    CoordinateServer.process(
+    processQuery(
         reqId,
         molecule,
 

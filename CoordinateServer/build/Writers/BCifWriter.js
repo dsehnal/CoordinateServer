@@ -3,6 +3,57 @@ var Core = require('LiteMol-core');
 var BCIF = Core.Formats.CIF.Binary;
 var Context_1 = require('./Context');
 var Version_1 = require('../Api/Version');
+function encodeField(field, data, totalCount) {
+    var array, isNative = false;
+    if (field.typedArray) {
+        array = new field.typedArray(totalCount);
+    }
+    else {
+        isNative = true;
+        array = new Array(totalCount);
+    }
+    var mask = new Uint8Array(totalCount);
+    var presence = field.presence;
+    var getter = field.number ? field.number : field.string;
+    var allPresent = true;
+    var offset = 0;
+    for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
+        var _d = data_1[_i];
+        var d = _d.data;
+        for (var i = 0, _b = _d.count; i < _b; i++) {
+            var p = void 0;
+            if (presence && (p = presence(d, i)) !== 0 /* Present */) {
+                mask[offset] = p;
+                if (isNative)
+                    array[offset] = null;
+                allPresent = false;
+            }
+            else {
+                mask[offset] = 0 /* Present */;
+                array[offset] = getter(d, i);
+            }
+            offset++;
+        }
+    }
+    var encoder = field.encoder ? field.encoder : Context_1.Encoders.strings;
+    var encoded = encoder.encode(array);
+    var maskData; // = null;
+    if (!allPresent) {
+        var maskRLE = BCIF.Encoder.by(BCIF.Encoder.runLength).and(BCIF.Encoder.int32).encode(mask);
+        if (maskRLE.data.length < mask.length) {
+            maskData = maskRLE;
+        }
+        else {
+            maskData = BCIF.Encoder.by(BCIF.Encoder.uint8).encode(mask);
+        }
+    }
+    //console.log(field.name, encoded.data.length, encoded.data instanceof Uint8Array);
+    return {
+        name: field.name,
+        data: encoded,
+        mask: maskData
+    };
+}
 var BCifWriter = (function () {
     function BCifWriter(header) {
         this.dataBlock = {
@@ -15,57 +66,6 @@ var BCifWriter = (function () {
             dataBlocks: [this.dataBlock]
         };
     }
-    BCifWriter.prototype.encodeField = function (field, data, totalCount) {
-        var array, isNative = false;
-        if (field.typedArray) {
-            array = new field.typedArray(totalCount);
-        }
-        else {
-            isNative = true;
-            array = new Array(totalCount);
-        }
-        var mask = new Uint8Array(totalCount);
-        var presence = field.presence;
-        var getter = field.number ? field.number : field.string;
-        var allPresent = true;
-        var offset = 0;
-        for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
-            var _d = data_1[_i];
-            var d = _d.data;
-            for (var i = 0, _b = _d.count; i < _b; i++) {
-                var p = void 0;
-                if (presence && (p = presence(d, i)) !== 0 /* Present */) {
-                    mask[offset] = p;
-                    if (isNative)
-                        array[offset] = null;
-                    allPresent = false;
-                }
-                else {
-                    mask[offset] = 0 /* Present */;
-                    array[offset] = getter(d, i);
-                }
-                offset++;
-            }
-        }
-        var encoder = field.encoder ? field.encoder : Context_1.Encoders.strings;
-        var encoded = encoder.encode(array);
-        var maskData; // = null;
-        if (!allPresent) {
-            var maskRLE = BCIF.Encoder.by(BCIF.Encoder.runLength).and(BCIF.Encoder.int32).encode(mask);
-            if (maskRLE.data.length < mask.length) {
-                maskData = maskRLE;
-            }
-            else {
-                maskData = BCIF.Encoder.by(BCIF.Encoder.uint8).encode(mask);
-            }
-        }
-        //console.log(field.name, encoded.data.length, encoded.data instanceof Uint8Array);
-        return {
-            name: field.name,
-            data: encoded,
-            mask: maskData
-        };
-    };
     BCifWriter.prototype.writeCategory = function (category, contexts) {
         //let perf = new Core.Utils.PerformanceMonitor();
         //perf.start('cat');
@@ -84,7 +84,7 @@ var BCifWriter = (function () {
         var data = categories.map(function (c) { return ({ data: c.data, count: c.count === void 0 ? 1 : c.count }); });
         for (var _i = 0, _a = first.desc.fields; _i < _a.length; _i++) {
             var f = _a[_i];
-            cat.columns.push(this.encodeField(f, data, count));
+            cat.columns.push(encodeField(f, data, count));
         }
         this.dataBlock.categories.push(cat);
         //perf.end('cat');

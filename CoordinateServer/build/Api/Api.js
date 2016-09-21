@@ -42,7 +42,7 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
     };
     Logger_1.default.log(reqId + ": Query params " + JSON.stringify(queryParams));
     var wrappedOutput = wrapOutputStream(outputStreamProvider);
-    CoordinateServer_1.CoordinateServer.process(reqId, molecule, query, serverConfig.params, WriterContext.getFormatter(commonParams.format), serverConfig, function (result) {
+    CoordinateServer_1.processQuery(reqId, molecule, query, serverConfig.params, WriterContext.getFormatter(commonParams.format), serverConfig, function (result) {
         var stream = wrappedOutput();
         var encodeTime = 0;
         if (result.error) {

@@ -36,86 +36,83 @@ export interface CoordinateServerResult {
     timeQuery?: number;
     timeFormat?: number;
 }
-
-export class CoordinateServer {
     
-    static process(
-        reqId: string,
-        molecule: Molecule.Molecule,
+export function processQuery(
+    reqId: string,
+    molecule: Molecule.Molecule,
 
-        query: ApiQuery,
-        queryParams: FilteredQueryParams,
+    query: ApiQuery,
+    queryParams: FilteredQueryParams,
 
-        formatter: WriterContext.Formatter,
+    formatter: WriterContext.Formatter,
 
-        config: CoordinateServerConfig,
-        next: (result: CoordinateServerResult) => void) {
+    config: CoordinateServerConfig,
+    next: (result: CoordinateServerResult) => void) {
         
-        let perf = new Core.Utils.PerformanceMonitor();
+    let perf = new Core.Utils.PerformanceMonitor();
 
-        let formatConfig: WriterContext.FormatConfig = {
-            queryType: query.name,
-            data: molecule.cif,
-            includedCategories: config.includedCategories,
-            params: queryParams
-        };
+    let formatConfig: WriterContext.FormatConfig = {
+        queryType: query.name,
+        data: molecule.cif,
+        includedCategories: config.includedCategories,
+        params: queryParams
+    };
         
-        try {
+    try {
 
-            let models: WriterContext.WritableFragments[] = [];
+        let models: WriterContext.WritableFragments[] = [];
 
-            perf.start('query')
-            let found = 0;
-            let singleModel = !!queryParams.common.modelId;
-            let singleModelId = queryParams.common.modelId;
-            let foundModel = false;
-            for (var modelWrap of molecule.models) {
+        perf.start('query')
+        let found = 0;
+        let singleModel = !!queryParams.common.modelId;
+        let singleModelId = queryParams.common.modelId;
+        let foundModel = false;
+        for (var modelWrap of molecule.models) {
 
-                let fragments: Queries.FragmentSeq;
-                let model = modelWrap.model;
+            let fragments: Queries.FragmentSeq;
+            let model = modelWrap.model;
 
-                if (singleModel && model.modelId !== singleModelId) continue;
-                foundModel = true;
+            if (singleModel && model.modelId !== singleModelId) continue;
+            foundModel = true;
 
-                if (query.description.modelTransform) {
-                    let transformed = query.description.modelTransform(queryParams, model);
-                    let compiled = query.description.query(queryParams.query, model, transformed).compile();
-                    fragments = compiled(transformed.queryContext);
-                    model = transformed;
-                } else {
-                    let compiled = query.description.query(queryParams.query, model, model).compile();
-                    fragments = compiled(model.queryContext);
-                }
+            if (query.description.modelTransform) {
+                let transformed = query.description.modelTransform(queryParams, model);
+                let compiled = query.description.query(queryParams.query, model, transformed).compile();
+                fragments = compiled(transformed.queryContext);
+                model = transformed;
+            } else {
+                let compiled = query.description.query(queryParams.query, model, model).compile();
+                fragments = compiled(model.queryContext);
+            }
                 
-                if (fragments.length > 0) {
-                    models.push({ model, fragments });
-                    found += fragments.length;
-                }
+            if (fragments.length > 0) {
+                models.push({ model, fragments });
+                found += fragments.length;
             }
-            perf.end('query');
-
-            if (singleModelId && !foundModel) {
-                let err = `Model with id '${singleModelId}' was not found.`;
-                next({
-                    error: err,
-                });
-                return;
-            }
-
-            Logger.log(`${reqId}: Found ${found} fragment(s).`)
-
-            perf.start('format');
-            formatter(config.writer, formatConfig, models);
-            perf.end('format');
-
-            next({
-                timeQuery: perf.time('query'),
-                timeFormat: perf.time('format')
-            });
-        } catch (e) {
-            next({
-                error: '' + e,
-            });
         }
+        perf.end('query');
+
+        if (singleModelId && !foundModel) {
+            let err = `Model with id '${singleModelId}' was not found.`;
+            next({
+                error: err,
+            });
+            return;
+        }
+
+        Logger.log(`${reqId}: Found ${found} fragment(s).`)
+
+        perf.start('format');
+        formatter(config.writer, formatConfig, models);
+        perf.end('format');
+
+        next({
+            timeQuery: perf.time('query'),
+            timeFormat: perf.time('format')
+        });
+    } catch (e) {
+        next({
+            error: '' + e,
+        });
     }
 }

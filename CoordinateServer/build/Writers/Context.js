@@ -20,6 +20,7 @@ var CifWriter_1 = require('./CifWriter');
 var BCifWriter_1 = require('./BCifWriter');
 var Provider = require('../Data/Provider');
 var mmCif = require('./Formats/mmCif');
+//import * as OptimizedMmCif from './Formats/OptimizedMmCif'
 var CIF = Core.Formats.CIF;
 var E = Core.Formats.CIF.Binary.Encoder;
 exports.Encoders = {
@@ -136,6 +137,6 @@ function writeError(stream, encoding, header, message, optional) {
 }
 exports.writeError = writeError;
 function getFormatter(format) {
-    return mmCif.format;
+    return mmCif.format; //(format || '').toLowerCase().trim() === 'o-mmcif' ? OptimizedMmCif.format : mmCif.format;
 }
 exports.getFormatter = getFormatter;

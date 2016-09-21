@@ -30,7 +30,7 @@ function createDocumentationHTML(appPrefix: string) {
         `<div class="container">`
     );
 
-    html.push(`<h1>LiteMol Coordinate Server <small>${ApiVersion}</small></h1>`);
+    html.push(`<h1>LiteMol Coordinate Server <small>${ApiVersion}, Core ${Core.VERSION.number}</small></h1>`);
     html.push("<hr>");
 
     html.push(Queries.QueryList.map(q => `<a href="#${q.name}">${q.name}</a>`).join(` | `));

@@ -12,7 +12,7 @@ exports.getHTMLDocs = getHTMLDocs;
 function createDocumentationHTML(appPrefix) {
     var html = [];
     html.push("<!DOCTYPE html>", "<html xmlns=\"http://www.w3.org/1999/xhtml\">", "<head>", "<meta charset=\"utf-8\" />", "<title>LiteMol Coordinate Server (" + Version_1.default + ")</title>", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css\" integrity=\"sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7\" crossorigin=\"anonymous\">", "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css\" integrity=\"sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r\" crossorigin=\"anonymous\">", "<script>", "   function toggle(id) { var e = document.getElementById(id); e.style.display = e.style.display !== 'none' ? 'none' : 'block' }", "</script>", "</head>", "<body>", "<div class=\"container\">");
-    html.push("<h1>LiteMol Coordinate Server <small>" + Version_1.default + "</small></h1>");
+    html.push("<h1>LiteMol Coordinate Server <small>" + Version_1.default + ", Core " + Core.VERSION.number + "</small></h1>");
     html.push("<hr>");
     html.push(Queries.QueryList.map(function (q) { return ("<a href=\"#" + q.name + "\">" + q.name + "</a>"); }).join(" | "));
     html.push("<hr>");

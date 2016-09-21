@@ -9,7 +9,6 @@ const __paddingSpaces: string[] = [];
 })();
 
 export default class StringWriter {
-
     private chunkData: string[] = [];
     private chunkOffset = 0;
 
@@ -18,23 +17,6 @@ export default class StringWriter {
     constructor(private chunkCapacity = 512) {
                         
     }
-
-    //get byteLength() {
-    //    let len = 0;
-    //    for (let s of this.data) len += Buffer.byteLength(s);
-    //    for (let i = this.chunkOffset - 1; i >= 0; i--) len += Buffer.byteLength(this.chunkData[i]);
-    //    return len;
-    //}
-
-    //toBuffer() {
-    //    let byteLen = this.byteLength;
-    //    let buffer = new Buffer(byteLen);
-    //    let o = 0;
-    //    for (let s of this.data) { o += buffer.write(s, o); }
-    //    for (let i = 0, _b = this.chunkOffset; i < _b; i++) { o += buffer.write(this.chunkData[i], o); }
-                
-    //    return buffer;
-    //}
     
     asString() {
         if (!this.data.length) {
@@ -169,7 +151,5 @@ export default class StringWriter {
         let padding = totalWidth - s.length;
         this.write(s);
         if (padding > 0) this.write(__paddingSpaces[padding]);
-    }
-   
-    
+    }  
 }

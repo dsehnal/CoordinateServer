@@ -2,37 +2,40 @@
 import CIF = Core.Formats.CIF
 import { Context, CategoryInstance, CategoryProvider, FieldDesc, Encoders, FormatConfig, WritableFragments, Writer, createResultHeaderCategory, createParamsCategory } from '../Context'
 
-export class mmCifContext implements Context {
-    get isComplete() {
-        return this.model.source === Core.Structure.MoleculeModelSource.File
-            ? this.fragment.atomCount === this.model.atoms.count
+export interface mmCifContext extends Context {
+    _residueNameSet: Set<string>,
+    _modres: { map: Map<string, { i: number, original: string }>, names: Set<string> },
+    lowPrecisionCoords: boolean
+}
+
+export namespace mmCifContext {
+    export function isComplete(mmCtx: mmCifContext) {
+        return mmCtx.model.source === Core.Structure.MoleculeModelSource.File
+            ? mmCtx.fragment.atomCount === mmCtx.model.atoms.count
             : false;
     }
-
-    private _residueNameSet: Set<string>;
-    get residueNameSet() {
-        if (this._residueNameSet) return this._residueNameSet;
+    
+    export function residueNameSet(mmCtx: mmCifContext) {
+        if (mmCtx._residueNameSet) return mmCtx._residueNameSet;
 
         let set = new Set<string>();
-        let name = this.model.residues.name;
-        for (let i of this.fragment.residueIndices) {
+        let name = mmCtx.model.residues.name;
+        for (let i of mmCtx.fragment.residueIndices) {
             set.add(name[i]);
         }
-        this._residueNameSet = set;
+        mmCtx._residueNameSet = set;
         return set;
     }
-
-    private _modres: { map: Map<string, { i: number, original: string }>, names: Set<string> };
-
-    private computeModres() {
-        if (this._modres) return;
+    
+    function computeModres(mmCtx: mmCifContext) {
+        if (mmCtx._modres) return;
 
 
         let map = new Map<string, { i: number, original: string }>();
         let names = new Set<string>();
-        this._modres = { map, names };
+        mmCtx._modres = { map, names };
 
-        let _mod_res = this.data.getCategory('_pdbx_struct_mod_residue');
+        let _mod_res = mmCtx.data.getCategory('_pdbx_struct_mod_residue');
         if (!_mod_res) return map;
 
         let label_asym_id = _mod_res.getColumn('label_asym_id');
@@ -48,15 +51,15 @@ export class mmCifContext implements Context {
         }
     }
 
-    get modifiedResidues() {
-        this.computeModres();
-        return this._modres;
+    export function modifiedResidues(mmCtx: mmCifContext) {
+        computeModres(mmCtx);
+        return mmCtx._modres;
     }
 
-    getSourceResidueStringId(i: number) {
-        let res = this.model.residues, chains = this.model.chains, asymId: string;
+    export function getSourceResidueStringId(mmCtx: mmCifContext, i: number) {
+        let res = mmCtx.model.residues, chains = mmCtx.model.chains, asymId: string;
         if (chains.sourceChainIndex) {
-            let parent = this.model.parent;
+            let parent = mmCtx.model.parent;
             if (parent) {
                 asymId = parent.chains.asymId[chains.sourceChainIndex[res.chainIndex[i]]];
             } else {
@@ -68,7 +71,15 @@ export class mmCifContext implements Context {
         return `${asymId} ${res.seqNumber[i]} ${res.insCode[i]}`;
     }
 
-    constructor(public fragment: Core.Structure.Query.Fragment, public model: Core.Structure.MoleculeModel, public data: Core.Formats.CIF.DataBlock, public lowPrecisionCoords: boolean) {
+    export function create(fragment: Core.Structure.Query.Fragment, model: Core.Structure.MoleculeModel, data: Core.Formats.CIF.DataBlock, lowPrecisionCoords: boolean): mmCifContext {
+        return {
+            fragment,
+            model,
+            data,
+            lowPrecisionCoords,
+            _modres: void 0,
+            _residueNameSet: void 0
+        };
     }
 }
 
@@ -330,7 +341,7 @@ function _chem_comp_bond(context: mmCifContext) {
     let nameCol = cat.getColumn('comp_id');
     if (!nameCol) return;
     let rows: number[] = [];
-    let names = context.residueNameSet;
+    let names = mmCifContext.residueNameSet(context);
 
     for (let i = 0, _l = cat.rowCount; i < _l; i++) {
         let n = nameCol.getString(i);
@@ -662,13 +673,9 @@ function _entity_poly(context: mmCifContext) {
         entityMap.set(eId, e);
         poly.push(e);
     }
-
-
+    
     let chains = context.model.chains;
-    let residues = context.model.residues;
-    let modRes = context.modifiedResidues;
-
-
+    
     for (let chain of context.fragment.chainIndices) {
         let asymId = chains.authAsymId[chain];
         let eId = chains.entityId[chain];
@@ -709,7 +716,7 @@ function _pdbx_struct_mod_residue(context: mmCifContext) {
     if (!cat) return;
 
     let modResIndices: number[] = [], residues: number[] = [];
-    let info = context.modifiedResidues;
+    let info = mmCifContext.modifiedResidues(context);
     if (!info.map.size) return;
 
     let names = context.model.residues.name;
@@ -717,7 +724,7 @@ function _pdbx_struct_mod_residue(context: mmCifContext) {
     for (let res of context.fragment.residueIndices) {
         if (!info.names.has(names[res])) continue;
 
-        let e = info.map.get(context.getSourceResidueStringId(res));
+        let e = info.map.get(mmCifContext.getSourceResidueStringId(context, res));
         if (e) {
             modResIndices[modResIndices.length] = e.i;
             residues[residues.length] = res;
@@ -935,7 +942,7 @@ export function format(writer: Writer, config: FormatConfig, models: WritableFra
     writer.writeCategory(header);
     writer.writeCategory(params);
 
-    let context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data, config.params.common.lowPrecisionCoords);
+    let context = mmCifContext.create(models[0].fragments.unionFragment(), models[0].model, config.data, config.params.common.lowPrecisionCoords);
 
     if (!config.params.common.atomSitesOnly) {
         for (let cat of config.includedCategories) {
@@ -946,7 +953,7 @@ export function format(writer: Writer, config: FormatConfig, models: WritableFra
     }
     let modelContexts: mmCifContext[] = [context];
     for (let i = 1; i < models.length; i++) {
-        modelContexts.push(new mmCifContext(models[i].fragments.unionFragment(), models[i].model, config.data, config.params.common.lowPrecisionCoords));
+        modelContexts.push(mmCifContext.create(models[i].fragments.unionFragment(), models[i].model, config.data, config.params.common.lowPrecisionCoords));
     }
     writer.writeCategory(_atom_site, modelContexts)
 }

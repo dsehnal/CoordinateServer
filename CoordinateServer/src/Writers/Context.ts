@@ -21,6 +21,7 @@ import CifWriter from './CifWriter'
 import BCifWriter from './BCifWriter'
 import * as Provider from '../Data/Provider'
 import * as mmCif from './Formats/mmCif'
+//import * as OptimizedMmCif from './Formats/OptimizedMmCif'
 import CIF = Core.Formats.CIF
 
 export interface FieldDesc<Data> {
@@ -188,5 +189,5 @@ export function writeError(stream: OutputStream, encoding: string, header: strin
 }
 
 export function getFormatter(format: string) {
-    return mmCif.format;
+    return mmCif.format //(format || '').toLowerCase().trim() === 'o-mmcif' ? OptimizedMmCif.format : mmCif.format;
 }

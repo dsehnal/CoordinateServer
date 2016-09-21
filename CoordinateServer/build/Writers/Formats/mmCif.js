@@ -2,45 +2,34 @@
 var Core = require('LiteMol-core');
 var CIF = Core.Formats.CIF;
 var Context_1 = require('../Context');
-var mmCifContext = (function () {
-    function mmCifContext(fragment, model, data, lowPrecisionCoords) {
-        this.fragment = fragment;
-        this.model = model;
-        this.data = data;
-        this.lowPrecisionCoords = lowPrecisionCoords;
+var mmCifContext;
+(function (mmCifContext) {
+    function isComplete(mmCtx) {
+        return mmCtx.model.source === Core.Structure.MoleculeModelSource.File
+            ? mmCtx.fragment.atomCount === mmCtx.model.atoms.count
+            : false;
     }
-    Object.defineProperty(mmCifContext.prototype, "isComplete", {
-        get: function () {
-            return this.model.source === Core.Structure.MoleculeModelSource.File
-                ? this.fragment.atomCount === this.model.atoms.count
-                : false;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(mmCifContext.prototype, "residueNameSet", {
-        get: function () {
-            if (this._residueNameSet)
-                return this._residueNameSet;
-            var set = new Set();
-            var name = this.model.residues.name;
-            for (var _i = 0, _a = this.fragment.residueIndices; _i < _a.length; _i++) {
-                var i = _a[_i];
-                set.add(name[i]);
-            }
-            this._residueNameSet = set;
-            return set;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    mmCifContext.prototype.computeModres = function () {
-        if (this._modres)
+    mmCifContext.isComplete = isComplete;
+    function residueNameSet(mmCtx) {
+        if (mmCtx._residueNameSet)
+            return mmCtx._residueNameSet;
+        var set = new Set();
+        var name = mmCtx.model.residues.name;
+        for (var _i = 0, _a = mmCtx.fragment.residueIndices; _i < _a.length; _i++) {
+            var i = _a[_i];
+            set.add(name[i]);
+        }
+        mmCtx._residueNameSet = set;
+        return set;
+    }
+    mmCifContext.residueNameSet = residueNameSet;
+    function computeModres(mmCtx) {
+        if (mmCtx._modres)
             return;
         var map = new Map();
         var names = new Set();
-        this._modres = { map: map, names: names };
-        var _mod_res = this.data.getCategory('_pdbx_struct_mod_residue');
+        mmCtx._modres = { map: map, names: names };
+        var _mod_res = mmCtx.data.getCategory('_pdbx_struct_mod_residue');
         if (!_mod_res)
             return map;
         var label_asym_id = _mod_res.getColumn('label_asym_id');
@@ -53,19 +42,16 @@ var mmCifContext = (function () {
             map.set(key, { i: i, original: parent_comp_id.getString(i) });
             names.add(label_comp_id.getString(i));
         }
-    };
-    Object.defineProperty(mmCifContext.prototype, "modifiedResidues", {
-        get: function () {
-            this.computeModres();
-            return this._modres;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    mmCifContext.prototype.getSourceResidueStringId = function (i) {
-        var res = this.model.residues, chains = this.model.chains, asymId;
+    }
+    function modifiedResidues(mmCtx) {
+        computeModres(mmCtx);
+        return mmCtx._modres;
+    }
+    mmCifContext.modifiedResidues = modifiedResidues;
+    function getSourceResidueStringId(mmCtx, i) {
+        var res = mmCtx.model.residues, chains = mmCtx.model.chains, asymId;
         if (chains.sourceChainIndex) {
-            var parent_1 = this.model.parent;
+            var parent_1 = mmCtx.model.parent;
             if (parent_1) {
                 asymId = parent_1.chains.asymId[chains.sourceChainIndex[res.chainIndex[i]]];
             }
@@ -77,10 +63,20 @@ var mmCifContext = (function () {
             asymId = res.asymId[i];
         }
         return asymId + " " + res.seqNumber[i] + " " + res.insCode[i];
-    };
-    return mmCifContext;
-}());
-exports.mmCifContext = mmCifContext;
+    }
+    mmCifContext.getSourceResidueStringId = getSourceResidueStringId;
+    function create(fragment, model, data, lowPrecisionCoords) {
+        return {
+            fragment: fragment,
+            model: model,
+            data: data,
+            lowPrecisionCoords: lowPrecisionCoords,
+            _modres: void 0,
+            _residueNameSet: void 0
+        };
+    }
+    mmCifContext.create = create;
+})(mmCifContext = exports.mmCifContext || (exports.mmCifContext = {}));
 var SourceCategoryMap = (function () {
     function SourceCategoryMap(context, name, keyColumnName) {
         this.context = context;
@@ -312,7 +308,7 @@ function _chem_comp_bond(context) {
     if (!nameCol)
         return;
     var rows = [];
-    var names = context.residueNameSet;
+    var names = mmCifContext.residueNameSet(context);
     for (var i = 0, _l = cat.rowCount; i < _l; i++) {
         var n = nameCol.getString(i);
         if (names.has(n))
@@ -594,8 +590,6 @@ function _entity_poly(context) {
         poly.push(e);
     }
     var chains = context.model.chains;
-    var residues = context.model.residues;
-    var modRes = context.modifiedResidues;
     for (var _i = 0, _a = context.fragment.chainIndices; _i < _a.length; _i++) {
         var chain = _a[_i];
         var asymId = chains.authAsymId[chain];
@@ -634,7 +628,7 @@ function _pdbx_struct_mod_residue(context) {
     if (!cat)
         return;
     var modResIndices = [], residues = [];
-    var info = context.modifiedResidues;
+    var info = mmCifContext.modifiedResidues(context);
     if (!info.map.size)
         return;
     var names = context.model.residues.name;
@@ -642,7 +636,7 @@ function _pdbx_struct_mod_residue(context) {
         var res = _a[_i];
         if (!info.names.has(names[res]))
             continue;
-        var e = info.map.get(context.getSourceResidueStringId(res));
+        var e = info.map.get(mmCifContext.getSourceResidueStringId(context, res));
         if (e) {
             modResIndices[modResIndices.length] = e.i;
             residues[residues.length] = res;
@@ -813,7 +807,7 @@ function format(writer, config, models) {
     var params = Context_1.createParamsCategory(config.params);
     writer.writeCategory(header);
     writer.writeCategory(params);
-    var context = new mmCifContext(models[0].fragments.unionFragment(), models[0].model, config.data, config.params.common.lowPrecisionCoords);
+    var context = mmCifContext.create(models[0].fragments.unionFragment(), models[0].model, config.data, config.params.common.lowPrecisionCoords);
     if (!config.params.common.atomSitesOnly) {
         for (var _i = 0, _a = config.includedCategories; _i < _a.length; _i++) {
             var cat = _a[_i];
@@ -825,7 +819,7 @@ function format(writer, config, models) {
     }
     var modelContexts = [context];
     for (var i = 1; i < models.length; i++) {
-        modelContexts.push(new mmCifContext(models[i].fragments.unionFragment(), models[i].model, config.data, config.params.common.lowPrecisionCoords));
+        modelContexts.push(mmCifContext.create(models[i].fragments.unionFragment(), models[i].model, config.data, config.params.common.lowPrecisionCoords));
     }
     writer.writeCategory(_atom_site, modelContexts);
 }

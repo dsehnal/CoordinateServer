@@ -64,6 +64,7 @@
     <TypeScriptCompile Include="src\typings\express.d.ts" />
     <TypeScriptCompile Include="src\typings\node.d.ts" />
     <TypeScriptCompile Include="src\server.ts" />
+    <TypeScriptCompile Include="src\Writers\Formats\OptimizedMmCif.ts" />
     <TypeScriptCompile Include="src\Writers\Formats\mmCif.ts" />
     <TypeScriptCompile Include="src\Writers\StringWriter.ts">
       <SubType>Code</SubType>

@@ -15,20 +15,6 @@ var StringWriter = (function () {
         this.chunkOffset = 0;
         this.data = [];
     }
-    //get byteLength() {
-    //    let len = 0;
-    //    for (let s of this.data) len += Buffer.byteLength(s);
-    //    for (let i = this.chunkOffset - 1; i >= 0; i--) len += Buffer.byteLength(this.chunkData[i]);
-    //    return len;
-    //}
-    //toBuffer() {
-    //    let byteLen = this.byteLength;
-    //    let buffer = new Buffer(byteLen);
-    //    let o = 0;
-    //    for (let s of this.data) { o += buffer.write(s, o); }
-    //    for (let i = 0, _b = this.chunkOffset; i < _b; i++) { o += buffer.write(this.chunkData[i], o); }
-    //    return buffer;
-    //}
     StringWriter.prototype.asString = function () {
         if (!this.data.length) {
             if (this.chunkData.length === this.chunkOffset)

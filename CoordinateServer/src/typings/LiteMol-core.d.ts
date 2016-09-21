@@ -941,6 +941,92 @@ declare namespace LiteMol.Core {
         }
     }
 }
+declare namespace LiteMol.Core.Utils {
+    function extend<S, T, U>(object: S, source: T, guard?: U): S & T & U;
+    function debounce<T>(func: () => T, wait: number): () => T;
+}
+declare namespace LiteMol.Core.Utils {
+    function integerSetToSortedTypedArray(set: Set<number>): number[];
+    /**
+     * A a JS native array with the given size.
+     */
+    function makeNativeIntArray(size: number): number[];
+    /**
+     * A a JS native array with the given size.
+     */
+    function makeNativeFloatArray(size: number): number[];
+    /**
+     * A generic chunked array builder.
+     */
+    class ChunkedArrayBuilder<T> {
+        private creator;
+        private elementSize;
+        private chunkSize;
+        private current;
+        private currentIndex;
+        parts: any[];
+        elementCount: number;
+        add4(x: T, y: T, z: T, w: T): number;
+        add3(x: T, y: T, z: T): number;
+        add2(x: T, y: T): number;
+        add(x: T): number;
+        compact(): T[];
+        static forVertex3D(chunkVertexCount?: number): ChunkedArrayBuilder<number>;
+        static forIndexBuffer(chunkIndexCount?: number): ChunkedArrayBuilder<number>;
+        static forTokenIndices(chunkTokenCount?: number): ChunkedArrayBuilder<number>;
+        static forIndices(chunkTokenCount?: number): ChunkedArrayBuilder<number>;
+        static forInt32(chunkSize?: number): ChunkedArrayBuilder<number>;
+        static forFloat32(chunkSize?: number): ChunkedArrayBuilder<number>;
+        static forArray<TElement>(chunkSize?: number): ChunkedArrayBuilder<TElement>;
+        constructor(creator: (size: number) => any, chunkElementCount: number, elementSize: number);
+    }
+    /**
+     * Static size array builder.
+     */
+    class ArrayBuilder<T> {
+        private currentIndex;
+        elementCount: number;
+        array: T[];
+        add3(x: T, y: T, z: T): void;
+        add2(x: T, y: T): void;
+        add(x: T): void;
+        static forVertex3D(count: number): ArrayBuilder<number>;
+        static forIndexBuffer(count: number): ArrayBuilder<number>;
+        static forTokenIndices(count: number): ArrayBuilder<number>;
+        static forIndices(count: number): ArrayBuilder<number>;
+        static forInt32(count: number): ArrayBuilder<number>;
+        static forFloat32(count: number): ArrayBuilder<number>;
+        static forArray<TElement>(count: number): ArrayBuilder<TElement>;
+        constructor(creator: (size: number) => any, chunkElementCount: number, elementSize: number);
+    }
+}
+/**
+ * Efficient integer and float parsers.
+ *
+ * For the purposes of parsing numbers from the mmCIF data representations,
+ * up to 4 times faster than JS parseInt/parseFloat.
+ */
+declare namespace LiteMol.Core.Utils.FastNumberParsers {
+    function parseIntSkipTrailingWhitespace(str: string, start: number, end: number): number;
+    function parseInt(str: string, start: number, end: number): number;
+    function parseScientific(main: number, str: string, start: number, end: number): number;
+    function parseFloatSkipTrailingWhitespace(str: string, start: number, end: number): number;
+    function parseFloat(str: string, start: number, end: number): number;
+}
+declare namespace LiteMol.Core.Utils {
+    class PerformanceMonitor {
+        private starts;
+        private ends;
+        static currentTime(): number;
+        start(name: string): void;
+        end(name: string): void;
+        static format(t: number): string;
+        formatTime(name: string): string;
+        formatTimeSum(...names: string[]): string;
+        time(name: string): number;
+        timeSum(...names: string[]): number;
+    }
+}
 declare namespace LiteMol.Core.Formats {
     interface FormatInfo {
         name: string;
@@ -973,22 +1059,24 @@ declare namespace LiteMol.Core.Formats {
         constructor(error: ParserError, warnings: string[], result: T);
     }
     /**
-     * A helper class for building a typed array of token indices.
+     * A helper for building a typed array of token indices.
      */
-    class TokenIndexBuilder {
-        private tokensLenMinus2;
-        private count;
+    interface TokenIndexBuilder {
+        tokensLenMinus2: number;
+        count: number;
         tokens: Int32Array;
-        private resize();
-        addToken(start: number, end: number): void;
-        constructor(size: number);
+    }
+    namespace TokenIndexBuilder {
+        function addToken(builder: TokenIndexBuilder, start: number, end: number): void;
+        function create(size: number): TokenIndexBuilder;
     }
     /**
-     * A helper class to store only unique strings.
+     * This ensures there is only 1 instance of a short string.
      */
-    class ShortStringPool {
-        static strings: Map<string, string>;
-        static getString(key: string): string;
+    type ShortStringPool = Map<string, string>;
+    namespace ShortStringPool {
+        function create(): ShortStringPool;
+        function get(pool: ShortStringPool, str: string): string;
     }
 }
 declare namespace LiteMol.Core.Formats.MessagePack {
@@ -1248,6 +1336,7 @@ declare namespace LiteMol.Core.Formats.CIF.Text {
         private tokens;
         private columnCount;
         private rowCount;
+        private stringPool;
         isDefined: boolean;
         /**
          * Returns the string value at given row.
@@ -1572,7 +1661,7 @@ declare namespace LiteMol.Core.Formats.Density {
     /**
      * Represents electron density data.
      */
-    class Data {
+    interface Data {
         /**
          * Crystal cell size.
          */
@@ -1632,15 +1721,9 @@ declare namespace LiteMol.Core.Formats.Density {
          * Are the data normalized?
          */
         isNormalized: boolean;
-        /**
-         * If not already normalized, normalize the data.
-         */
-        normalize(): void;
-        /**
-         * If normalized, de-normalize the data.
-         */
-        denormalize(): void;
-        constructor(cellSize: number[], cellAngles: number[], origin: number[], hasSkewMatrix: boolean, skewMatrix: number[], data: Field3D, dataDimensions: number[], basis: {
+    }
+    namespace Data {
+        function create(cellSize: number[], cellAngles: number[], origin: number[], hasSkewMatrix: boolean, skewMatrix: number[], data: Field3D, dataDimensions: number[], basis: {
             x: number[];
             y: number[];
             z: number[];
@@ -1651,7 +1734,9 @@ declare namespace LiteMol.Core.Formats.Density {
             sigma: number;
         }, attributes?: {
             [key: string]: any;
-        });
+        }): Data;
+        function normalize(densityData: Data): void;
+        function denormalize(densityData: Data): void;
     }
 }
 declare namespace LiteMol.Core.Formats.Density.CCP4 {
@@ -1676,19 +1761,19 @@ declare namespace LiteMol.Core.Geometry.LinearAlgebra {
     /**
      * Stores a 4x4 matrix in a column major (j * 4 + i indexing) format.
      */
-    class Matrix4 {
-        static empty(): number[];
-        static identity(): number[];
-        static ofRows(rows: number[][]): number[];
-        static areEqual(a: number[], b: number[], eps: number): boolean;
-        static setValue(a: number[], i: number, j: number, value: number): void;
-        static copy(out: number[], a: any): number[];
-        static clone(a: number[]): number[];
-        static invert(out: number[], a: number[]): number[];
-        static mul(out: number[], a: number[], b: number[]): number[];
-        static translate(out: number[], a: number[], v: number[]): number[];
-        static fromTranslation(out: number[], v: number[]): number[];
-        static transformVector3(out: {
+    namespace Matrix4 {
+        function empty(): number[];
+        function identity(): number[];
+        function ofRows(rows: number[][]): number[];
+        function areEqual(a: number[], b: number[], eps: number): boolean;
+        function setValue(a: number[], i: number, j: number, value: number): void;
+        function copy(out: number[], a: any): number[];
+        function clone(a: number[]): number[];
+        function invert(out: number[], a: number[]): number[];
+        function mul(out: number[], a: number[], b: number[]): number[];
+        function translate(out: number[], a: number[], v: number[]): number[];
+        function fromTranslation(out: number[], v: number[]): number[];
+        function transformVector3(out: {
             x: number;
             y: number;
             z: number;
@@ -1701,19 +1786,19 @@ declare namespace LiteMol.Core.Geometry.LinearAlgebra {
             y: number;
             z: number;
         };
-        static makeTable(m: number[]): string;
-        static determinant(a: number[]): number;
+        function makeTable(m: number[]): string;
+        function determinant(a: number[]): number;
     }
-    class Vector4 {
-        static create(): number[];
-        static clone(a: number[]): number[];
-        static fromValues(x: number, y: number, z: number, w: number): number[];
-        static set(out: number[], x: number, y: number, z: number, w: number): number[];
-        static distance(a: number[], b: number[]): number;
-        static squaredDistance(a: number[], b: number[]): number;
-        static norm(a: number[]): number;
-        static squaredNorm(a: number[]): number;
-        static transform(out: number[], a: number[], m: number[]): number[];
+    namespace Vector4 {
+        function create(): number[];
+        function clone(a: number[]): number[];
+        function fromValues(x: number, y: number, z: number, w: number): number[];
+        function set(out: number[], x: number, y: number, z: number, w: number): number[];
+        function distance(a: number[], b: number[]): number;
+        function squaredDistance(a: number[], b: number[]): number;
+        function norm(a: number[]): number;
+        function squaredNorm(a: number[]): number;
+        function transform(out: number[], a: number[], m: number[]): number[];
     }
 }
 declare namespace LiteMol.Core.Geometry {
@@ -1731,103 +1816,73 @@ declare namespace LiteMol.Core.Geometry {
     /**
      * A buffer that only remembers the values.
      */
-    class SubdivisionTree3DResultIndexBuffer implements SubdivisionTree3DResultBuffer {
-        private capacity;
-        count: number;
-        indices: number[];
-        hasPriorities: boolean;
-        priorities: number[];
-        private ensureCapacity();
-        add(distSq: number, index: number): void;
-        reset(): void;
-        constructor(initialCapacity: number);
+    namespace SubdivisionTree3DResultIndexBuffer {
+        function create(initialCapacity: number): SubdivisionTree3DResultBuffer;
     }
     /**
      * A buffer that remembers values and priorities.
      */
-    class SubdivisionTree3DResultPriorityBuffer implements SubdivisionTree3DResultBuffer {
-        private capacity;
-        count: number;
-        indices: number[];
-        hasPriorities: boolean;
-        priorities: number[];
-        private ensureCapacity();
-        add(distSq: number, index: number): void;
-        reset(): void;
-        constructor(initialCapacity: number);
+    namespace SubdivisionTree3DResultPriorityBuffer {
+        function create(initialCapacity: number): SubdivisionTree3DResultBuffer;
     }
     /**
      * Query context. Handles the actual querying.
      */
-    class SubdivisionTree3DQueryContext<T> {
-        private tree;
+    interface SubdivisionTree3DQueryContext<T> {
+        tree: SubdivisionTree3D<T>;
         pivot: number[];
         radius: number;
         radiusSq: number;
         indices: number[];
         positions: number[];
         buffer: SubdivisionTree3DResultBuffer;
-        /**
-         * Query the tree and store the result to this.buffer. Overwrites the old result.
-         */
         nearest(x: number, y: number, z: number, radius: number): void;
-        /**
-         * Query the tree and use the position of the i-th element as pivot.
-         * Store the result to this.buffer. Overwrites the old result.
-         */
-        nearestIndex(index: number, radius: number): void;
-        constructor(tree: SubdivisionTree3D<T>, buffer: SubdivisionTree3DResultBuffer);
+    }
+    namespace SubdivisionTree3DQueryContext {
+        function create<T>(tree: SubdivisionTree3D<T>, buffer: SubdivisionTree3DResultBuffer): SubdivisionTree3DQueryContext<T>;
     }
     /**
      * A kd-like tree to query 3D data.
      */
-    class SubdivisionTree3D<T> {
+    interface SubdivisionTree3D<T> {
         data: T[];
         indices: number[];
         positions: number[];
         root: SubdivisionTree3DNode;
+    }
+    namespace SubdivisionTree3D {
         /**
          * Create a context used for querying the data.
          */
-        createContextRadius(radiusEstimate: number, includePriorities?: boolean): SubdivisionTree3DQueryContext<T>;
+        function createContextRadius<T>(tree: SubdivisionTree3D<T>, radiusEstimate: number, includePriorities?: boolean): SubdivisionTree3DQueryContext<T>;
         /**
          * Takes data and a function that calls SubdivisionTree3DPositionBuilder.add(x, y, z) on each data element.
          */
-        constructor(data: T[], f: (e: T, b: SubdivisionTree3DPositionBuilder) => void, leafSize?: number);
-    }
-    /**
-     * A builder for position array.
-     */
-    class SubdivisionTree3DPositionBuilder {
-        private count;
-        private boundsMin;
-        private boundsMax;
-        bounds: Box3D;
-        data: number[];
-        add(x: number, y: number, z: number): void;
-        constructor(count: number);
+        function create<T>(data: T[], f: (e: T, add: (x: number, y: number, z: number) => void) => void, leafSize?: number): SubdivisionTree3D<T>;
     }
     /**
      * A tree node.
      */
-    class SubdivisionTree3DNode {
+    interface SubdivisionTree3DNode {
         splitValue: number;
         startIndex: number;
         endIndex: number;
         left: SubdivisionTree3DNode;
         right: SubdivisionTree3DNode;
-        private nearestLeaf<T>(ctx);
-        private nearestNode<T>(ctx, dim);
-        nearest<T>(ctx: SubdivisionTree3DQueryContext<T>, dim: number): void;
-        constructor(splitValue: number, startIndex: number, endIndex: number, left: SubdivisionTree3DNode, right: SubdivisionTree3DNode);
+    }
+    namespace SubdivisionTree3DNode {
+        function nearest<T>(node: SubdivisionTree3DNode, ctx: SubdivisionTree3DQueryContext<T>, dim: number): void;
+        function create(splitValue: number, startIndex: number, endIndex: number, left: SubdivisionTree3DNode, right: SubdivisionTree3DNode): SubdivisionTree3DNode;
     }
     /**
      * A helper to store boundary box.
      */
-    class Box3D {
+    interface Box3D {
         min: number[];
         max: number[];
-        constructor();
+    }
+    namespace Box3D {
+        function createInfinite(): Box3D;
     }
 }
 declare namespace LiteMol.Core.Geometry {
@@ -2648,92 +2703,6 @@ declare namespace LiteMol.Core.Structure.Query.Algebraic {
      * Query
      */
     function query(p: Predicate): Builder;
-}
-declare namespace LiteMol.Core.Utils {
-    function extend<S, T, U>(object: S, source: T, guard?: U): S & T & U;
-    function debounce<T>(func: () => T, wait: number): () => T;
-}
-declare namespace LiteMol.Core.Utils {
-    function integerSetToSortedTypedArray(set: Set<number>): number[];
-    /**
-     * A a JS native array with the given size.
-     */
-    function makeNativeIntArray(size: number): number[];
-    /**
-     * A a JS native array with the given size.
-     */
-    function makeNativeFloatArray(size: number): number[];
-    /**
-     * A generic chunked array builder.
-     */
-    class ChunkedArrayBuilder<T> {
-        private creator;
-        private elementSize;
-        private chunkSize;
-        private current;
-        private currentIndex;
-        parts: any[];
-        elementCount: number;
-        add4(x: T, y: T, z: T, w: T): number;
-        add3(x: T, y: T, z: T): number;
-        add2(x: T, y: T): number;
-        add(x: T): number;
-        compact(): T[];
-        static forVertex3D(chunkVertexCount?: number): ChunkedArrayBuilder<number>;
-        static forIndexBuffer(chunkIndexCount?: number): ChunkedArrayBuilder<number>;
-        static forTokenIndices(chunkTokenCount?: number): ChunkedArrayBuilder<number>;
-        static forIndices(chunkTokenCount?: number): ChunkedArrayBuilder<number>;
-        static forInt32(chunkSize?: number): ChunkedArrayBuilder<number>;
-        static forFloat32(chunkSize?: number): ChunkedArrayBuilder<number>;
-        static forArray<TElement>(chunkSize?: number): ChunkedArrayBuilder<TElement>;
-        constructor(creator: (size: number) => any, chunkElementCount: number, elementSize: number);
-    }
-    /**
-     * Static size array builder.
-     */
-    class ArrayBuilder<T> {
-        private currentIndex;
-        elementCount: number;
-        array: T[];
-        add3(x: T, y: T, z: T): void;
-        add2(x: T, y: T): void;
-        add(x: T): void;
-        static forVertex3D(count: number): ArrayBuilder<number>;
-        static forIndexBuffer(count: number): ArrayBuilder<number>;
-        static forTokenIndices(count: number): ArrayBuilder<number>;
-        static forIndices(count: number): ArrayBuilder<number>;
-        static forInt32(count: number): ArrayBuilder<number>;
-        static forFloat32(count: number): ArrayBuilder<number>;
-        static forArray<TElement>(count: number): ArrayBuilder<TElement>;
-        constructor(creator: (size: number) => any, chunkElementCount: number, elementSize: number);
-    }
-}
-/**
- * Efficient integer and float parsers.
- *
- * For the purposes of parsing numbers from the mmCIF data representations,
- * up to 4 times faster than JS parseInt/parseFloat.
- */
-declare namespace LiteMol.Core.Utils.FastNumberParsers {
-    function parseIntSkipTrailingWhitespace(str: string, start: number, end: number): number;
-    function parseInt(str: string, start: number, end: number): number;
-    function parseScientific(main: number, str: string, start: number, end: number): number;
-    function parseFloatSkipTrailingWhitespace(str: string, start: number, end: number): number;
-    function parseFloat(str: string, start: number, end: number): number;
-}
-declare namespace LiteMol.Core.Utils {
-    class PerformanceMonitor {
-        private starts;
-        private ends;
-        static currentTime(): number;
-        start(name: string): void;
-        end(name: string): void;
-        static format(t: number): string;
-        formatTime(name: string): string;
-        formatTimeSum(...names: string[]): string;
-        time(name: string): number;
-        timeSum(...names: string[]): number;
-    }
 }
 declare module 'LiteMol-core' {
     import __Core = LiteMol.Core;

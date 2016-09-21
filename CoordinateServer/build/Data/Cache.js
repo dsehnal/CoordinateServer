@@ -14,7 +14,7 @@ var CacheEntry = (function () {
 var Cache = (function () {
     function Cache(params) {
         this.params = params;
-        this.entries = new LinkedList();
+        this.entries = LinkedList.create();
         this.entryMap = new Map();
         this.approximateSize = 0;
     }
@@ -22,7 +22,7 @@ var Cache = (function () {
         if (e.timeoutId !== undefined)
             clearTimeout(e.timeoutId);
         if (e.inList) {
-            this.entries.remove(e);
+            LinkedList.remove(this.entries, e);
             this.approximateSize -= e.molecule.approximateSize;
         }
         this.entryMap.delete(e.molecule.key);
@@ -32,8 +32,8 @@ var Cache = (function () {
         if (e.timeoutId !== undefined)
             clearTimeout(e.timeoutId);
         e.timeoutId = setTimeout(function () { return _this.expire(e); }, this.params.entryTimeoutInMs);
-        this.entries.remove(e);
-        this.entries.addFirst(e);
+        LinkedList.remove(this.entries, e);
+        LinkedList.addFirst(this.entries, e);
     };
     Cache.prototype.expire = function (e, notify) {
         if (notify === void 0) { notify = true; }
@@ -54,7 +54,7 @@ var Cache = (function () {
         }
         this.approximateSize += m.approximateSize;
         var e = new CacheEntry(m);
-        this.entries.addFirst(e);
+        LinkedList.addFirst(this.entries, e);
         this.entryMap.set(m.key, e);
         this.refresh(e);
         Logger_1.default.log("[Cache] " + e.molecule.molecule.id + " added.");
@@ -70,30 +70,36 @@ var Cache = (function () {
     return Cache;
 }());
 exports.Cache = Cache;
-var LinkedList = (function () {
-    function LinkedList() {
-        this.first = null;
-        this.last = null;
+var LinkedList;
+(function (LinkedList) {
+    function create() {
+        return {
+            first: null,
+            last: null
+        };
     }
-    LinkedList.prototype.addFirst = function (item) {
+    LinkedList.create = create;
+    function addFirst(list, item) {
         item.inList = true;
-        if (this.first)
-            this.first.previous = item;
-        item.next = this.first;
-        this.first = item;
-    };
-    LinkedList.prototype.addLast = function (item) {
-        if (this.last != null) {
-            this.last.next = item;
+        if (list.first)
+            list.first.previous = item;
+        item.next = list.first;
+        list.first = item;
+    }
+    LinkedList.addFirst = addFirst;
+    function addLast(list, item) {
+        if (list.last != null) {
+            list.last.next = item;
         }
-        item.previous = this.last;
-        this.last = item;
-        if (this.first == null) {
-            this.first = item;
+        item.previous = list.last;
+        list.last = item;
+        if (list.first == null) {
+            list.first = item;
         }
         item.inList = true;
-    };
-    LinkedList.prototype.remove = function (item) {
+    }
+    LinkedList.addLast = addLast;
+    function remove(list, item) {
         if (!item.inList)
             return;
         item.inList = false;
@@ -101,16 +107,16 @@ var LinkedList = (function () {
             item.previous.next = item.next;
         }
         else if (item.previous === null) {
-            this.first = item.next;
+            list.first = item.next;
         }
         if (item.next !== null) {
             item.next.previous = item.previous;
         }
         else if (item.next === null) {
-            this.last = item.previous;
+            list.last = item.previous;
         }
         item.next = null;
         item.previous = null;
-    };
-    return LinkedList;
-}());
+    }
+    LinkedList.remove = remove;
+})(LinkedList || (LinkedList = {}));
