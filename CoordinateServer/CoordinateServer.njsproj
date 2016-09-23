@@ -38,6 +38,7 @@
     <None Include="Dev.pubxml" />
     <Content Include="package.json" />
     <Content Include="README.md" />
+    <Content Include="tsconfig.json" />
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -113,6 +114,7 @@
     <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
     <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
     <TypeScriptNoImplicitAny>True</TypeScriptNoImplicitAny>
+    <TypeScriptStrictNullChecks>True</TypeScriptStrictNullChecks>
     <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
     <TypeScriptOutFile />
     <TypeScriptOutDir />

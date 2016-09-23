@@ -4,7 +4,7 @@ import * as Core from 'LiteMol-core'
 import ApiVersion from './Version'
 import * as Queries from './Queries'
 
-let docs: string = undefined;
+let docs: string | undefined = undefined;
 
 export function getHTMLDocs(appPrefix: string) {
     if (docs) return docs;

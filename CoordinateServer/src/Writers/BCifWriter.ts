@@ -28,7 +28,7 @@ function encodeField(field: FieldDesc < any >, data: { data: any, count: number 
                 allPresent = false;
             } else {
                 mask[offset] = Core.Formats.CIF.ValuePresence.Present;
-                array[offset] = getter(d, i);
+                array[offset] = getter!(d, i);
             }
             offset++;
         }
@@ -36,7 +36,7 @@ function encodeField(field: FieldDesc < any >, data: { data: any, count: number 
     let encoder = field.encoder ? field.encoder : Encoders.strings;
     let encoded = encoder.encode(array);
 
-    let maskData: BCIF.EncodedData;// = null;
+    let maskData: BCIF.EncodedData | undefined = void 0;// = null;
 
     if (!allPresent) {
         let maskRLE = BCIF.Encoder.by(BCIF.Encoder.runLength).and(BCIF.Encoder.int32).encode(mask);
@@ -67,15 +67,15 @@ export default class BCifWriter implements Writer {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
 
-        let categories = !contexts || !contexts.length ? [category(void 0)] : contexts.map(c => category(c));
-        categories = categories.filter(c => !!c || !!(c && (c.count === void 0 ? 1 : c.count)));
+        let src = !contexts || !contexts.length ? [category(<any>void 0)] : contexts.map(c => category(c));
+        let categories = src.filter(c => c && c.count > 0) as CategoryInstance<any>[];
         if (!categories.length) return;
-        let count = categories.reduce((a, c) => a + (c.count === void 0 ? 1 : c.count), 0);
+        let count = categories.reduce((a, c) => a + c!.count, 0);
         if (!count) return;
 
-        let first = categories[0];
+        let first = categories[0]!;
         let cat: BCIF.EncodedCategory = { name: first.desc.name, columns: [], rowCount: count };
-        let data = categories.map(c => ({ data: c.data, count: c.count === void 0 ? 1 : c.count }));
+        let data = categories.map(c => ({ data: c.data, count: c.count }));
         for (let f of first.desc.fields) {
             cat.columns.push(encodeField(f, data, count));
         }
@@ -87,8 +87,8 @@ export default class BCifWriter implements Writer {
     encode() {
         let packed = Core.Formats.MessagePack.encode(this.data);
         this.encodedData = new Buffer(packed);
-        this.data = null;
-        this.dataBlock = null;
+        this.data = <any>null;
+        this.dataBlock = <any>null;
     }
 
     flush(stream: OutputStream) {

@@ -94,7 +94,7 @@ export function executeQuery(
 
                 perf.start('encode');
                 try {
-                    let stats = WriterContext.createStatsCategory(moleculeWrapper, result.timeQuery, result.timeFormat);
+                    let stats = WriterContext.createStatsCategory(moleculeWrapper, result.timeQuery!, result.timeFormat!);
                     writer.writeCategory(stats);
                     writer.encode();
                 } catch (e) {
@@ -118,6 +118,6 @@ export function executeQuery(
             let totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeFormat + result.timeQuery + encodeTime;
 
             let cached = moleculeWrapper.source === Provider.MoleculeSource.Cache ? 'cached; ' : '';
-            Logger.log(`${reqId}: Done in ${Perf.format(totalTime)} (${cached}io ${Perf.format(moleculeWrapper.ioTime)}, parse ${Perf.format(moleculeWrapper.parseTime)}, query ${Perf.format(result.timeQuery)}, format ${Perf.format(result.timeFormat)}, encode ${Perf.format(encodeTime)})`);
+            Logger.log(`${reqId}: Done in ${Perf.format(totalTime)} (${cached}io ${Perf.format(moleculeWrapper.ioTime)}, parse ${Perf.format(moleculeWrapper.parseTime)}, query ${Perf.format(result.timeQuery!)}, format ${Perf.format(result.timeFormat!)}, encode ${Perf.format(encodeTime)})`);
         });
 }

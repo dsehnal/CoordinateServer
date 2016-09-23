@@ -21,7 +21,10 @@ export interface LocalApiJob {
 export type LocalApiWorkload = LocalApiJob[]
 
 function makeDir(path: string, root?: string): boolean {
-    var dirs = path.split('/'), dir = dirs.shift(), root = (root || '') + dir + '/';
+    let dirs = path.split(/\/|\\/g),
+        dir = dirs.shift();
+
+    root = (root || '') + dir + '/';
 
     try { fs.mkdirSync(root); }
     catch (e) {
@@ -70,9 +73,9 @@ function runJob(jobIndex: number, workload: LocalApiWorkload) {
                 job = workload[i];
                 let query = {
                     name: job.query,
-                    description: Queries.QueryMap[job.query]
+                    description: Queries.getQueryByName(job.query)
                 };
-                execute(job, query, m, job.params);
+                execute(job, query, m!, job.params);
             }
         },
         ioErr => {
@@ -91,7 +94,7 @@ export function run(workload: LocalApiWorkload) {
 
     let missing = new Set<string>();
     let filtered = workload.filter(job => {
-        let q = !!Queries.QueryMap[job.query];
+        let q = !!Queries.getQueryByName(job.query);
         if (!q) missing.add(job.query);
         return q;
     });

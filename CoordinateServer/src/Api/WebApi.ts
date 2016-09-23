@@ -76,8 +76,8 @@ function mapQuery(app: express.Express, query: Queries.ApiQuery) {
                 doCifError(res, parserErr, id, query.name, req.query);
                 return;
             }
-            if (addToCache) WebApiCache.add(m.molecule);
-            execute(res, query, m, req.query);
+            if (addToCache) WebApiCache.add(m!.molecule);
+            execute(res, query, m!, req.query);
         }, ioErr => {
             do404(res);
         }, unExpectedErr => {

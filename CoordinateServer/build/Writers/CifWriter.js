@@ -11,8 +11,8 @@ var CifWriter = (function () {
         if (this.encoded) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
-        var data = !contexts || !contexts.length ? [category(void 0)] : contexts.map(function (c) { return category(c); });
-        data = data.filter(function (c) { return !!c || !!(c && (c.count === void 0 ? 1 : c.count)); });
+        var src = !contexts || !contexts.length ? [category(void 0)] : contexts.map(function (c) { return category(c); });
+        var data = src.filter(function (c) { return c && c.count > 0; });
         if (!data.length)
             return;
         var count = data.reduce(function (a, c) { return a + (c.count === void 0 ? 1 : c.count); }, 0);

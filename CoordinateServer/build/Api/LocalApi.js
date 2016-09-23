@@ -6,7 +6,8 @@ var Provider = require('../Data/Provider');
 var fs = require('fs');
 var path = require('path');
 function makeDir(path, root) {
-    var dirs = path.split('/'), dir = dirs.shift(), root = (root || '') + dir + '/';
+    var dirs = path.split(/\/|\\/g), dir = dirs.shift();
+    root = (root || '') + dir + '/';
     try {
         fs.mkdirSync(root);
     }
@@ -48,7 +49,7 @@ function runJob(jobIndex, workload) {
             job = workload[i];
             var query = {
                 name: job.query,
-                description: Queries.QueryMap[job.query]
+                description: Queries.getQueryByName(job.query)
             };
             execute(job, query, m, job.params);
         }
@@ -63,7 +64,7 @@ function runJob(jobIndex, workload) {
 function run(workload) {
     var missing = new Set();
     var filtered = workload.filter(function (job) {
-        var q = !!Queries.QueryMap[job.query];
+        var q = !!Queries.getQueryByName(job.query);
         if (!q)
             missing.add(job.query);
         return q;

@@ -26,7 +26,7 @@ import CIF = Core.Formats.CIF
 
 export interface FieldDesc<Data> {
     name: string,
-    string?: (data: Data, i: number) => string,
+    string?: (data: Data, i: number) => string | null,
     number?: (data: Data, i: number) => number,
     typedArray?: any,
     encoder?: Core.Formats.CIF.Binary.Encoder,
@@ -38,8 +38,8 @@ export interface CategoryDesc<Data> {
     fields: FieldDesc<Data>[]
 }
 
-export type CategoryInstance<Data> = { data?: any, count?: number, desc: CategoryDesc<Data> }
-export type CategoryProvider = (ctx: Context) => CategoryInstance<any>
+export type CategoryInstance<Data> = { data: any, count: number, desc: CategoryDesc<Data> }
+export type CategoryProvider = (ctx: Context) => CategoryInstance<any> | undefined
 
 export interface Context {
     fragment: Core.Structure.Query.Fragment,
@@ -126,6 +126,7 @@ export function createResultHeaderCategory({ isEmpty, hasError }: { isEmpty: boo
 
     return () => <CategoryInstance<typeof data>>{
         data,
+        count: 1,
         desc: {
             name: '_coordinate_server_result',
             fields
@@ -141,6 +142,7 @@ export function createErrorCategory(message: string) {
 
     return () => <CategoryInstance<typeof data>>{
         data,
+        count: 1,
         desc: {
             name: '_coordinate_server_error',
             fields
@@ -160,6 +162,7 @@ export function createStatsCategory(molecule: Provider.MoleculeWrapper, queryTim
 
     return () => <CategoryInstance<typeof data>>{
         data,
+        count: 1,
         desc: {
             name: '_coordinate_server_stats',
             fields

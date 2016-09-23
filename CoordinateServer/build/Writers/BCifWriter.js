@@ -37,7 +37,7 @@ function encodeField(field, data, totalCount) {
     }
     var encoder = field.encoder ? field.encoder : Context_1.Encoders.strings;
     var encoded = encoder.encode(array);
-    var maskData; // = null;
+    var maskData = void 0; // = null;
     if (!allPresent) {
         var maskRLE = BCIF.Encoder.by(BCIF.Encoder.runLength).and(BCIF.Encoder.int32).encode(mask);
         if (maskRLE.data.length < mask.length) {
@@ -72,16 +72,16 @@ var BCifWriter = (function () {
         if (!this.data) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
-        var categories = !contexts || !contexts.length ? [category(void 0)] : contexts.map(function (c) { return category(c); });
-        categories = categories.filter(function (c) { return !!c || !!(c && (c.count === void 0 ? 1 : c.count)); });
+        var src = !contexts || !contexts.length ? [category(void 0)] : contexts.map(function (c) { return category(c); });
+        var categories = src.filter(function (c) { return c && c.count > 0; });
         if (!categories.length)
             return;
-        var count = categories.reduce(function (a, c) { return a + (c.count === void 0 ? 1 : c.count); }, 0);
+        var count = categories.reduce(function (a, c) { return a + c.count; }, 0);
         if (!count)
             return;
         var first = categories[0];
         var cat = { name: first.desc.name, columns: [], rowCount: count };
-        var data = categories.map(function (c) { return ({ data: c.data, count: c.count === void 0 ? 1 : c.count }); });
+        var data = categories.map(function (c) { return ({ data: c.data, count: c.count }); });
         for (var _i = 0, _a = first.desc.fields; _i < _a.length; _i++) {
             var f = _a[_i];
             cat.columns.push(encodeField(f, data, count));

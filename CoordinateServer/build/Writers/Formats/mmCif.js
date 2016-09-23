@@ -83,7 +83,7 @@ var SourceCategoryMap = (function () {
         this.name = name;
         this.keyColumnName = keyColumnName;
         this.byKey = new Map();
-        this.category = null;
+        this.category = void 0;
         var cat = context.data.getCategory(name);
         if (!cat)
             return;
@@ -98,10 +98,10 @@ var SourceCategoryMap = (function () {
     }
     SourceCategoryMap.prototype.getString = function (id, columnName) {
         if (!this.category)
-            return void 0;
+            return null;
         var row = this.byKey.get(id);
         if (row === void 0)
-            return void 0;
+            return null;
         var col = this.category.getColumn(columnName);
         return col.getString(row);
     };
@@ -135,6 +135,7 @@ exports.int32field = int32field;
 function _entry(context) {
     return {
         data: context.model.id,
+        count: 1,
         desc: {
             name: '_entry',
             fields: [

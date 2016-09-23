@@ -17,7 +17,7 @@ export class MoleculeWrapper {
     }
 }
 
-function readString(filename: string, onDone: (err: any, data: string) => void) {
+function readString(filename: string, onDone: (err: any, data: string | undefined) => void) {
     let isGz = /\.gz$/i.test(filename);
     if (isGz) {
         fs.readFile(filename, (err, raw) => {
@@ -42,7 +42,7 @@ function readString(filename: string, onDone: (err: any, data: string) => void) 
 
 
 export function readMolecule(filename: string,
-    onParsed: (err: string, m: MoleculeWrapper) => void,
+    onParsed: (err: string | undefined, m: MoleculeWrapper | undefined) => void,
     onIOError: (err: string) => void,
     onUnexpectedError: (err: string) => void,
     onIOfinished?: () => void) {
@@ -61,7 +61,7 @@ export function readMolecule(filename: string,
             }
 
             perf.start('parse');
-            let dict = CIF.Text.parse(data);
+            let dict = CIF.Text.parse(data!);
 
             if (dict.error) {
                 let error = dict.error.toString();
@@ -69,17 +69,17 @@ export function readMolecule(filename: string,
                 return;
             }
 
-            if (!dict.result.dataBlocks.length) {
+            if (!dict.result!.dataBlocks.length) {
                 let error = 'The input contains no data blocks.';
                 onParsed(error, undefined);
                 return;
             }
 
-            let block = dict.result.dataBlocks[0];
+            let block = dict.result!.dataBlocks[0];
             let rawMol = mmCIF.ofDataBlock(block);
             perf.end('parse');
 
-            let mol = new Molecule.Molecule(Molecule.Molecule.createKey(filename), block, rawMol, data.length);
+            let mol = new Molecule.Molecule(Molecule.Molecule.createKey(filename), block, rawMol, data!.length);
             onParsed(undefined, new MoleculeWrapper(mol, MoleculeSource.File, perf.time('io'), perf.time('parse')));
         } catch (e) {
             onUnexpectedError('' + e);

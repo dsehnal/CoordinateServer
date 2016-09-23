@@ -11,14 +11,14 @@ export default class CifWriter implements Writer {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
 
-        let data = !contexts || !contexts.length ? [category(void 0)] : contexts.map(c => category(c));
-        data = data.filter(c => !!c || !!(c && (c.count === void 0 ? 1 : c.count)));
+        let src = !contexts || !contexts.length ? [category(<any>void 0)] : contexts.map(c => category(c));
+        let data = src.filter(c => c && c.count > 0) as CategoryInstance<any>[];
         if (!data.length) return;
         let count = data.reduce((a, c) => a + (c.count === void 0 ? 1 : c.count), 0);
         if (!count) return;
 
         else if (count === 1) {
-            writeCifSingleRecord(data[0], this.writer);
+            writeCifSingleRecord(data[0]!, this.writer);
         } else {
             writeCifLoop(data, this.writer);
         }
@@ -55,7 +55,7 @@ function writeCifSingleRecord(category: CategoryInstance<any>, writer: StringWri
             if (p === Core.Formats.CIF.ValuePresence.NotSpecified) writeNotSpecified(writer);
             else writeUnknown(writer);
         } else {
-            let val = f.string(data, 0);
+            let val = f.string!(data, 0)!;
             if (isMultiline(val)) {
                 writeMultiline(writer, val);
                 writer.newline();
@@ -89,7 +89,7 @@ function writeCifLoop(categories: CategoryInstance<any>[], writer: StringWriter)
                     if (p === Core.Formats.CIF.ValuePresence.NotSpecified) writeNotSpecified(writer);
                     else writeUnknown(writer);
                 } else {
-                    let val = f.string(data, i);
+                    let val = f.string!(data, i)!;
                     if (isMultiline(val)) {
                         writeMultiline(writer, val);
                         writer.newline();

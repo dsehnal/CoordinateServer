@@ -46,8 +46,8 @@ export namespace mmCifContext {
 
         for (let i = 0; i < _mod_res.rowCount; i++) {
             let key = `${label_asym_id.getString(i)} ${label_seq_id.getString(i)} ${PDB_ins_code.getString(i)}`;
-            map.set(key, { i, original: parent_comp_id.getString(i) });
-            names.add(label_comp_id.getString(i));
+            map.set(key, { i, original: parent_comp_id.getString(i)! });
+            names.add(label_comp_id.getString(i)!);
         }
     }
 
@@ -77,20 +77,20 @@ export namespace mmCifContext {
             model,
             data,
             lowPrecisionCoords,
-            _modres: void 0,
-            _residueNameSet: void 0
+            _modres: <any>void 0,
+            _residueNameSet: <any>void 0
         };
     }
 }
 
 class SourceCategoryMap {
     private byKey = new Map<string, number>();
-    private category: LiteMol.Core.Formats.CIF.Category = null;
+    private category: LiteMol.Core.Formats.CIF.Category | undefined = void 0;
 
     getString(id: string, columnName: string) {
-        if (!this.category) return void 0;
+        if (!this.category) return null;
         let row = this.byKey.get(id);
-        if (row === void 0) return void 0;
+        if (row === void 0) return null;
         let col = this.category.getColumn(columnName);
         return col.getString(row);
     }
@@ -110,7 +110,7 @@ class SourceCategoryMap {
         if (!col.isDefined) return;
         this.category = cat;
         for (let i = 0; i < cat.rowCount; i++) {
-            let id = col.getString(i);
+            let id = col.getString(i)!;
             this.byKey.set(id, i);
         }
     }
@@ -138,6 +138,7 @@ export function int32field<T>(name: string, value: (data: T, i: number) => numbe
 function _entry(context: mmCifContext) {    
     return <CategoryInstance<string>>{
         data: context.model.id,
+        count: 1,
         desc: {
             name: '_entry',
             fields: [
@@ -344,7 +345,7 @@ function _chem_comp_bond(context: mmCifContext) {
     let names = mmCifContext.residueNameSet(context);
 
     for (let i = 0, _l = cat.rowCount; i < _l; i++) {
-        let n = nameCol.getString(i);
+        let n = nameCol.getString(i)!;
         if (names.has(n)) rows[rows.length] = i;
     }
 
@@ -634,8 +635,8 @@ interface EntityPolyEntry {
     type: string;
     nstd_linkage: string;
     nstd_monomer: string;
-    pdbx_seq_one_letter_code?: string;
-    pdbx_seq_one_letter_code_can?: string;
+    pdbx_seq_one_letter_code: string | null;
+    pdbx_seq_one_letter_code_can: string | null;
     pdbx_strand_id: string;
     strand_set: Set<string>;
     multine?: boolean;
@@ -657,7 +658,7 @@ function _entity_poly(context: mmCifContext) {
         pdbx_seq_one_letter_code_can: cat.getColumn('pdbx_seq_one_letter_code_can')
     }
     for (let i = 0; i < cat.rowCount; i++) {
-        let eId = _entity.entity_id.getString(i);
+        let eId = _entity.entity_id.getString(i)!;
 
         let e = <EntityPolyEntry>{
             entity_id: eId,

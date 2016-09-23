@@ -23,11 +23,20 @@ export interface QueryParamInfo {
     validation?: (v: any) => void;
 }
 
-export interface ApiQueryDescription {
+interface ApiQueryDefinition {
     query: (params: any, originalModel: Core.Structure.MoleculeModel, transformedModel: Core.Structure.MoleculeModel) => Queries.Builder;
     description: string;
     queryParams?: QueryParamInfo[];
     paramMap?: Map<string, QueryParamInfo>;
+    modelTransform?: (params: any, m: Core.Structure.MoleculeModel) => Core.Structure.MoleculeModel;
+    includedCategories?: string[];
+}
+
+export interface ApiQueryDescription {
+    query: (params: any, originalModel: Core.Structure.MoleculeModel, transformedModel: Core.Structure.MoleculeModel) => Queries.Builder;
+    description: string;
+    queryParams: QueryParamInfo[];
+    paramMap: Map<string, QueryParamInfo>;
     modelTransform?: (params: any, m: Core.Structure.MoleculeModel) => Core.Structure.MoleculeModel;
     includedCategories?: string[];
 }
@@ -111,7 +120,7 @@ const CommonParameters = {
     authSeqNumber: <QueryParamInfo>{ name: "authSeqNumber", type: QueryParamType.Integer, description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
 };
 
-export const QueryMap: { [id: string]: ApiQueryDescription } = {
+const QueryMap: { [id: string]: ApiQueryDefinition } = {
     "full": { query: () => Queries.everything(), description: "The full structure." },
     "het": { query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
     "cartoon": { query: () => Queries.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET atoms + water." },
@@ -272,9 +281,13 @@ export const QueryMap: { [id: string]: ApiQueryDescription } = {
     }
 };
 
+export function getQueryByName(name: string) {
+    return <ApiQueryDescription>QueryMap[name];
+}
+
 export const QueryList = (function () {
     let list: ApiQuery[] = [];
-    for (let k of Object.keys(QueryMap)) list.push({ name: k, description: QueryMap[k] });
+    for (let k of Object.keys(QueryMap)) list.push({ name: k, description: <ApiQueryDescription>QueryMap[k] });
     list.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0 });
     return list;
 })();
@@ -303,7 +316,7 @@ function _filterQueryParams(p: { [p: string]: string }, paramMap: Map<string, Qu
 
         if (!paramMap.has(key)) continue;
 
-        let info = paramMap.get(key);
+        let info = paramMap.get(key)!;
 
         if (p[key] !== undefined && p[key] !== null && p[key]['length'] === 0) {
             continue;

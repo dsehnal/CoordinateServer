@@ -78,6 +78,7 @@ function createResultHeaderCategory(_a, queryType) {
     ];
     return function () { return {
         data: data,
+        count: 1,
         desc: {
             name: '_coordinate_server_result',
             fields: fields
@@ -92,6 +93,7 @@ function createErrorCategory(message) {
     ];
     return function () { return {
         data: data,
+        count: 1,
         desc: {
             name: '_coordinate_server_error',
             fields: fields
@@ -110,6 +112,7 @@ function createStatsCategory(molecule, queryTime, formatTime) {
     ];
     return function () { return {
         data: data,
+        count: 1,
         desc: {
             name: '_coordinate_server_stats',
             fields: fields

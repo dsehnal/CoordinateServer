@@ -4,11 +4,11 @@ import Logger from '../Utils/Logger'
 
 class CacheEntry implements LinkedElement<CacheEntry> {
 
-    previous: CacheEntry = null;
-    next: CacheEntry = null;
+    previous: CacheEntry | null = null;
+    next: CacheEntry | null = null;
     inList = false;
 
-    timeoutId: NodeJS.Timer = undefined;
+    timeoutId: NodeJS.Timer | undefined = undefined;
     
     constructor(public molecule: Molecule.Molecule) {
     }
@@ -52,7 +52,7 @@ export class Cache {
     }
 
     add(m: Molecule.Molecule) {
-        if (this.entryMap.has(m.key)) this.dispose(this.entryMap.get(m.key));
+        if (this.entryMap.has(m.key)) this.dispose(this.entryMap.get(m.key)!);
 
         if (this.params.maxApproximateSizeInBytes < this.approximateSize + m.approximateSize) {
             if (this.entries.last) this.dispose(this.entries.last);
@@ -70,7 +70,7 @@ export class Cache {
     get(key: string) {
         if (!this.entryMap.has(key)) return undefined;
 
-        let e = this.entryMap.get(key);
+        let e = this.entryMap.get(key)!;
         this.refresh(e);
 
         Logger.log(`[Cache] ${e.molecule.molecule.id} accessed.`);
@@ -82,9 +82,9 @@ export class Cache {
     }
 }
 
-interface LinkedElement<T> { previous: T; next: T; inList: boolean }
+interface LinkedElement<T> { previous: T | null, next: T | null, inList: boolean }
 
-interface LinkedList<T extends LinkedElement<T>> { first: T, last: T }
+interface LinkedList<T extends LinkedElement<T>> { first: T | null, last: T | null }
 
 namespace LinkedList {
 

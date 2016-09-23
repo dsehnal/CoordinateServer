@@ -58,7 +58,7 @@ var CommonParameters = {
     seqNumber: { name: "seqNumber", type: QueryParamType.Integer, description: "Residue seq. number. Corresponds to the '_atom_site.label_seq_id' field." },
     authSeqNumber: { name: "authSeqNumber", type: QueryParamType.Integer, description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
 };
-exports.QueryMap = {
+var QueryMap = {
     "full": { query: function () { return Queries.everything(); }, description: "The full structure." },
     "het": { query: function () { return Queries.hetGroups(); }, description: "All non-water 'HETATM' records." },
     "cartoon": { query: function () { return Queries.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET atoms + water." },
@@ -217,11 +217,15 @@ exports.QueryMap = {
         includedCategories: SymmetryCategories
     }
 };
+function getQueryByName(name) {
+    return QueryMap[name];
+}
+exports.getQueryByName = getQueryByName;
 exports.QueryList = (function () {
     var list = [];
-    for (var _i = 0, _a = Object.keys(exports.QueryMap); _i < _a.length; _i++) {
+    for (var _i = 0, _a = Object.keys(QueryMap); _i < _a.length; _i++) {
         var k = _a[_i];
-        list.push({ name: k, description: exports.QueryMap[k] });
+        list.push({ name: k, description: QueryMap[k] });
     }
     list.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
     return list;
