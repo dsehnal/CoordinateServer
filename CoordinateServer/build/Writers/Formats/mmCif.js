@@ -808,6 +808,8 @@ function format(writer, config, models) {
     var params = Context_1.createParamsCategory(config.params);
     writer.writeCategory(header);
     writer.writeCategory(params);
+    if (isEmpty)
+        return;
     var context = mmCifContext.create(models[0].fragments.unionFragment(), models[0].model, config.data, config.params.common.lowPrecisionCoords);
     if (!config.params.common.atomSitesOnly) {
         for (var _i = 0, _a = config.includedCategories; _i < _a.length; _i++) {

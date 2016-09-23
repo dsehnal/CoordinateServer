@@ -8,6 +8,7 @@ import * as Cache from '../Data/Cache'
 import * as Experimental from './ExperimentalWebApi'
 import ServerConfig from '../ServerConfig'
 import * as WriterContext from '../Writers/Context'
+import Logger from '../Utils/Logger'
 
 import * as express from 'express';
 
@@ -16,6 +17,13 @@ function makePath(p: string) {
 }
 
 const WebApiCache = new Cache.Cache(ServerConfig.cacheParams);
+
+
+
+export const ApiState = {
+    pendingQueries: 0,
+    shutdownOnZeroPending: false
+};
 
 function writeHeader(response: express.Response, id: string, queryType: string, encoding: string) {
     if (response.headersSent) return;
@@ -40,11 +48,19 @@ function writeHeader(response: express.Response, id: string, queryType: string, 
 }
 
 
+function handleQueryEnd() {
+    ApiState.pendingQueries = Math.max(ApiState.pendingQueries - 1, 0);
+    if (ApiState.pendingQueries === 0 && ApiState.shutdownOnZeroPending) {
+        Logger.log(`Shut down due to timeout.`);
+        process.exit(0);
+    }
+}
+
 function execute(response: express.Response, query: Queries.ApiQuery, molecule: Provider.MoleculeWrapper, params: any) {
     Api.executeQuery(molecule, query, params, () => {
         writeHeader(response, molecule.molecule.molecule.id, query.name, params.encoding);
         return response;
-    });
+    }, () => handleQueryEnd());
 }
 
 function do404(response: any) {
@@ -60,6 +76,9 @@ function doCifError(response: express.Response, message: string, id: string, que
 
 function mapQuery(app: express.Express, query: Queries.ApiQuery) {
     app.get(makePath(':id/' + query.name), (req, res) => {
+
+        ApiState.pendingQueries++;
+
         let id = req.params.id;
         let filename = ServerConfig.mapPdbIdToFilename(id);
         let addToCache = ServerConfig.cacheParams.useCache;
@@ -74,14 +93,17 @@ function mapQuery(app: express.Express, query: Queries.ApiQuery) {
         Provider.readMolecule(filename, (parserErr, m) => {
             if (parserErr) {
                 doCifError(res, parserErr, id, query.name, req.query);
+                handleQueryEnd();
                 return;
             }
             if (addToCache) WebApiCache.add(m!.molecule);
             execute(res, query, m!, req.query);
         }, ioErr => {
             do404(res);
+            handleQueryEnd();
         }, unExpectedErr => {
-            doCifError(res, '' + unExpectedErr, id, query.name, req.query)
+            doCifError(res, '' + unExpectedErr, id, query.name, req.query);
+            handleQueryEnd();
         });
     });
 }

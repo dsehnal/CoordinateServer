@@ -1,4 +1,9 @@
-﻿== 1.3.3 ==
+﻿== 1.3.4 ==
+* Moved to TypeScript 2.0.
+* Added the option to automatically shut down the server.
+* Small bug fixes.
+
+== 1.3.3 ==
 * Updated to new core.
 * Attempts to counter the GC from collecting code on long runs.
 

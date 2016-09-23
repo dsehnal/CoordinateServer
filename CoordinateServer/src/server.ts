@@ -26,8 +26,36 @@ import ExperimentalApi from './Experimental'
 import ApiVersion from './Api/Version'
 import * as Queries from './Api/Queries'
 import * as Documentation from './Api/Documentation'
+import Logger from './Utils/Logger'
 
 let port = process.env.port || ServerConfig.defaultPort;
+
+function setupShutdown() {
+    if (ServerConfig.shutdownParams.timeoutVarianceMinutes > ServerConfig.shutdownParams.timeoutMinutes) {
+        Logger.log('Server shutdown timeout variance is greater than the timer itself, ignoring.');
+    } else {
+        let tVar = 0;
+        if (ServerConfig.shutdownParams.timeoutVarianceMinutes > 0) {
+            tVar = 2 * (Math.random() - 0.5) * ServerConfig.shutdownParams.timeoutVarianceMinutes;
+        }
+        let tMs = (ServerConfig.shutdownParams.timeoutMinutes + tVar) * 60 * 1000;
+
+        console.log(`----------------------------------------------------------------------------`);
+        console.log(`  The server will shut down in ${Core.Utils.PerformanceMonitor.format(tMs)} to prevent slow performance.`);
+        console.log(`  Please make sure a daemon is running that will automatically restart it.`);
+        console.log(`----------------------------------------------------------------------------`);
+        console.log();
+
+        setTimeout(() => {
+            if (WebApi.ApiState.pendingQueries > 0) {
+                WebApi.ApiState.shutdownOnZeroPending = true;
+            } else {
+                Logger.log(`Shut down due to timeout.`);
+                process.exit(0);
+            }
+        }, tMs);
+    }
+}
 
 function startServer() {
     let app = express();
@@ -73,6 +101,10 @@ if (ServerConfig.useCluster) {
 
     } else {
         startServer();
+
+        if (ServerConfig.shutdownParams && ServerConfig.shutdownParams.timeoutMinutes > 0) {
+            setupShutdown();
+        }
     }
 
 } else {
@@ -83,4 +115,8 @@ if (ServerConfig.useCluster) {
     console.log(``);
     console.log(`The server is running on port ${port}.`);
     console.log(``);
+
+    if (ServerConfig.shutdownParams && ServerConfig.shutdownParams.timeoutMinutes > 0) {
+        setupShutdown();
+    }
 }

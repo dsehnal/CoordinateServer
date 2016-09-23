@@ -7,10 +7,15 @@ var Cache = require('../Data/Cache');
 var Experimental = require('./ExperimentalWebApi');
 var ServerConfig_1 = require('../ServerConfig');
 var WriterContext = require('../Writers/Context');
+var Logger_1 = require('../Utils/Logger');
 function makePath(p) {
     return ServerConfig_1.default.appPrefix + '/' + p;
 }
 var WebApiCache = new Cache.Cache(ServerConfig_1.default.cacheParams);
+exports.ApiState = {
+    pendingQueries: 0,
+    shutdownOnZeroPending: false
+};
 function writeHeader(response, id, queryType, encoding) {
     if (response.headersSent)
         return;
@@ -32,11 +37,18 @@ function writeHeader(response, id, queryType, encoding) {
         });
     }
 }
+function handleQueryEnd() {
+    exports.ApiState.pendingQueries = Math.max(exports.ApiState.pendingQueries - 1, 0);
+    if (exports.ApiState.pendingQueries === 0 && exports.ApiState.shutdownOnZeroPending) {
+        Logger_1.default.log("Shut down due to timeout.");
+        process.exit(0);
+    }
+}
 function execute(response, query, molecule, params) {
     Api.executeQuery(molecule, query, params, function () {
         writeHeader(response, molecule.molecule.molecule.id, query.name, params.encoding);
         return response;
-    });
+    }, function () { return handleQueryEnd(); });
 }
 function do404(response) {
     response.writeHead(404);
@@ -49,6 +61,7 @@ function doCifError(response, message, id, queryName, params) {
 }
 function mapQuery(app, query) {
     app.get(makePath(':id/' + query.name), function (req, res) {
+        exports.ApiState.pendingQueries++;
         var id = req.params.id;
         var filename = ServerConfig_1.default.mapPdbIdToFilename(id);
         var addToCache = ServerConfig_1.default.cacheParams.useCache;
@@ -62,6 +75,7 @@ function mapQuery(app, query) {
         Provider.readMolecule(filename, function (parserErr, m) {
             if (parserErr) {
                 doCifError(res, parserErr, id, query.name, req.query);
+                handleQueryEnd();
                 return;
             }
             if (addToCache)
@@ -69,8 +83,10 @@ function mapQuery(app, query) {
             execute(res, query, m, req.query);
         }, function (ioErr) {
             do404(res);
+            handleQueryEnd();
         }, function (unExpectedErr) {
             doCifError(res, '' + unExpectedErr, id, query.name, req.query);
+            handleQueryEnd();
         });
     });
 }

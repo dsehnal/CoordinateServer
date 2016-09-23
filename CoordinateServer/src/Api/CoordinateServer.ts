@@ -84,7 +84,8 @@ export function processQuery(
                 let compiled = query.description.query(queryParams.query, model, model).compile();
                 fragments = compiled(model.queryContext);
             }
-                
+
+    
             if (fragments.length > 0) {
                 models.push({ model, fragments });
                 found += fragments.length;

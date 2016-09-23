@@ -16,7 +16,7 @@ function wrapOutputStream(outputStreamProvider) {
         return stream;
     };
 }
-function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) {
+function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider, onDone) {
     querySerial++;
     var molecule = moleculeWrapper.molecule;
     var reqId = "'" + querySerial + ":" + molecule.molecule.id + "/" + query.name + "'";
@@ -33,6 +33,8 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
         var stream = outputStreamProvider();
         WriterContext.writeError(stream, commonParams.encoding, molecule.molecule.id, '' + e, { queryType: query.name });
         stream.end();
+        if (onDone)
+            onDone();
         return;
     }
     var serverConfig = {
@@ -49,6 +51,8 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
             Logger_1.default.error(reqId + ": Failed. (" + result.error + ")");
             WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, result.error, { params: serverConfig.params, queryType: query.name });
             stream.end();
+            if (onDone)
+                onDone();
             return;
         }
         else {
@@ -63,6 +67,8 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
                 Logger_1.default.error(reqId + ": Failed (Encode). (" + e + ")");
                 //WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, `Encoding error: ${e}`, { params: serverConfig.params, queryType: query.name });                
                 stream.end();
+                if (onDone)
+                    onDone();
                 return;
             }
             perf.end('encode');
@@ -80,6 +86,8 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider) 
         var totalTime = moleculeWrapper.ioTime + moleculeWrapper.parseTime + result.timeFormat + result.timeQuery + encodeTime;
         var cached = moleculeWrapper.source === Provider.MoleculeSource.Cache ? 'cached; ' : '';
         Logger_1.default.log(reqId + ": Done in " + Perf.format(totalTime) + " (" + cached + "io " + Perf.format(moleculeWrapper.ioTime) + ", parse " + Perf.format(moleculeWrapper.parseTime) + ", query " + Perf.format(result.timeQuery) + ", format " + Perf.format(result.timeFormat) + ", encode " + Perf.format(encodeTime) + ")");
+        if (onDone)
+            onDone();
     });
 }
 exports.executeQuery = executeQuery;

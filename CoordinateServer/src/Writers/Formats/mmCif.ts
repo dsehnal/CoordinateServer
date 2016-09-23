@@ -936,12 +936,14 @@ const Categories = {
 
 export function format(writer: Writer, config: FormatConfig, models: WritableFragments[]) {
     let isEmpty = !models || !models.length || !models.some(m => m.fragments.length > 0);
-
+        
     let header = createResultHeaderCategory({ isEmpty, hasError: false }, config.queryType);
     let params = createParamsCategory(config.params);
 
     writer.writeCategory(header);
     writer.writeCategory(params);
+
+    if (isEmpty) return;
 
     let context = mmCifContext.create(models[0].fragments.unionFragment(), models[0].model, config.data, config.params.common.lowPrecisionCoords);
 

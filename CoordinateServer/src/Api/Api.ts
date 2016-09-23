@@ -31,7 +31,8 @@ export function executeQuery(
     moleculeWrapper: Provider.MoleculeWrapper,
     query: Queries.ApiQuery,
     parameters: { [name: string]: string } & Queries.CommonQueryParams,
-    outputStreamProvider: () => { write: (data: string) => boolean, end: (data?: string) => void }) {
+    outputStreamProvider: () => { write: (data: string) => boolean, end: (data?: string) => void },
+    onDone?: () => void) {
 
     querySerial++;
 
@@ -55,6 +56,7 @@ export function executeQuery(
         let stream = outputStreamProvider();
         WriterContext.writeError(stream, commonParams.encoding, molecule.molecule.id, '' + e, { queryType: query.name });        
         stream.end();
+        if (onDone) onDone();
         return;
     }
     
@@ -87,6 +89,7 @@ export function executeQuery(
                 Logger.error(`${reqId}: Failed. (${result.error})`);
                 WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, result.error, { params: serverConfig.params, queryType: query.name });                
                 stream.end();
+                if (onDone) onDone();
                 return;
             } else {
 
@@ -101,6 +104,7 @@ export function executeQuery(
                     Logger.error(`${reqId}: Failed (Encode). (${e})`);
                     //WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, `Encoding error: ${e}`, { params: serverConfig.params, queryType: query.name });                
                     stream.end();
+                    if (onDone) onDone();
                     return;
                 }
                 perf.end('encode');
@@ -119,5 +123,7 @@ export function executeQuery(
 
             let cached = moleculeWrapper.source === Provider.MoleculeSource.Cache ? 'cached; ' : '';
             Logger.log(`${reqId}: Done in ${Perf.format(totalTime)} (${cached}io ${Perf.format(moleculeWrapper.ioTime)}, parse ${Perf.format(moleculeWrapper.parseTime)}, query ${Perf.format(result.timeQuery!)}, format ${Perf.format(result.timeFormat!)}, encode ${Perf.format(encodeTime)})`);
+            
+            if (onDone) onDone();
         });
 }
