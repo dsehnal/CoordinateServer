@@ -95,7 +95,7 @@ function mapQuery(app: express.Express, query: Queries.ApiQuery) {
                 handleQueryEnd();
                 return;
             }
-            if (addToCache) WebApiCache.add(m!.molecule);
+            if (addToCache && m!.source !== Provider.MoleculeSource.Cache) WebApiCache.add(m!.molecule);
             execute(res, query, m!, req.query);
         }, ioErr => {
             do404(res);

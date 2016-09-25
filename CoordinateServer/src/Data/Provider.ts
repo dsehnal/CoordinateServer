@@ -59,9 +59,9 @@ function resolve(filename: string, err: any, data: string | undefined) {
     }
     resolvers.delete(filename);
 
-    let res = toResolve[0];
 
     try {
+        let res = toResolve[0];
         if (res.onIOfinished) res.onIOfinished();
 
         if (err) {
@@ -105,7 +105,6 @@ function resolve(filename: string, err: any, data: string | undefined) {
         for (let i = 0; i < toResolve.length; i++) {
             toResolve[i].onUnexpectedError(error);
         }
-        res.onUnexpectedError('' + e);
     }
 }
 

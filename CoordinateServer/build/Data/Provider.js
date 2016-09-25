@@ -51,8 +51,8 @@ function resolve(filename, err, data) {
         return;
     }
     resolvers.delete(filename);
-    var res = toResolve[0];
     try {
+        var res = toResolve[0];
         if (res.onIOfinished)
             res.onIOfinished();
         if (err) {
@@ -93,7 +93,6 @@ function resolve(filename, err, data) {
         for (var i = 0; i < toResolve.length; i++) {
             toResolve[i].onUnexpectedError(error);
         }
-        res.onUnexpectedError('' + e);
     }
 }
 function readMolecule(filename, onParsed, onIOError, onUnexpectedError, onIOfinished) {

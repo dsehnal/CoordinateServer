@@ -78,7 +78,7 @@ function mapQuery(app, query) {
                 handleQueryEnd();
                 return;
             }
-            if (addToCache)
+            if (addToCache && m.source !== Provider.MoleculeSource.Cache)
                 WebApiCache.add(m.molecule);
             execute(res, query, m, req.query);
         }, function (ioErr) {
