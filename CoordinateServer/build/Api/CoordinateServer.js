@@ -39,7 +39,7 @@ function processQuery(reqId, molecule, query, queryParams, formatter, config, ne
                 continue;
             foundModel = true;
             if (query.description.modelTransform) {
-                var transformed = query.description.modelTransform(queryParams, model);
+                var transformed = query.description.modelTransform(queryParams.query, model);
                 var compiled = query.description.query(queryParams.query, model, transformed).compile();
                 fragments = compiled(transformed.queryContext);
                 model = transformed;

@@ -99,12 +99,12 @@ var QueryMap = {
     "trace": {
         description: "Atoms named CA, O5', C3', N3 from polymer entities + optionally HET and/or water atoms.",
         query: function (p) {
-            var parts = [Queries.atomsByName('CA', "O5'", "C3'", 'N3').inside(Queries.entities({ type: 'polymer' }))];
+            var parts = [Queries.polymerTrace('CA', "O5'", "C3'", 'N3')];
             if (!!p.het)
                 parts.push(Queries.hetGroups());
             if (!!p.water)
                 parts.push(Queries.entities({ type: 'water' }));
-            return Queries.or.apply(null, parts);
+            return Queries.or.apply(null, parts).union();
         },
         queryParams: [
             { name: "het", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, include HET atoms." },
@@ -150,7 +150,8 @@ var QueryMap = {
         modelTransform: function (p, m) {
             var id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Core.Structure.buildPivotGroupSymmetry(m, p.radius, Queries.residues(id).compile());
+            var symm = Core.Structure.buildPivotGroupSymmetry(m, p.radius, Queries.residues(id).compile());
+            return symm;
         },
         queryParams: [
             CommonParameters.entityId,

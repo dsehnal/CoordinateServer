@@ -76,7 +76,7 @@ export function processQuery(
             foundModel = true;
 
             if (query.description.modelTransform) {
-                let transformed = query.description.modelTransform(queryParams, model);
+                let transformed = query.description.modelTransform(queryParams.query, model);
                 let compiled = query.description.query(queryParams.query, model, transformed).compile();
                 fragments = compiled(transformed.queryContext);
                 model = transformed;

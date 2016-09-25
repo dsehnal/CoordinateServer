@@ -18,6 +18,7 @@ var config = {
     mapPdbIdToFilename: function (id) {
         return "E:/databases/PDB/updated/" + id + ".cif";
         //return `e:/test/quick/${id}_updated.cif`;
+        //return `f:/data/cs/${id}_updated.cif`;
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
