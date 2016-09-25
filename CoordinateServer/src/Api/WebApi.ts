@@ -18,8 +18,6 @@ function makePath(p: string) {
 
 const WebApiCache = new Cache.Cache(ServerConfig.cacheParams);
 
-
-
 export const ApiState = {
     pendingQueries: 0,
     shutdownOnZeroPending: false
@@ -54,6 +52,7 @@ function handleQueryEnd() {
         Logger.log(`Shut down due to timeout.`);
         process.exit(0);
     }
+
 }
 
 function execute(response: express.Response, query: Queries.ApiQuery, molecule: Provider.MoleculeWrapper, params: any) {
@@ -78,7 +77,7 @@ function mapQuery(app: express.Express, query: Queries.ApiQuery) {
     app.get(makePath(':id/' + query.name), (req, res) => {
 
         ApiState.pendingQueries++;
-
+        
         let id = req.params.id;
         let filename = ServerConfig.mapPdbIdToFilename(id);
         let addToCache = ServerConfig.cacheParams.useCache;
@@ -89,7 +88,7 @@ function mapQuery(app: express.Express, query: Queries.ApiQuery) {
                 return;
             }
         }
-
+        
         Provider.readMolecule(filename, (parserErr, m) => {
             if (parserErr) {
                 doCifError(res, parserErr, id, query.name, req.query);

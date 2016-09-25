@@ -3,6 +3,7 @@ var Core = require('LiteMol-core');
 var Molecule = require('./Molecule');
 var fs = require('fs');
 var zlib = require('zlib');
+var Logger_1 = require('../Utils/Logger');
 var CIF = Core.Formats.CIF;
 var mmCIF = Core.Formats.Molecule.mmCIF;
 (function (MoleculeSource) {
@@ -42,39 +43,80 @@ function readString(filename, onDone) {
         fs.readFile(filename, 'utf8', onDone);
     }
 }
+var resolvers = new Map();
+function resolve(filename, err, data) {
+    var toResolve = resolvers.get(filename);
+    if (!toResolve) {
+        Logger_1.default.error("No resolvers found for '" + filename + "'.");
+        return;
+    }
+    resolvers.delete(filename);
+    var res = toResolve[0];
+    try {
+        if (res.onIOfinished)
+            res.onIOfinished();
+        if (err) {
+            for (var i = 0; i < toResolve.length; i++) {
+                toResolve[i].onIOError('' + err);
+            }
+            return;
+        }
+        res.perf.start('parse');
+        var dict = CIF.Text.parse(data);
+        if (dict.error) {
+            var error = dict.error.toString();
+            for (var i = 0; i < toResolve.length; i++) {
+                toResolve[i].onParsed(error, undefined);
+            }
+            return;
+        }
+        if (!dict.result.dataBlocks.length) {
+            var error = 'The input contains no data blocks.';
+            for (var i = 0; i < toResolve.length; i++) {
+                toResolve[i].onParsed(error, undefined);
+            }
+            return;
+        }
+        var block = dict.result.dataBlocks[0];
+        var rawMol = mmCIF.ofDataBlock(block);
+        res.perf.end('parse');
+        var mol = new Molecule.Molecule(Molecule.Molecule.createKey(filename), block, rawMol, data.length);
+        res.onParsed(undefined, new MoleculeWrapper(mol, MoleculeSource.File, res.perf.time('io'), res.perf.time('parse')));
+        var cached = new MoleculeWrapper(mol, MoleculeSource.Cache, 0, 0);
+        ;
+        for (var i = 1; i < toResolve.length; i++) {
+            toResolve[i].onParsed(undefined, cached);
+        }
+    }
+    catch (e) {
+        var error = '' + e;
+        for (var i = 0; i < toResolve.length; i++) {
+            toResolve[i].onUnexpectedError(error);
+        }
+        res.onUnexpectedError('' + e);
+    }
+}
 function readMolecule(filename, onParsed, onIOError, onUnexpectedError, onIOfinished) {
-    var perf = new Core.Utils.PerformanceMonitor();
-    perf.start('io');
+    var res = resolvers.get(filename);
+    if (!res) {
+        res = [];
+        resolvers.set(filename, res);
+    }
+    var resolver = {
+        perf: new Core.Utils.PerformanceMonitor(),
+        onParsed: onParsed,
+        onIOError: onIOError,
+        onUnexpectedError: onUnexpectedError,
+        onIOfinished: onIOfinished
+    };
+    res.push(resolver);
+    if (res.length > 1) {
+        return;
+    }
+    resolver.perf.start('io');
     readString(filename, function (err, data) {
-        perf.end('io');
-        try {
-            if (onIOfinished)
-                onIOfinished();
-            if (err) {
-                onIOError('' + err);
-                return;
-            }
-            perf.start('parse');
-            var dict = CIF.Text.parse(data);
-            if (dict.error) {
-                var error = dict.error.toString();
-                onParsed(error, undefined);
-                return;
-            }
-            if (!dict.result.dataBlocks.length) {
-                var error = 'The input contains no data blocks.';
-                onParsed(error, undefined);
-                return;
-            }
-            var block = dict.result.dataBlocks[0];
-            var rawMol = mmCIF.ofDataBlock(block);
-            perf.end('parse');
-            var mol = new Molecule.Molecule(Molecule.Molecule.createKey(filename), block, rawMol, data.length);
-            onParsed(undefined, new MoleculeWrapper(mol, MoleculeSource.File, perf.time('io'), perf.time('parse')));
-        }
-        catch (e) {
-            onUnexpectedError('' + e);
-        }
+        resolver.perf.end('io');
+        resolve(filename, err, data);
     });
 }
 exports.readMolecule = readMolecule;

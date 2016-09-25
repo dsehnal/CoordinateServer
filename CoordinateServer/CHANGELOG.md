@@ -1,5 +1,6 @@
 ﻿## 1.3.5
 * Fixed a bug that cause /ligandInteraction, /symmetry and /assembly queries to not work.
+* Added a queue for consecutive requests to the same entry to avoid it being parsed multiple times.
 
 ## 1.3.4
 * Moved to TypeScript 2.0.
