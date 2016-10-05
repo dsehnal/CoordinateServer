@@ -20,10 +20,13 @@ export interface QueryParamInfo {
     description?: string;
     required?: boolean;
     defaultValue?: any;
+    exampleValue?: string;
     validation?: (v: any) => void;
 }
 
 interface ApiQueryDefinition {
+    niceName: string;
+    exampleId?: string; // default is 1cbs
     query: (params: any, originalModel: Core.Structure.MoleculeModel, transformedModel: Core.Structure.MoleculeModel) => Queries.Builder;
     description: string;
     queryParams?: QueryParamInfo[];
@@ -33,6 +36,8 @@ interface ApiQueryDefinition {
 }
 
 export interface ApiQueryDescription {
+    niceName: string;
+    exampleId?: string;
     query: (params: any, originalModel: Core.Structure.MoleculeModel, transformedModel: Core.Structure.MoleculeModel) => Queries.Builder;
     description: string;
     queryParams: QueryParamInfo[];
@@ -109,33 +114,35 @@ const CommonParameters = {
     entityId: <QueryParamInfo>{ name: "entityId", type: QueryParamType.String, description: "Corresponds to the '_entity.id' or '*.label_entity_id' field, depending on the context." },
 
     asymId: <QueryParamInfo>{ name: "asymId", type: QueryParamType.String, description: "Corresponds to the '_atom_site.label_asym_id' field." },
-    authAsymId: <QueryParamInfo>{ name: "authAsymId", type: QueryParamType.String, description: "Corresponds to the '_atom_site.auth_asym_id' field." },
+    authAsymId: <QueryParamInfo>{ name: "authAsymId", type: QueryParamType.String, exampleValue: 'A', description: "Corresponds to the '_atom_site.auth_asym_id' field." },
 
     name: <QueryParamInfo>{ name: "name", type: QueryParamType.String, description: "Residue name. Corresponds to the '_atom_site.label_comp_id' field." },
-    authName: <QueryParamInfo>{ name: "authName", type: QueryParamType.String, description: "Author residue name. Corresponds to the '_atom_site.auth_comp_id' field." },
+    authName: <QueryParamInfo>{ name: "authName", type: QueryParamType.String, exampleValue: 'REA', description: "Author residue name. Corresponds to the '_atom_site.auth_comp_id' field." },
 
     insCode: <QueryParamInfo>{ name: "insCode", type: QueryParamType.String, description: "Corresponds to the '_atom_site.pdbx_PDB_ins_code' field." },
 
     seqNumber: <QueryParamInfo>{ name: "seqNumber", type: QueryParamType.Integer, description: "Residue seq. number. Corresponds to the '_atom_site.label_seq_id' field." },
-    authSeqNumber: <QueryParamInfo>{ name: "authSeqNumber", type: QueryParamType.Integer, description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
+    authSeqNumber: <QueryParamInfo>{ name: "authSeqNumber", type: QueryParamType.Integer, exampleValue: '200', description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
 };
 
 const QueryMap: { [id: string]: ApiQueryDefinition } = {
-    "full": { query: () => Queries.everything(), description: "The full structure." },
-    "het": { query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
-    "cartoon": { query: () => Queries.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET atoms + water." },
-    "backbone": { query: () => Queries.backbone(), description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
-    "sidechain": { query: () => Queries.sidechain(), description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
-    "water": { query: () => Queries.entities({ type: 'water' }), description: "Atoms from entities with type water." },
+    "full": { niceName: 'Full Structure', query: () => Queries.everything(), description: "The full structure." },
+    "het": { niceName: 'HET Atoms', query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
+    "cartoon": { niceName: 'Cartoon Representation', query: () => Queries.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET atoms + water." },
+    "backbone": { niceName: 'Backbone Atoms', query: () => Queries.backbone(), description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
+    "sidechain": { niceName: 'Sidechain Atoms', query: () => Queries.sidechain(), description: "Atoms not named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
+    "water": { niceName: 'Water Atoms', query: () => Queries.entities({ type: 'water' }), description: "Atoms from entities with type water." },
     "entities": {
+        niceName: 'Specific Entities',
         description: "Entities that satisfy the given parameters.",
         query: p => Queries.entities(p),
         queryParams: [
             CommonParameters.entityId,
-            { name: "type", type: QueryParamType.String, description: "Corresponds to the '_entity.type' field (polymer / non-polymer / water)." }
+            { name: "type", type: QueryParamType.String, exampleValue: 'polymer', description: "Corresponds to the '_entity.type' field (polymer / non-polymer / water)." }
         ]
     },
     "chains": {
+        niceName: 'Specific Chains',
         description: "Chains that satisfy the given parameters.",
         query: p => Queries.chains(p),
         queryParams: [
@@ -145,6 +152,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         ]
     },
     "residues": {
+        niceName: 'Specific Residues',
         description: "Residues that satisfy the given parameters.",
         query: p => Queries.residues(p),
         queryParams: [
@@ -159,6 +167,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         ]
     },
     "trace": {
+        niceName: 'Alpha Trace',
         description: "Atoms named CA, O5', C3', N3 from polymer entities + optionally HET and/or water atoms.",
         query: (p) => {
             let parts = [Queries.polymerTrace('CA', `O5'`, `C3'`, 'N3')];
@@ -167,11 +176,12 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
             return Queries.or.apply(null, parts).union();
         },
         queryParams: [
-            <QueryParamInfo>{ name: "het", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, include HET atoms." },
+            <QueryParamInfo>{ name: "het", type: QueryParamType.Integer, defaultValue: 0, exampleValue: '1', description: "If 1, include HET atoms." },
             <QueryParamInfo>{ name: "water", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, include water atoms." }
         ]
     },
     "ambientResidues": {
+        niceName: 'Residues Inside a Sphere',
         description: "Identifies all residues within the given radius from the source residue.",
         query: (p, m) => {
             let id = Core.Utils.extend({}, p);
@@ -191,6 +201,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
                 name: "radius",
                 type: QueryParamType.Float,
                 defaultValue: 5,
+                exampleValue: '5',
                 description: "Value in Angstroms.",
                 validation(v: any) {
                     if (v < 1 || v > 10) {
@@ -201,6 +212,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         ]
     },
     "ligandInteraction": {
+        niceName: 'Ligand Interaction',
         description: "Identifies symmetry mates and returns the specified atom set and all residues within the given radius.",
         query: (p, m) => {
             
@@ -228,6 +240,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
                 name: "radius",
                 type: QueryParamType.Float,
                 defaultValue: 5,
+                exampleValue: '5',
                 description: "Value in Angstroms.",
                 validation(v: any) {
                     if (v < 1 || v > 10) {
@@ -239,6 +252,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         includedCategories: SymmetryCategories
     },
     "symmetryMates": {
+        niceName: 'Symmetry Mates',
         description: "Identifies symmetry mates within the given radius.",
         query: (p, m) => {
             return Queries.everything();
@@ -251,6 +265,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
                 name: "radius",
                 type: QueryParamType.Float,
                 defaultValue: 5,
+                exampleValue: '5',
                 description: "Value in Angstroms.",
                 validation(v: any) {
                     if (v < 1 || v > 50) {
@@ -262,6 +277,8 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         includedCategories: SymmetryCategories
     },
     "assembly": {
+        niceName: 'Assembly',
+        exampleId: '1e12',
         description: "Constructs assembly with the given id.",
         query: (p, m) => {
             return Queries.everything();
@@ -276,7 +293,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
             return Core.Structure.buildAssembly(m, assembly[0]);
         },
         queryParams: [
-            { name: "id", type: QueryParamType.String, defaultValue: '1', description: "Corresponds to the '_pdbx_struct_assembly.id' field." }
+            { name: "id", type: QueryParamType.String, defaultValue: '1', exampleValue: '1', description: "Corresponds to the '_pdbx_struct_assembly.id' field." }
         ],
         includedCategories: SymmetryCategories
     }

@@ -82,7 +82,7 @@ export const Encoders = {
 
 export function createParamsCategory(params: FilteredQueryParams): CategoryProvider {
     let prms: { name: string, value: any }[] = [];
-
+    
     for (let p of Object.keys(params.query)) prms.push({ name: p, value: params.query[p] });
     prms.push({ name: 'atomSitesOnly', value: params.common.atomSitesOnly ? '1' : '0' });
     prms.push({ name: 'modelId', value: params.common.modelId });
@@ -93,7 +93,7 @@ export function createParamsCategory(params: FilteredQueryParams): CategoryProvi
     let data = prms;
     let fields: FieldDesc<typeof data>[] = [
         { name: 'name', string: (data, i) => data[i].name },
-        { name: 'value', string: (data, i) => data[i].value, presence: (data, i) => !data[i].value ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
+        { name: 'value', string: (data, i) => '' + data[i].value, presence: (data, i) => data[i].value !== void 0 && data[i].value !== null ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
     ];
 
     return () => <CategoryInstance<typeof data>>{

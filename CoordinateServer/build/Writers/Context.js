@@ -46,7 +46,7 @@ function createParamsCategory(params) {
     var data = prms;
     var fields = [
         { name: 'name', string: function (data, i) { return data[i].name; } },
-        { name: 'value', string: function (data, i) { return data[i].value; }, presence: function (data, i) { return !data[i].value ? 0 /* Present */ : 1 /* NotSpecified */; } },
+        { name: 'value', string: function (data, i) { return '' + data[i].value; }, presence: function (data, i) { return data[i].value !== void 0 && data[i].value !== null ? 0 /* Present */ : 1 /* NotSpecified */; } },
     ];
     return function () { return {
         data: data,
