@@ -45,7 +45,7 @@ function createDocumentationHTML(appPrefix) {
         var exampleUrl = !exampleParams.length
             ? "/" + examplePdbId + "/" + id
             : "/" + examplePdbId + "/" + id + "?" + exampleParams.map(function (p) { return p.name + "=" + p.exampleValue; }).join('&');
-        html.push("<a href=\"" + appPrefix + exampleUrl + "\" class=\"cs-docs-template-link\" target=\"_blank\">" + exampleUrl + "</a>");
+        html.push("<a href=\"" + appPrefix + exampleUrl + "\" class=\"cs-docs-template-link\" target=\"_blank\" rel=\"nofollow\">" + exampleUrl + "</a>");
         if (params.length > 0) {
             html.push("<h4>Parameters</h4>");
             html.push("<ul class='list-unstyled'>");
@@ -70,7 +70,7 @@ function createDocumentationHTML(appPrefix) {
             url = "/PDBID/" + id;
         }
         html.push("<h4>Query Template</h4>");
-        html.push("<div>", "<a href=\"" + appPrefix + url + "\" title=\"Fill in the desired values. Empty-string parameters are ignored by the server.\" class=\"cs-docs-template-link\" target=\"_blank\">" + url + "</a>", "<div style='color: #424242; font-size: 85%; margin: 10px'>Fill in <i>PDBID</i> and other parameters to customize the query.<br/>", "Empty-string values of parameters are ignored by the server, e.g. <span class='cs-docs-template-link'>/entities?entityId=&type=water</span> is the same as <span class='cs-docs-template-link'>/entities?type=water</span>.</br>", "Names of residues/chains/entities/etc. are case sensitive.</div>", "</div>");
+        html.push("<div>", "<a href=\"" + appPrefix + url + "\" title=\"Fill in the desired values. Empty-string parameters are ignored by the server.\" class=\"cs-docs-template-link\" target=\"_blank\" rel=\"nofollow\">" + url + "</a>", "<div style='color: #424242; font-size: 85%; margin: 10px'>Fill in <i>PDBID</i> and other parameters to customize the query.<br/>", "Empty-string values of parameters are ignored by the server, e.g. <span class='cs-docs-template-link'>/entities?entityId=&type=water</span> is the same as <span class='cs-docs-template-link'>/entities?type=water</span>.</br>", "Names of residues/chains/entities/etc. are case sensitive.</div>", "</div>");
         html.push("</div>");
         html.push("</div>");
     }
