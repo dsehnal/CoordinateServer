@@ -25,10 +25,10 @@ var CIF = Core.Formats.CIF;
 var E = Core.Formats.CIF.Binary.Encoder;
 exports.Encoders = {
     strings: E.by(E.stringArray),
-    coordinates1: E.by(E.fixedPoint(10)).and(E.delta).and(E.integerPacking(1)).and(E.int8),
-    coordinates3: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking(2)).and(E.int16),
+    coordinates1: E.by(E.fixedPoint(10)).and(E.delta).and(E.integerPacking),
+    coordinates3: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking),
     occupancy: E.by(E.fixedPoint(100)).and(E.delta).and(E.runLength).and(E.int32),
-    ids: E.by(E.delta).and(E.runLength).and(E.integerPacking(1)).and(E.int8),
+    ids: E.by(E.delta).and(E.runLength).and(E.integerPacking),
     int32: E.by(E.int32),
     float64: E.by(E.float64)
 };

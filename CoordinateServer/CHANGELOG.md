@@ -1,4 +1,7 @@
-﻿# 1.3.6
+﻿# 1.3.7
+* Improved BinaryCIF encoder.
+
+# 1.3.6
 * Improved documentation.
 * Fixed a bug in _coordinate_server_query_params category.
 
