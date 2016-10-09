@@ -14,6 +14,8 @@ export function getHTMLDocs(appPrefix: string) {
 function createDocumentationHTML(appPrefix: string) {
     let html: string[] = [];
 
+    let logoData = "data:image/png;base64,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";
+
     html.push(
         `<!DOCTYPE html>`,
         `<html xmlns="http://www.w3.org/1999/xhtml">`,
@@ -29,21 +31,18 @@ function createDocumentationHTML(appPrefix: string) {
         `.cs-docs-query-wrap { padding: 24px 0; border-bottom: 1px solid #eee } `,
         `.cs-docs-query-wrap > h2 { margin: 0; color: black; cursor: pointer } `,
         `.cs-docs-query-wrap > h2 > span { color: #DE4D4E; font-family: Menlo,Monaco,Consolas,"Courier New",monospace; font-size: 90% } `,
-        `.cs-docs-query-wrap > h2:hover { color: #337AB7; } `,
+        `.cs-docs-query-wrap > h2:hover, .cs-docs-query-wrap > h2:hover > small, .cs-docs-query-wrap > h2:hover > span { color: #DE4D4E; }`,
         `.cs-docs-param-name, .cs-docs-template-link { color: #DE4D4E; font-family: Menlo,Monaco,Consolas,"Courier New",monospace }`,
-        //`.cs-docs-query-wrap { padding: 24px 24px } `,
-        //`.cs-docs-query-wrap:nth-child(odd) { background: #e6e6e6 }`,
-        //`.cs-docs-query-wrap:nth-child(even) { background: #ededed }`,
-        //`.cs-docs-query-wrap { background: #ededed }`,
         `</style>`,
         `</head>`,
         `<body>`,
         `<div class="container">`
     );
 
-    html.push(`<h1>LiteMol Coordinate Server <small>${ApiVersion}</small></h1>`);
-    html.push(`<div>The Coordinate Server is a fast, web-based tool for returning a subset of mmCIF coordinate data for a PDB entry held in the PDB archive.</div>`);
-    html.push("<hr>");
+    html.push(`<div style='text-align: center; margin-top: 48px'><img src='${logoData}' alt='Coordinate Server' /></div>`);
+    html.push(`<div style='text-align: center; margin-top: 12px;'><b>${ApiVersion}</b>, powered by <a href='https://github.com/dsehnal/LiteMol' target='_blank' style='font-weight: bold; color: black'>LiteMol</a></div>`);
+    html.push(`<div style='text-align: justify; padding: 24px 0; border-bottom: 1px solid #eee'>The Coordinate Server is a fast, web-based tool for returning a subset of mmCIF coordinate data for a PDB entry held in the PDB archive. The server can return just the relevant portions of the structure specified in the query, for example, a 5 Ångstrom radius around the ligand binding site including symmetry mates. As it only returns the requested data, it greatly reduces the transmission time and time required to parse and manipulate an entire file. Additionally, the binary encoding of the CIF format, BinaryCIF, is supported to further reduce the amount of data sent.</div>`);
+    //html.push("<hr>");
 
     //html.push(Queries.QueryList.map(q => `<a href="#${q.name}">${q.name}</a>`).join(` | `));
 
@@ -116,7 +115,7 @@ function createDocumentationHTML(appPrefix: string) {
         html.push(`</div>`);
     }
    
-    html.push(`<div class='pull-right' style='color: #999;font-size:smaller;margin: 20px 0'>LiteMol Core ${Core.VERSION.number} - ${Core.VERSION.date}, Node ${process.version}</div>`);
+    html.push(`<div class='pull-right' style='color: #999;font-size:smaller;margin: 20px 0'>&copy; 2016 David Sehnal | LiteMol Core ${Core.VERSION.number} - ${Core.VERSION.date}, Node ${process.version}</div>`);
     
 
     html.push(
