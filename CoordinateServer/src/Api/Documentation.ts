@@ -21,7 +21,7 @@ function createDocumentationHTML(appPrefix: string) {
         `<html xmlns="http://www.w3.org/1999/xhtml">`,
         `<head>`,
         `<meta charset="utf-8" />`,
-        `<title>LiteMol Coordinate Server (${ApiVersion})</title>`,
+        `<title>CoordinateServer (${ApiVersion})</title>`,
         `<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">`,
         `<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">`,
         `<script>`,
@@ -41,7 +41,7 @@ function createDocumentationHTML(appPrefix: string) {
 
     html.push(`<div style='text-align: center; margin-top: 48px'><img src='${logoData}' alt='Coordinate Server' /></div>`);
     html.push(`<div style='text-align: center; margin-top: 12px;'><b>${ApiVersion}</b>, powered by <a href='https://github.com/dsehnal/LiteMol' target='_blank' style='font-weight: bold; color: black'>LiteMol</a></div>`);
-    html.push(`<div style='text-align: justify; padding: 24px 0; border-bottom: 1px solid #eee'>The Coordinate Server is a fast, web-based tool for returning a subset of mmCIF coordinate data for a PDB entry held in the PDB archive. The server can return just the relevant portions of the structure specified in the query, for example, a 5 Ångstrom radius around the ligand binding site including symmetry mates. As it only returns the requested data, it greatly reduces the transmission time and time required to parse and manipulate an entire file. Additionally, the binary encoding of the CIF format, BinaryCIF, is supported to further reduce the amount of data sent.</div>`);
+    html.push(`<div style='text-align: justify; padding: 24px 0; border-bottom: 1px solid #eee'>CoordinateServer is a fast, web-based tool for returning a subset of mmCIF coordinate data for a PDB entry held in the PDB archive. The server is able to return the specific portions of the structure that are relevant, as specified in your query. For example, the coordinates of the atoms within a 5Å radius around the ligand binding site, including symmetry mates. As a result, it greatly reduces the time needed to transmit and manipulate the data.</div>`);
     //html.push("<hr>");
 
     //html.push(Queries.QueryList.map(q => `<a href="#${q.name}">${q.name}</a>`).join(` | `));
