@@ -17,29 +17,20 @@
 import * as Core from 'LiteMol-core'
 import { FilteredQueryParams } from '../Api/Queries'
 import ApiVersion from '../Api/Version'
-import CifWriter from './CifWriter'
-import BCifWriter from './BCifWriter'
 import * as Provider from '../Data/Provider'
 import * as mmCif from './Formats/mmCif'
-//import * as OptimizedMmCif from './Formats/OptimizedMmCif'
 import CIF = Core.Formats.CIF
 
-export interface FieldDesc<Data> {
-    name: string,
-    string?: (data: Data, i: number) => string | null,
-    number?: (data: Data, i: number) => number,
-    typedArray?: any,
-    encoder?: Core.Formats.CIF.Binary.Encoder,
-    presence?: (data: Data, i: number) => CIF.ValuePresence
+export function wrapStream(stream: { write: (data: any) => boolean }): CIF.OutputStream {
+    return {
+        writeBinary(data: Uint8Array) {
+            return stream.write(new Buffer(data));
+        },
+        writeString(data: string) {
+            return stream.write(data)
+        }
+    };
 }
-
-export interface CategoryDesc<Data> {
-    name: string, 
-    fields: FieldDesc<Data>[]
-}
-
-export type CategoryInstance<Data> = { data: any, count: number, desc: CategoryDesc<Data> }
-export type CategoryProvider = (ctx: Context) => CategoryInstance<any> | undefined
 
 export interface Context {
     fragment: Core.Structure.Query.Fragment,
@@ -47,15 +38,7 @@ export interface Context {
     data: CIF.DataBlock
 }
 
-export type OutputStream = { write: (data: any) => boolean }
-
-export interface Writer {
-    writeCategory(category: CategoryProvider, contexts?: Context[]): void,
-    encode(): void;
-    flush(stream: OutputStream): void
-}
-
-export type Formatter = (writer: Writer, config: FormatConfig, fs: WritableFragments[]) => void
+export type Formatter = (writer: CIF.Writer<Context>, config: FormatConfig, fs: WritableFragments[]) => void
 
 export interface FormatConfig {
     queryType: string,
@@ -80,7 +63,7 @@ export const Encoders = {
     float64: E.by(E.float64)
 }
 
-export function createParamsCategory(params: FilteredQueryParams): CategoryProvider {
+export function createParamsCategory(params: FilteredQueryParams): CIF.CategoryProvider {
     let prms: { name: string, value: any }[] = [];
     
     for (let p of Object.keys(params.query)) prms.push({ name: p, value: params.query[p] });
@@ -91,12 +74,12 @@ export function createParamsCategory(params: FilteredQueryParams): CategoryProvi
     prms.push({ name: 'lowPrecisionCoords', value: params.common.lowPrecisionCoords });
     
     let data = prms;
-    let fields: FieldDesc<typeof data>[] = [
+    let fields: CIF.FieldDesc<typeof data>[] = [
         { name: 'name', string: (data, i) => data[i].name },
         { name: 'value', string: (data, i) => '' + data[i].value, presence: (data, i) => data[i].value !== void 0 && data[i].value !== null ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
     ];
 
-    return () => <CategoryInstance<typeof data>>{
+    return () => <CIF.CategoryInstance<typeof data>>{
         data,
         count: data.length,
         desc: {
@@ -115,7 +98,7 @@ export function createResultHeaderCategory({ isEmpty, hasError }: { isEmpty: boo
         CoreVersion: Core.VERSION.number
     };
 
-    let fields: FieldDesc<typeof data>[] = [
+    let fields: CIF.FieldDesc<typeof data>[] = [
         { name: 'query_type', string: d => d.queryType },
         { name: 'datetime', string: d => `${new Date().toLocaleString('en-US')}` },
         { name: 'is_empty', string: d => d.isEmpty ? 'yes' : 'no' },
@@ -124,7 +107,7 @@ export function createResultHeaderCategory({ isEmpty, hasError }: { isEmpty: boo
         { name: 'core_version', string: d => d.CoreVersion }
     ];
 
-    return () => <CategoryInstance<typeof data>>{
+    return () => <CIF.CategoryInstance<typeof data>>{
         data,
         count: 1,
         desc: {
@@ -136,11 +119,11 @@ export function createResultHeaderCategory({ isEmpty, hasError }: { isEmpty: boo
 
 export function createErrorCategory(message: string) {  
     let data = message;
-    let fields: FieldDesc<string>[] = [
+    let fields: CIF.FieldDesc<string>[] = [
         { name: 'message', string: data => data }
     ];
 
-    return () => <CategoryInstance<typeof data>>{
+    return () => <Core.Formats.CIF.CategoryInstance<typeof data>>{
         data,
         count: 1,
         desc: {
@@ -152,7 +135,7 @@ export function createErrorCategory(message: string) {
 
 export function createStatsCategory(molecule: Provider.MoleculeWrapper, queryTime: number, formatTime: number) {
     let data = { cached: molecule.source === Provider.MoleculeSource.Cache ? 'yes' : 'no', io: molecule.ioTime | 0, parse: molecule.parseTime | 0, query: queryTime | 0, format: formatTime | 0 };
-    let fields: FieldDesc<typeof data>[] = [
+    let fields: CIF.FieldDesc<typeof data>[] = [
         { name: 'molecule_cached', string: data => data.cached },
         { name: 'io_time_ms', string: data => `${data.io}`, number: data => data.io, typedArray: Int32Array, encoder: E.by(E.int32) },
         { name: 'parse_time_ms', string: data => `${data.parse}`, number: data => data.parse, typedArray: Int32Array, encoder: E.by(E.int32) },
@@ -160,7 +143,7 @@ export function createStatsCategory(molecule: Provider.MoleculeWrapper, queryTim
         { name: 'format_time_ms', string: data => `${data.format}`, number: data => data.format, typedArray: Int32Array, encoder: E.by(E.int32) }
     ];
 
-    return () => <CategoryInstance<typeof data>>{
+    return () => <CIF.CategoryInstance<typeof data>>{
         data,
         count: 1,
         desc: {
@@ -170,12 +153,16 @@ export function createStatsCategory(molecule: Provider.MoleculeWrapper, queryTim
     };
 }
 
-export function createWriter(encoding: string, header: string): Writer {
+export function createWriter(encoding: string, header: string): CIF.Writer<Context> {
     let isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
-    return isBCif ? new BCifWriter(header) : new CifWriter(header);    
+    let w = isBCif
+        ? new CIF.Binary.Writer<Context>(`CoordinateServer ${ApiVersion}`)
+        : new CIF.Text.Writer<Context>();
+    w.startDataBlock(header);
+    return w;
 }
 
-export function writeError(stream: OutputStream, encoding: string, header: string, message: string, optional?: { params?: FilteredQueryParams, queryType?: string }) {
+export function writeError(stream: CIF.OutputStream, encoding: string, header: string, message: string, optional?: { params?: FilteredQueryParams, queryType?: string }) {
     let w = createWriter(encoding, header);
     optional = optional || {};
     let headerCat = createResultHeaderCategory({ isEmpty: true, hasError: true }, optional.queryType);

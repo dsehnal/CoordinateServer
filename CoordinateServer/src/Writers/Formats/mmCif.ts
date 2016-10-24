@@ -1,6 +1,11 @@
 ﻿import * as Core from 'LiteMol-core'
 import CIF = Core.Formats.CIF
-import { Context, CategoryInstance, CategoryProvider, FieldDesc, Encoders, FormatConfig, WritableFragments, Writer, createResultHeaderCategory, createParamsCategory } from '../Context'
+import { Context, Encoders, FormatConfig, WritableFragments, createResultHeaderCategory, createParamsCategory } from '../Context'
+
+type Writer = CIF.Writer<mmCifContext>
+type FieldDesc<T> = CIF.FieldDesc<T>
+type CategoryProvider = CIF.CategoryProvider
+type CategoryInstance<T> = CIF.CategoryInstance<T>
 
 export interface mmCifContext extends Context {
     _residueNameSet: Set<string>,

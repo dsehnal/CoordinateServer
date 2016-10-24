@@ -31,7 +31,7 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider, 
     catch (e) {
         Logger_1.default.error(reqId + ": Query params error: " + e);
         var stream = outputStreamProvider();
-        WriterContext.writeError(stream, commonParams.encoding, molecule.molecule.id, '' + e, { queryType: query.name });
+        WriterContext.writeError(WriterContext.wrapStream(stream), commonParams.encoding, molecule.molecule.id, '' + e, { queryType: query.name });
         stream.end();
         if (onDone)
             onDone();
@@ -49,7 +49,7 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider, 
         var encodeTime = 0;
         if (result.error) {
             Logger_1.default.error(reqId + ": Failed. (" + result.error + ")");
-            WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, result.error, { params: serverConfig.params, queryType: query.name });
+            WriterContext.writeError(WriterContext.wrapStream(stream), serverConfig.params.common.encoding, molecule.molecule.id, result.error, { params: serverConfig.params, queryType: query.name });
             stream.end();
             if (onDone)
                 onDone();
@@ -74,7 +74,7 @@ function executeQuery(moleculeWrapper, query, parameters, outputStreamProvider, 
             perf.end('encode');
             encodeTime = perf.time('encode');
             try {
-                writer.flush(stream);
+                writer.flush(WriterContext.wrapStream(stream));
             }
             catch (e) {
                 Logger_1.default.error(reqId + ": Failed (Flush). (" + e + ")");

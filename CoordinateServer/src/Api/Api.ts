@@ -5,7 +5,6 @@ import Logger from '../Utils/Logger'
 import * as Core from 'LiteMol-core'
 import { CoordinateServerConfig, processQuery } from './CoordinateServer'
 
-import CifWriter from '../Writers/CifWriter'
 import * as WriterContext from '../Writers/Context'
 
 import * as Provider from '../Data/Provider'
@@ -54,7 +53,7 @@ export function executeQuery(
 
 
         let stream = outputStreamProvider();
-        WriterContext.writeError(stream, commonParams.encoding, molecule.molecule.id, '' + e, { queryType: query.name });        
+        WriterContext.writeError(WriterContext.wrapStream(stream), commonParams.encoding, molecule.molecule.id, '' + e, { queryType: query.name });        
         stream.end();
         if (onDone) onDone();
         return;
@@ -87,7 +86,7 @@ export function executeQuery(
             let encodeTime = 0;
             if (result.error) {
                 Logger.error(`${reqId}: Failed. (${result.error})`);
-                WriterContext.writeError(stream, serverConfig.params.common.encoding, molecule.molecule.id, result.error, { params: serverConfig.params, queryType: query.name });                
+                WriterContext.writeError(WriterContext.wrapStream(stream), serverConfig.params.common.encoding, molecule.molecule.id, result.error, { params: serverConfig.params, queryType: query.name });                
                 stream.end();
                 if (onDone) onDone();
                 return;
@@ -111,7 +110,7 @@ export function executeQuery(
                 encodeTime = perf.time('encode');
 
                 try {
-                    writer.flush(stream);
+                    writer.flush(WriterContext.wrapStream(stream));
                 } catch (e) {
                     Logger.error(`${reqId}: Failed (Flush). (${e})`);
                 } finally {

@@ -74,8 +74,8 @@ function resolve(filename: string, err: any, data: string | undefined) {
         res.perf.start('parse');
         let dict = CIF.Text.parse(data!);
 
-        if (dict.error) {
-            let error = dict.error.toString();
+        if (dict.isError) {
+            let error = dict.toString();
             for (let i = 0; i < toResolve.length; i++) {
                 toResolve[i].onParsed(error, undefined);
             }

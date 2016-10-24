@@ -63,8 +63,8 @@ function resolve(filename, err, data) {
         }
         res.perf.start('parse');
         var dict = CIF.Text.parse(data);
-        if (dict.error) {
-            var error = dict.error.toString();
+        if (dict.isError) {
+            var error = dict.toString();
             for (var i = 0; i < toResolve.length; i++) {
                 toResolve[i].onParsed(error, undefined);
             }

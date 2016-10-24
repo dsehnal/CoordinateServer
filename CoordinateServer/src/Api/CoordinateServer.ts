@@ -27,7 +27,7 @@ import Queries = Core.Structure.Query;
 export interface CoordinateServerConfig {
     params: FilteredQueryParams,
     includedCategories: string[],
-    writer: WriterContext.Writer
+    writer: Core.Formats.CIF.Writer<WriterContext.Context>
 }
 
 export interface CoordinateServerResult {

@@ -3,7 +3,6 @@ import * as Api from './Api'
 
 import Logger from '../Utils/Logger'
 
-import * as CifWriters from '../Writers/CifWriter'
 import * as Molecule from '../Data/Molecule'
 import * as Provider from '../Data/Provider'
 import * as Cache from '../Data/Cache'

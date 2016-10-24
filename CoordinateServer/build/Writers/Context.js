@@ -16,12 +16,20 @@
 "use strict";
 var Core = require('LiteMol-core');
 var Version_1 = require('../Api/Version');
-var CifWriter_1 = require('./CifWriter');
-var BCifWriter_1 = require('./BCifWriter');
 var Provider = require('../Data/Provider');
 var mmCif = require('./Formats/mmCif');
-//import * as OptimizedMmCif from './Formats/OptimizedMmCif'
 var CIF = Core.Formats.CIF;
+function wrapStream(stream) {
+    return {
+        writeBinary: function (data) {
+            return stream.write(new Buffer(data));
+        },
+        writeString: function (data) {
+            return stream.write(data);
+        }
+    };
+}
+exports.wrapStream = wrapStream;
 var E = Core.Formats.CIF.Binary.Encoder;
 exports.Encoders = {
     strings: E.by(E.stringArray),
@@ -122,7 +130,11 @@ function createStatsCategory(molecule, queryTime, formatTime) {
 exports.createStatsCategory = createStatsCategory;
 function createWriter(encoding, header) {
     var isBCif = (encoding || '').trim().toLowerCase() === 'bcif';
-    return isBCif ? new BCifWriter_1.default(header) : new CifWriter_1.default(header);
+    var w = isBCif
+        ? new CIF.Binary.Writer("CoordinateServer " + Version_1.default)
+        : new CIF.Text.Writer();
+    w.startDataBlock(header);
+    return w;
 }
 exports.createWriter = createWriter;
 function writeError(stream, encoding, header, message, optional) {

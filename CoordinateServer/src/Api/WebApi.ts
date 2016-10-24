@@ -1,7 +1,6 @@
 ﻿import * as Queries from './Queries'
 import * as Api from './Api'
 
-import * as CifWriters from '../Writers/CifWriter'
 import * as Molecule from '../Data/Molecule'
 import * as Provider from '../Data/Provider'
 import * as Cache from '../Data/Cache'
@@ -69,7 +68,7 @@ function do404(response: any) {
 
 function doCifError(response: express.Response, message: string, id: string, queryName: string, params: any) {
     writeHeader(response, id, queryName, params.encoding);
-    WriterContext.writeError(response, params.encoding, id, message, { queryType: queryName });
+    WriterContext.writeError(WriterContext.wrapStream(response), params.encoding, id, message, { queryType: queryName });
     response.end();
 }
 

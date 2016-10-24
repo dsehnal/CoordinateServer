@@ -56,7 +56,7 @@ function do404(response) {
 }
 function doCifError(response, message, id, queryName, params) {
     writeHeader(response, id, queryName, params.encoding);
-    WriterContext.writeError(response, params.encoding, id, message, { queryType: queryName });
+    WriterContext.writeError(WriterContext.wrapStream(response), params.encoding, id, message, { queryType: queryName });
     response.end();
 }
 function mapQuery(app, query) {

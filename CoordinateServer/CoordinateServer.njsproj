@@ -57,8 +57,6 @@
     <TypeScriptCompile Include="src\Experimental.ts" />
     <TypeScriptCompile Include="src\local.ts" />
     <TypeScriptCompile Include="src\Utils\Logger.ts" />
-    <TypeScriptCompile Include="src\Writers\BCifWriter.ts" />
-    <TypeScriptCompile Include="src\Writers\CifWriter.ts" />
     <TypeScriptCompile Include="src\typings\compression.d.ts" />
     <TypeScriptCompile Include="src\ServerConfig.ts" />
     <TypeScriptCompile Include="src\typings\es6-collections.d.ts" />

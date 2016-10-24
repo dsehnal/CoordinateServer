@@ -2,7 +2,6 @@
 import Logger from '../Utils/Logger';
 
 import * as Core from 'LiteMol-core';
-import * as CifWriters from '../Writers/CifWriter'
 
 import ApiVersion from './Version'
 
