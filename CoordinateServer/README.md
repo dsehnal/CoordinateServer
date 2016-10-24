@@ -40,7 +40,7 @@ run
     node build/local jobs.json
 
 It is recommended that you split queries of larger data sets into jobs that contain
-no more than 10000 enties.
+no more than 10000 entities.
 
 #### Job entry template
 
