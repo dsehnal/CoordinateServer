@@ -1,4 +1,7 @@
-﻿# 1.3.8
+﻿# 1.3.9
+* BinaryCIF 0.2.0 support (origin property in delta encoding).
+
+# 1.3.8
 * Moved to using CIFTools.js writer from LiteMol.Core.
 
 # 1.3.7
