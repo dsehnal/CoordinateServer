@@ -10,6 +10,7 @@ var QueryParamType = exports.QueryParamType;
 exports.DefaultCategories = [
     '_entry',
     '_entity',
+    '_exptl',
     '_struct_conf',
     '_struct_sheet_range',
     '_pdbx_struct_assembly',
@@ -26,6 +27,7 @@ exports.DefaultCategories = [
 var SymmetryCategories = [
     '_entry',
     '_entity',
+    '_exptl',
     '_cell',
     '_symmetry',
     '_struct_conf',

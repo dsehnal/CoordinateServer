@@ -13,7 +13,6 @@
   },
   "files": [  
     "./src/typings/compression.d.ts",
-    //"./src/typings/es6-collections.d.ts",
     "./src/typings/express.d.ts",
     "./src/typings/node.d.ts",
     "./src/typings/LiteMol-core.d.ts",

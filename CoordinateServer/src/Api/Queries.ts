@@ -58,6 +58,7 @@ export interface FilteredQueryParams {
 export const DefaultCategories = [
     '_entry',
     '_entity',
+    '_exptl',
     '_struct_conf',
     '_struct_sheet_range',
     '_pdbx_struct_assembly',
@@ -76,6 +77,7 @@ export const DefaultCategories = [
 const SymmetryCategories = [
     '_entry',
     '_entity',
+    '_exptl',
     '_cell',
     '_symmetry',
     '_struct_conf',

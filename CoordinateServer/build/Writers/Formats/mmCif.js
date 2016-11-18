@@ -183,6 +183,32 @@ function _entity(context) {
         }
     };
 }
+function _exptl(context) {
+    var cat = context.data.getCategory('_exptl');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[rows.length] = i;
+    }
+    var data = {
+        rows: rows,
+        entry_id: cat.getColumn('entry_id'),
+        method: cat.getColumn('method')
+    };
+    var fields = [
+        stringColumn('entry_id', data.entry_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('method', data.method, function (data, i) { return data.rows[i]; })
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_exptl',
+            fields: fields
+        }
+    };
+}
 function findSecondary(test, context) {
     if (!context.model.secondaryStructure)
         return;
@@ -789,6 +815,7 @@ function _atom_site(context) {
 var Categories = {
     _entry: _entry,
     _entity: _entity,
+    _exptl: _exptl,
     _cell: _cell,
     _symmetry: _symmetry,
     _struct_conf: _struct_conf,

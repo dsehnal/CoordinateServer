@@ -390,7 +390,7 @@ declare namespace CIFTools.Text {
     }
 }
 declare namespace CIFTools.Text {
-    function parse(data: string): ParserError | ParserSuccess<CIFTools.File>;
+    function parse(data: string): ParserResult<CIFTools.File>;
 }
 declare namespace CIFTools.Text {
     class Writer<Context> implements CIFTools.Writer<Context> {
@@ -512,7 +512,7 @@ declare namespace CIFTools.Binary {
     }
 }
 declare namespace CIFTools.Binary {
-    const VERSION: string;
+    var VERSION: string;
     type Encoding = Encoding.ByteArray | Encoding.FixedPoint | Encoding.RunLength | Encoding.Delta | Encoding.IntegerPacking | Encoding.StringArray;
     interface EncodedFile {
         version: string;
@@ -1539,7 +1539,7 @@ declare namespace LiteMol.Core {
             readonly abortRequested: boolean;
             setRequestAbort(abort?: () => void): void;
             private _abortRequest;
-            readonly abortRequest: () => true;
+            readonly abortRequest: () => boolean;
             private progressTick;
             private progress;
             progressStream: Rx.BehaviorSubject<ProgressInfo>;
@@ -1657,6 +1657,7 @@ declare namespace LiteMol.Core.Utils {
 declare namespace LiteMol.Core.Formats {
     interface FormatInfo {
         name: string;
+        shortcuts: string[];
         extensions: string[];
         isBinary?: boolean;
         parse: (data: string | ArrayBuffer, params?: {
@@ -1664,6 +1665,8 @@ declare namespace LiteMol.Core.Formats {
         }) => Computation<ParserResult<any>>;
     }
     namespace FormatInfo {
+        function is(o: any): o is FormatInfo;
+        function fromShortcut(all: FormatInfo[], name: string): FormatInfo | undefined;
         function formatRegExp(info: FormatInfo): RegExp;
         function formatFileFilters(all: FormatInfo[]): string;
         function getFormat(filename: string, all: FormatInfo[]): FormatInfo | undefined;
@@ -1782,7 +1785,7 @@ declare namespace LiteMol.Core.Formats.Molecule.PDB {
         static parse(id: string, data: string): ParserResult<CIF.File>;
         constructor(id: string, data: string);
     }
-    function toCifFile(id: string, data: string): ParserError | ParserSuccess<CIF.File>;
+    function toCifFile(id: string, data: string): ParserResult<CIF.File>;
 }
 declare namespace LiteMol.Core.Formats.Molecule.SDF {
     function parse(data: string, id?: string): ParserResult<Structure.Molecule>;
@@ -1902,10 +1905,10 @@ declare namespace LiteMol.Core.Formats.Density {
     }
 }
 declare namespace LiteMol.Core.Formats.Density.CCP4 {
-    function parse(buffer: ArrayBuffer): ParserError | ParserSuccess<Data>;
+    function parse(buffer: ArrayBuffer): ParserResult<Data>;
 }
 declare namespace LiteMol.Core.Formats.Density.DSN6 {
-    function parse(buffer: ArrayBuffer): ParserError | ParserSuccess<Data>;
+    function parse(buffer: ArrayBuffer): ParserResult<Data>;
 }
 declare namespace LiteMol.Core.Formats.Density {
     namespace SupportedFormats {
@@ -2173,10 +2176,11 @@ declare namespace LiteMol.Core.Structure {
         count: number;
         indices: number[];
         columns: DataTableColumnDescriptor[];
-        clone(): DataTable;
         getBuilder(count: number): DataTableBuilder;
         getRawData(): any[][];
-        constructor(count: number, source: DataTableBuilder);
+        constructor(count: number, srcColumns: DataTableColumnDescriptor[], srcData: {
+            [name: string]: any;
+        });
     }
     class DataTableBuilder {
         count: number;
@@ -2226,8 +2230,8 @@ declare namespace LiteMol.Core.Structure {
         insCode: string | null;
         constructor(asymId: string, seqNumber: number, insCode: string | null);
         static areEqual(a: PolyResidueIdentifier, index: number, bAsymId: string[], bSeqNumber: number[], bInsCode: string[]): boolean;
-        static compare(a: PolyResidueIdentifier, b: PolyResidueIdentifier): number;
-        static compareResidue(a: PolyResidueIdentifier, index: number, bAsymId: string[], bSeqNumber: number[], bInsCode: string[]): number;
+        static compare(a: PolyResidueIdentifier, b: PolyResidueIdentifier): 0 | 1 | -1;
+        static compareResidue(a: PolyResidueIdentifier, index: number, bAsymId: string[], bSeqNumber: number[], bInsCode: string[]): 0 | 1 | -1;
     }
     const enum SecondaryStructureType {
         None = 0,
@@ -2489,6 +2493,9 @@ declare namespace LiteMol.Core.Structure {
         id: string;
         models: MoleculeModel[];
         constructor(id: string, models: MoleculeModel[]);
+    }
+    namespace MoleculeModel {
+        function withTransformedXYZ<T>(model: MoleculeModel, ctx: T, transform: (ctx: T, x: number, y: number, z: number, out: Geometry.LinearAlgebra.ObjectVec3) => void): MoleculeModel;
     }
 }
 declare namespace LiteMol.Core.Structure {
@@ -2769,7 +2776,7 @@ declare namespace LiteMol.Core.Structure.Query {
     function chainsFromIndices(indices: number[]): Builder;
     function residuesFromIndices(indices: number[]): Builder;
     function atomsFromIndices(indices: number[]): Builder;
-    function sequence(entityId: string, asymId: string, startId: ResidueIdSchema, endId: ResidueIdSchema): Builder;
+    function sequence(entityId: string, asymId: string | AsymIdSchema, startId: ResidueIdSchema, endId: ResidueIdSchema): Builder;
     function hetGroups(): Builder;
     function nonHetPolymer(): Builder;
     function polymerTrace(...atomNames: string[]): Builder;
@@ -2814,7 +2821,7 @@ declare namespace LiteMol.Core.Structure.Query {
             atomStartIndex: number[];
             atomEndIndex: number[];
         } & Structure.DataTable): Query;
-        function compileSequence(seqEntityId: string, seqAsymId: string, start: ResidueIdSchema, end: ResidueIdSchema): Query;
+        function compileSequence(seqEntityId: string, seqAsymId: string | AsymIdSchema, start: ResidueIdSchema, end: ResidueIdSchema): Query;
         function compileHetGroups(): Query;
         function compileNonHetPolymer(): Query;
         function compileAtomsInBox(min: {

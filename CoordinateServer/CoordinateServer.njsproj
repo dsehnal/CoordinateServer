@@ -60,7 +60,6 @@
     <TypeScriptCompile Include="src\Utils\Logger.ts" />
     <TypeScriptCompile Include="src\typings\compression.d.ts" />
     <TypeScriptCompile Include="src\ServerConfig.ts" />
-    <TypeScriptCompile Include="src\typings\es6-collections.d.ts" />
     <TypeScriptCompile Include="src\typings\express.d.ts" />
     <TypeScriptCompile Include="src\typings\node.d.ts" />
     <TypeScriptCompile Include="src\server.ts" />

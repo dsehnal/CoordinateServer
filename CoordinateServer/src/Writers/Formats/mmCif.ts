@@ -198,6 +198,39 @@ function _entity(context: mmCifContext) {
     };
 }
 
+function _exptl(context: mmCifContext) {
+
+    let cat = context.data.getCategory('_exptl');
+    if (!cat || !cat.rowCount) return;
+
+    let rows: number[] = [];
+    for (let i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[rows.length] = i;
+    }
+
+    let data = {
+        rows,
+        
+        entry_id: cat.getColumn('entry_id'),
+        method: cat.getColumn('method')
+    };
+
+    type T = typeof data;
+    let fields: FieldDesc<T>[] = [
+        stringColumn<T>('entry_id', data.entry_id, (data, i) => data.rows[i]),
+        stringColumn<T>('method', data.method, (data, i) => data.rows[i])
+    ];
+
+    return <CategoryInstance<T>>{
+        data,
+        count: rows.length,
+        desc: {
+            name: '_exptl',
+            fields
+        }
+    };
+}
+
 
 function findSecondary(test: (t: Core.Structure.SecondaryStructureType) => boolean, context: mmCifContext) {
     if (!context.model.secondaryStructure) return;
@@ -925,6 +958,7 @@ function _atom_site(context: mmCifContext) {
 const Categories = {
     _entry,
     _entity,
+    _exptl,
     _cell,
     _symmetry,
     _struct_conf, 

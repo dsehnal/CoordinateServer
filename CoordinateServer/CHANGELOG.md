@@ -1,4 +1,7 @@
-﻿# 1.3.9
+﻿# 1.3.10
+* Added _exptl category to the output CIF.
+
+# 1.3.9
 * BinaryCIF 0.2.0 support (origin property in delta encoding).
 
 # 1.3.8
