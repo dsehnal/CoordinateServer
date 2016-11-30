@@ -102,10 +102,10 @@ var QueryMap = {
         ]
     },
     "trace": {
-        niceName: 'Alpha Trace',
-        description: "Atoms named CA, O5', C3', N3 from polymer entities + optionally HET and/or water atoms.",
+        niceName: 'C-Alpha/P Trace',
+        description: "Atoms named CA and P from polymer entities + optionally HET and/or water atoms.",
         query: function (p) {
-            var parts = [Queries.polymerTrace('CA', "O5'", "C3'", 'N3')];
+            var parts = [Queries.polymerTrace('CA', 'P')];
             if (!!p.het)
                 parts.push(Queries.hetGroups());
             if (!!p.water)

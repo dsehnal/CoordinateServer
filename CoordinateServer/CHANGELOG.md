@@ -1,4 +1,7 @@
-﻿# 1.3.10
+﻿# 1.3.11
+* Updated /trace query.
+
+# 1.3.10
 * Added _exptl category to the output CIF.
 
 # 1.3.9
