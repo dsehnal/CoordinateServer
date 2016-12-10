@@ -1,7 +1,7 @@
 "use strict";
-var Core = require('LiteMol-core');
+var Core = require("LiteMol-core");
 var CIF = Core.Formats.CIF;
-var Context_1 = require('../Context');
+var Context_1 = require("../Context");
 var mmCifContext;
 (function (mmCifContext) {
     function isComplete(mmCtx) {

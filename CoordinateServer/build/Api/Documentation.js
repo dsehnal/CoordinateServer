@@ -1,7 +1,7 @@
 "use strict";
-var Core = require('LiteMol-core');
-var Version_1 = require('./Version');
-var Queries = require('./Queries');
+var Core = require("LiteMol-core");
+var Version_1 = require("./Version");
+var Queries = require("./Queries");
 var docs = undefined;
 function getHTMLDocs(appPrefix) {
     if (docs)

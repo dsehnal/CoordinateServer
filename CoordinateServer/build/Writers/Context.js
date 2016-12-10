@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 "use strict";
-var Core = require('LiteMol-core');
-var Version_1 = require('../Api/Version');
-var Provider = require('../Data/Provider');
-var mmCif = require('./Formats/mmCif');
+var Core = require("LiteMol-core");
+var Version_1 = require("../Api/Version");
+var Provider = require("../Data/Provider");
+var mmCif = require("./Formats/mmCif");
 var CIF = Core.Formats.CIF;
 function wrapStream(stream) {
     return {
@@ -56,14 +56,14 @@ function createParamsCategory(params) {
         { name: 'name', string: function (data, i) { return data[i].name; } },
         { name: 'value', string: function (data, i) { return '' + data[i].value; }, presence: function (data, i) { return data[i].value !== void 0 && data[i].value !== null ? 0 /* Present */ : 1 /* NotSpecified */; } },
     ];
-    return function () { return {
+    return function () { return ({
         data: data,
         count: data.length,
         desc: {
             name: '_coordinate_server_query_params',
             fields: fields
         }
-    }; };
+    }); };
 }
 exports.createParamsCategory = createParamsCategory;
 function createResultHeaderCategory(_a, queryType) {
@@ -78,20 +78,20 @@ function createResultHeaderCategory(_a, queryType) {
     };
     var fields = [
         { name: 'query_type', string: function (d) { return d.queryType; } },
-        { name: 'datetime', string: function (d) { return ("" + new Date().toLocaleString('en-US')); } },
+        { name: 'datetime', string: function (d) { return "" + new Date().toLocaleString('en-US'); } },
         { name: 'is_empty', string: function (d) { return d.isEmpty ? 'yes' : 'no'; } },
         { name: 'has_error', string: function (d) { return d.hasError ? 'yes' : 'no'; } },
         { name: 'api_version', string: function (d) { return d.ApiVersion; } },
         { name: 'core_version', string: function (d) { return d.CoreVersion; } }
     ];
-    return function () { return {
+    return function () { return ({
         data: data,
         count: 1,
         desc: {
             name: '_coordinate_server_result',
             fields: fields
         }
-    }; };
+    }); };
 }
 exports.createResultHeaderCategory = createResultHeaderCategory;
 function createErrorCategory(message) {
@@ -99,33 +99,33 @@ function createErrorCategory(message) {
     var fields = [
         { name: 'message', string: function (data) { return data; } }
     ];
-    return function () { return {
+    return function () { return ({
         data: data,
         count: 1,
         desc: {
             name: '_coordinate_server_error',
             fields: fields
         }
-    }; };
+    }); };
 }
 exports.createErrorCategory = createErrorCategory;
 function createStatsCategory(molecule, queryTime, formatTime) {
     var data = { cached: molecule.source === Provider.MoleculeSource.Cache ? 'yes' : 'no', io: molecule.ioTime | 0, parse: molecule.parseTime | 0, query: queryTime | 0, format: formatTime | 0 };
     var fields = [
         { name: 'molecule_cached', string: function (data) { return data.cached; } },
-        { name: 'io_time_ms', string: function (data) { return ("" + data.io); }, number: function (data) { return data.io; }, typedArray: Int32Array, encoder: E.by(E.int32) },
-        { name: 'parse_time_ms', string: function (data) { return ("" + data.parse); }, number: function (data) { return data.parse; }, typedArray: Int32Array, encoder: E.by(E.int32) },
-        { name: 'query_time_ms', string: function (data) { return ("" + data.query); }, number: function (data) { return data.query; }, typedArray: Int32Array, encoder: E.by(E.int32) },
-        { name: 'format_time_ms', string: function (data) { return ("" + data.format); }, number: function (data) { return data.format; }, typedArray: Int32Array, encoder: E.by(E.int32) }
+        { name: 'io_time_ms', string: function (data) { return "" + data.io; }, number: function (data) { return data.io; }, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'parse_time_ms', string: function (data) { return "" + data.parse; }, number: function (data) { return data.parse; }, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'query_time_ms', string: function (data) { return "" + data.query; }, number: function (data) { return data.query; }, typedArray: Int32Array, encoder: E.by(E.int32) },
+        { name: 'format_time_ms', string: function (data) { return "" + data.format; }, number: function (data) { return data.format; }, typedArray: Int32Array, encoder: E.by(E.int32) }
     ];
-    return function () { return {
+    return function () { return ({
         data: data,
         count: 1,
         desc: {
             name: '_coordinate_server_stats',
             fields: fields
         }
-    }; };
+    }); };
 }
 exports.createStatsCategory = createStatsCategory;
 function createWriter(encoding, header) {

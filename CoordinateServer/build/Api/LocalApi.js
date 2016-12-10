@@ -1,10 +1,10 @@
 "use strict";
-var Queries = require('./Queries');
-var Api = require('./Api');
-var Logger_1 = require('../Utils/Logger');
-var Provider = require('../Data/Provider');
-var fs = require('fs');
-var path = require('path');
+var Queries = require("./Queries");
+var Api = require("./Api");
+var Logger_1 = require("../Utils/Logger");
+var Provider = require("../Data/Provider");
+var fs = require("fs");
+var path = require("path");
 function makeDir(path, root) {
     var dirs = path.split(/\/|\\/g), dir = dirs.shift();
     root = (root || '') + dir + '/';

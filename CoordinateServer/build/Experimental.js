@@ -1,5 +1,5 @@
 "use strict";
-var ServerConfig_1 = require('./ServerConfig');
+var ServerConfig_1 = require("./ServerConfig");
 var ExperimentalApi = (function () {
     function ExperimentalApi(app) {
         this.app = app;

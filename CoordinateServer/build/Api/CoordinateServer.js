@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 "use strict";
-var Core = require('LiteMol-core');
-var Logger_1 = require('../Utils/Logger');
+var Core = require("LiteMol-core");
+var Logger_1 = require("../Utils/Logger");
 function processQuery(reqId, molecule, query, queryParams, formatter, config, next) {
     var perf = new Core.Utils.PerformanceMonitor();
     var formatConfig = {

@@ -1,6 +1,6 @@
 "use strict";
-var Provider = require('./Provider');
-var Logger_1 = require('../Utils/Logger');
+var Provider = require("./Provider");
+var Logger_1 = require("../Utils/Logger");
 var CacheEntry = (function () {
     function CacheEntry(molecule) {
         this.molecule = molecule;

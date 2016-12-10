@@ -1,13 +1,13 @@
 "use strict";
-var Queries = require('./Queries');
-var Api = require('./Api');
-var Molecule = require('../Data/Molecule');
-var Provider = require('../Data/Provider');
-var Cache = require('../Data/Cache');
-var Experimental = require('./ExperimentalWebApi');
-var ServerConfig_1 = require('../ServerConfig');
-var WriterContext = require('../Writers/Context');
-var Logger_1 = require('../Utils/Logger');
+var Queries = require("./Queries");
+var Api = require("./Api");
+var Molecule = require("../Data/Molecule");
+var Provider = require("../Data/Provider");
+var Cache = require("../Data/Cache");
+var Experimental = require("./ExperimentalWebApi");
+var ServerConfig_1 = require("../ServerConfig");
+var WriterContext = require("../Writers/Context");
+var Logger_1 = require("../Utils/Logger");
 function makePath(p) {
     return ServerConfig_1.default.appPrefix + '/' + p;
 }

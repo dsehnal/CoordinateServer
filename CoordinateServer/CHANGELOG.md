@@ -1,4 +1,7 @@
-﻿# 1.3.11
+﻿# 1.3.12
+* BinaryCIF update.
+
+# 1.3.11
 * Updated /trace query.
 
 # 1.3.10

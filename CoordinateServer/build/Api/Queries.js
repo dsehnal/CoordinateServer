@@ -1,12 +1,12 @@
 "use strict";
-var Core = require('LiteMol-core');
+var Core = require("LiteMol-core");
 var Queries = Core.Structure.Query;
+var QueryParamType;
 (function (QueryParamType) {
     QueryParamType[QueryParamType["String"] = 0] = "String";
     QueryParamType[QueryParamType["Integer"] = 1] = "Integer";
     QueryParamType[QueryParamType["Float"] = 2] = "Float";
-})(exports.QueryParamType || (exports.QueryParamType = {}));
-var QueryParamType = exports.QueryParamType;
+})(QueryParamType = exports.QueryParamType || (exports.QueryParamType = {}));
 exports.DefaultCategories = [
     '_entry',
     '_entity',

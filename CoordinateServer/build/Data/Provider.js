@@ -1,16 +1,16 @@
 "use strict";
-var Core = require('LiteMol-core');
-var Molecule = require('./Molecule');
-var fs = require('fs');
-var zlib = require('zlib');
-var Logger_1 = require('../Utils/Logger');
+var Core = require("LiteMol-core");
+var Molecule = require("./Molecule");
+var fs = require("fs");
+var zlib = require("zlib");
+var Logger_1 = require("../Utils/Logger");
 var CIF = Core.Formats.CIF;
 var mmCIF = Core.Formats.Molecule.mmCIF;
+var MoleculeSource;
 (function (MoleculeSource) {
     MoleculeSource[MoleculeSource["File"] = 0] = "File";
     MoleculeSource[MoleculeSource["Cache"] = 1] = "Cache";
-})(exports.MoleculeSource || (exports.MoleculeSource = {}));
-var MoleculeSource = exports.MoleculeSource;
+})(MoleculeSource = exports.MoleculeSource || (exports.MoleculeSource = {}));
 var MoleculeWrapper = (function () {
     function MoleculeWrapper(molecule, source, ioTime, parseTime) {
         this.molecule = molecule;

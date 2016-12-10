@@ -1,10 +1,10 @@
 "use strict";
-var Queries = require('./Queries');
-var Logger_1 = require('../Utils/Logger');
-var Core = require('LiteMol-core');
-var CoordinateServer_1 = require('./CoordinateServer');
-var WriterContext = require('../Writers/Context');
-var Provider = require('../Data/Provider');
+var Queries = require("./Queries");
+var Logger_1 = require("../Utils/Logger");
+var Core = require("LiteMol-core");
+var CoordinateServer_1 = require("./CoordinateServer");
+var WriterContext = require("../Writers/Context");
+var Provider = require("../Data/Provider");
 var Perf = Core.Utils.PerformanceMonitor;
 var querySerial = 0;
 function wrapOutputStream(outputStreamProvider) {

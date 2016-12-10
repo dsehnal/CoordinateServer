@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 "use strict";
-var fs = require('fs');
-var Core = require('LiteMol-core');
-var LocalApi = require('./Api/LocalApi');
-var Version_1 = require('./Api/Version');
+var fs = require("fs");
+var Core = require("LiteMol-core");
+var LocalApi = require("./Api/LocalApi");
+var Version_1 = require("./Api/Version");
 console.log("LiteMol Coordinate Server (API " + Version_1.default + ", core " + Core.VERSION.number + " - " + Core.VERSION.date + ")");
 console.log("(c) 2016 David Sehnal");
 console.log("");

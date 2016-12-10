@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 "use strict";
-var express = require('express');
-var compression = require('compression');
-var ServerConfig_1 = require('./ServerConfig');
-var Core = require('LiteMol-core');
-var WebApi = require('./Api/WebApi');
-var Experimental_1 = require('./Experimental');
-var Version_1 = require('./Api/Version');
-var Documentation = require('./Api/Documentation');
-var Logger_1 = require('./Utils/Logger');
+var express = require("express");
+var compression = require("compression");
+var ServerConfig_1 = require("./ServerConfig");
+var Core = require("LiteMol-core");
+var WebApi = require("./Api/WebApi");
+var Experimental_1 = require("./Experimental");
+var Version_1 = require("./Api/Version");
+var Documentation = require("./Api/Documentation");
+var Logger_1 = require("./Utils/Logger");
 var port = process.env.port || ServerConfig_1.default.defaultPort;
 function setupShutdown() {
     if (ServerConfig_1.default.shutdownParams.timeoutVarianceMinutes > ServerConfig_1.default.shutdownParams.timeoutMinutes) {
