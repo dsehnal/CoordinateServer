@@ -57,10 +57,10 @@ export const Encoders = {
     strings: E.by(E.stringArray),
     coordinates1: E.by(E.fixedPoint(10)).and(E.delta).and(E.integerPacking),
     coordinates3: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking),
-    occupancy: E.by(E.fixedPoint(100)).and(E.delta).and(E.runLength).and(E.int32),
+    occupancy: E.by(E.fixedPoint(100)).and(E.delta).and(E.runLength).and(E.byteArray),
     ids: E.by(E.delta).and(E.runLength).and(E.integerPacking),
-    int32: E.by(E.int32),
-    float64: E.by(E.float64)
+    int32: E.by(E.byteArray),
+    float64: E.by(E.byteArray)
 }
 
 export function createParamsCategory(params: FilteredQueryParams): CIF.CategoryProvider {
@@ -137,10 +137,10 @@ export function createStatsCategory(molecule: Provider.MoleculeWrapper, queryTim
     let data = { cached: molecule.source === Provider.MoleculeSource.Cache ? 'yes' : 'no', io: molecule.ioTime | 0, parse: molecule.parseTime | 0, query: queryTime | 0, format: formatTime | 0 };
     let fields: CIF.FieldDesc<typeof data>[] = [
         { name: 'molecule_cached', string: data => data.cached },
-        { name: 'io_time_ms', string: data => `${data.io}`, number: data => data.io, typedArray: Int32Array, encoder: E.by(E.int32) },
-        { name: 'parse_time_ms', string: data => `${data.parse}`, number: data => data.parse, typedArray: Int32Array, encoder: E.by(E.int32) },
-        { name: 'query_time_ms', string: data => `${data.query}`, number: data => data.query, typedArray: Int32Array, encoder: E.by(E.int32) },
-        { name: 'format_time_ms', string: data => `${data.format}`, number: data => data.format, typedArray: Int32Array, encoder: E.by(E.int32) }
+        { name: 'io_time_ms', string: data => `${data.io}`, number: data => data.io, typedArray: Int32Array, encoder: E.by(E.byteArray) },
+        { name: 'parse_time_ms', string: data => `${data.parse}`, number: data => data.parse, typedArray: Int32Array, encoder: E.by(E.byteArray) },
+        { name: 'query_time_ms', string: data => `${data.query}`, number: data => data.query, typedArray: Int32Array, encoder: E.by(E.byteArray) },
+        { name: 'format_time_ms', string: data => `${data.format}`, number: data => data.format, typedArray: Int32Array, encoder: E.by(E.byteArray) }
     ];
 
     return () => <CIF.CategoryInstance<typeof data>>{
