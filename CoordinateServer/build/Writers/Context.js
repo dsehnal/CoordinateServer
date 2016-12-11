@@ -22,7 +22,7 @@ var CIF = Core.Formats.CIF;
 function wrapStream(stream) {
     return {
         writeBinary: function (data) {
-            return stream.write(new Buffer(data));
+            return stream.write(new Buffer(data.buffer));
         },
         writeString: function (data) {
             return stream.write(data);

@@ -872,7 +872,7 @@ function _atom_site(context: mmCifContext) {
     
     //--_atom_site.pdbe_label_seq_id 
 
-    let cat = context.data.getCategory('_atom_site');
+    let cat = context.data.getCategory('_atom_site')!;
     let data = {
         atomIndex: context.fragment.atomIndices,
         atoms: context.model.atoms,

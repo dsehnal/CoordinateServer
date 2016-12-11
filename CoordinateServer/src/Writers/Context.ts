@@ -24,7 +24,7 @@ import CIF = Core.Formats.CIF
 export function wrapStream(stream: { write: (data: any) => boolean }): CIF.OutputStream {
     return {
         writeBinary(data: Uint8Array) {
-            return stream.write(new Buffer(data));
+            return stream.write(new Buffer(data.buffer));
         },
         writeString(data: string) {
             return stream.write(data)
