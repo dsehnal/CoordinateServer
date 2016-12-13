@@ -47,7 +47,7 @@ function createDocumentationHTML(appPrefix) {
             //}
             //html.push(`</ul>`);
             html.push("<table cellpadding='0' cellspacing='0'>");
-            html.push("<header><tr><th>Name</th><th>Type</th><th>Default</th><th>Description</th></tr></header>");
+            html.push("<tr><th>Name</th><th>Type</th><th>Default</th><th>Description</th></tr>");
             for (var _b = 0, params_1 = params; _b < params_1.length; _b++) {
                 var p = params_1[_b];
                 html.push("<tr>");

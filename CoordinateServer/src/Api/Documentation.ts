@@ -97,7 +97,7 @@ function createDocumentationHTML(appPrefix: string) {
             //html.push(`</ul>`);
 
             html.push(`<table cellpadding='0' cellspacing='0'>`);
-            html.push(`<header><tr><th>Name</th><th>Type</th><th>Default</th><th>Description</th></tr></header>`);
+            html.push(`<tr><th>Name</th><th>Type</th><th>Default</th><th>Description</th></tr>`);
             for (let p of params) {
                 html.push(`<tr>`);
                 html.push(
