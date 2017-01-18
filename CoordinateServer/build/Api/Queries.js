@@ -152,7 +152,7 @@ var QueryMap = {
         niceName: 'Ligand Interaction',
         description: "Identifies symmetry mates and returns the specified atom set and all residues within the given radius.",
         query: function (p, m) {
-            var chains = Queries.chains.apply(null, m.chains.asymId.map(function (x) { return { asymId: x }; })), id = Core.Utils.extend({}, p);
+            var chains = Queries.chains.apply(null, m.data.chains.asymId.map(function (x) { return { asymId: x }; })), id = Core.Utils.extend({}, p);
             delete id.radius;
             return Queries.residues(id).inside(chains).ambientResidues(p.radius).wholeResidues();
         },
@@ -219,9 +219,9 @@ var QueryMap = {
             return Queries.everything();
         },
         modelTransform: function (p, m) {
-            if (!m.assemblyInfo)
+            if (!m.data.assemblyInfo)
                 throw 'Assembly info not present';
-            var assembly = m.assemblyInfo.assemblies.filter(function (a) { return a.name.toLowerCase() === p.id; });
+            var assembly = m.data.assemblyInfo.assemblies.filter(function (a) { return a.name.toLowerCase() === p.id; });
             if (!assembly.length)
                 throw "Assembly with the id '" + p.id + "' not found";
             return Core.Structure.buildAssembly(m, assembly[0]);

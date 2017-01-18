@@ -34,7 +34,7 @@ export function wrapStream(stream: { write: (data: any) => boolean }): CIF.Outpu
 
 export interface Context {
     fragment: Core.Structure.Query.Fragment,
-    model: Core.Structure.MoleculeModel,
+    model: Core.Structure.Molecule.Model,
     data: CIF.DataBlock
 }
 
@@ -48,7 +48,7 @@ export interface FormatConfig {
 }
 
 export interface WritableFragments {
-    model: Core.Structure.MoleculeModel;
+    model: Core.Structure.Molecule.Model;
     fragments: Core.Structure.Query.FragmentSeq
 }
 

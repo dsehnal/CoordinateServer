@@ -26,22 +26,22 @@ export interface QueryParamInfo {
 interface ApiQueryDefinition {
     niceName: string;
     exampleId?: string; // default is 1cbs
-    query: (params: any, originalModel: Core.Structure.MoleculeModel, transformedModel: Core.Structure.MoleculeModel) => Queries.Builder;
+    query: (params: any, originalModel: Core.Structure.Molecule.Model, transformedModel: Core.Structure.Molecule.Model) => Queries.Builder;
     description: string;
     queryParams?: QueryParamInfo[];
     paramMap?: Map<string, QueryParamInfo>;
-    modelTransform?: (params: any, m: Core.Structure.MoleculeModel) => Core.Structure.MoleculeModel;
+    modelTransform?: (params: any, m: Core.Structure.Molecule.Model) => Core.Structure.Molecule.Model;
     includedCategories?: string[];
 }
 
 export interface ApiQueryDescription {
     niceName: string;
     exampleId?: string;
-    query: (params: any, originalModel: Core.Structure.MoleculeModel, transformedModel: Core.Structure.MoleculeModel) => Queries.Builder;
+    query: (params: any, originalModel: Core.Structure.Molecule.Model, transformedModel: Core.Structure.Molecule.Model) => Queries.Builder;
     description: string;
     queryParams: QueryParamInfo[];
     paramMap: Map<string, QueryParamInfo>;
-    modelTransform?: (params: any, m: Core.Structure.MoleculeModel) => Core.Structure.MoleculeModel;
+    modelTransform?: (params: any, m: Core.Structure.Molecule.Model) => Core.Structure.Molecule.Model;
     includedCategories?: string[];
 }
 
@@ -217,7 +217,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         description: "Identifies symmetry mates and returns the specified atom set and all residues within the given radius.",
         query: (p, m) => {
             
-            let chains = Queries.chains.apply(null, m.chains.asymId.map(x => { return { asymId: x } })),
+            let chains = Queries.chains.apply(null, m.data.chains.asymId.map(x => { return { asymId: x } })),
                 id = Core.Utils.extend({}, p);
             delete id.radius;
             return Queries.residues(id).inside(chains).ambientResidues(p.radius).wholeResidues();
@@ -286,9 +286,9 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         },
         modelTransform: (p, m) => {
             
-            if (!m.assemblyInfo) throw 'Assembly info not present';
+            if (!m.data.assemblyInfo) throw 'Assembly info not present';
 
-            let assembly = m.assemblyInfo.assemblies.filter(a => a.name.toLowerCase() === p.id);
+            let assembly = m.data.assemblyInfo.assemblies.filter(a => a.name.toLowerCase() === p.id);
             if (!assembly.length) throw `Assembly with the id '${p.id}' not found`;
 
             return Core.Structure.buildAssembly(m, assembly[0]);

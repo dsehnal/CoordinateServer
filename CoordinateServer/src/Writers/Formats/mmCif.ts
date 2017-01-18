@@ -8,23 +8,23 @@ type CategoryProvider = CIF.CategoryProvider
 type CategoryInstance<T> = CIF.CategoryInstance<T>
 
 export interface mmCifContext extends Context {
-    _residueNameSet: Set<string>,
-    _modres: { map: Map<string, { i: number, original: string }>, names: Set<string> },
+    _residueNameSet: Core.Utils.FastSet<string>,
+    _modres: { map: Core.Utils.FastMap<string, { i: number, original: string }>, names: Core.Utils.FastSet<string> },
     lowPrecisionCoords: boolean
 }
 
 export namespace mmCifContext {
     export function isComplete(mmCtx: mmCifContext) {
-        return mmCtx.model.source === Core.Structure.MoleculeModelSource.File
-            ? mmCtx.fragment.atomCount === mmCtx.model.atoms.count
+        return mmCtx.model.source === Core.Structure.Molecule.Model.Source.File
+            ? mmCtx.fragment.atomCount === mmCtx.model.data.atoms.count
             : false;
     }
     
     export function residueNameSet(mmCtx: mmCifContext) {
         if (mmCtx._residueNameSet) return mmCtx._residueNameSet;
 
-        let set = new Set<string>();
-        let name = mmCtx.model.residues.name;
+        let set = Core.Utils.FastSet.create<string>();
+        let name = mmCtx.model.data.residues.name;
         for (let i of mmCtx.fragment.residueIndices) {
             set.add(name[i]);
         }
@@ -36,8 +36,8 @@ export namespace mmCifContext {
         if (mmCtx._modres) return;
 
 
-        let map = new Map<string, { i: number, original: string }>();
-        let names = new Set<string>();
+        let map = Core.Utils.FastMap.create<string, { i: number, original: string }>();
+        let names = Core.Utils.FastSet.create<string>();
         mmCtx._modres = { map, names };
 
         let _mod_res = mmCtx.data.getCategory('_pdbx_struct_mod_residue');
@@ -62,11 +62,11 @@ export namespace mmCifContext {
     }
 
     export function getSourceResidueStringId(mmCtx: mmCifContext, i: number) {
-        let res = mmCtx.model.residues, chains = mmCtx.model.chains, asymId: string;
+        let res = mmCtx.model.data.residues, chains = mmCtx.model.data.chains, asymId: string;
         if (chains.sourceChainIndex) {
             let parent = mmCtx.model.parent;
             if (parent) {
-                asymId = parent.chains.asymId[chains.sourceChainIndex[res.chainIndex[i]]];
+                asymId = parent.data.chains.asymId[chains.sourceChainIndex[res.chainIndex[i]]];
             } else {
                 asymId = res.asymId[i];
             }
@@ -76,7 +76,7 @@ export namespace mmCifContext {
         return `${asymId} ${res.seqNumber[i]} ${res.insCode[i]}`;
     }
 
-    export function create(fragment: Core.Structure.Query.Fragment, model: Core.Structure.MoleculeModel, data: Core.Formats.CIF.DataBlock, lowPrecisionCoords: boolean): mmCifContext {
+    export function create(fragment: Core.Structure.Query.Fragment, model: Core.Structure.Molecule.Model, data: Core.Formats.CIF.DataBlock, lowPrecisionCoords: boolean): mmCifContext {
         return {
             fragment,
             model,
@@ -89,7 +89,7 @@ export namespace mmCifContext {
 }
 
 class SourceCategoryMap {
-    private byKey = new Map<string, number>();
+    private byKey = Core.Utils.FastMap.create<string, number>();
     private category: LiteMol.Core.Formats.CIF.Category | undefined = void 0;
 
     getString(id: string, columnName: string) {
@@ -157,10 +157,10 @@ function _entity(context: mmCifContext) {
     let f = context.fragment;    
     if (!f.entityIndices.length) return void 0;
     
-    let uniqueEntities = new Set<string>();
+    let uniqueEntities = Core.Utils.FastSet.create<string>();
     let entityIndices: number[] = [];
     for (let i of f.entityIndices) {
-        let id = context.model.entities.entityId[i];
+        let id = context.model.data.entities.entityId[i];
         if (!uniqueEntities.has(id)) {
             entityIndices.push(i);
             uniqueEntities.add(id);
@@ -169,7 +169,7 @@ function _entity(context: mmCifContext) {
 
     entityIndices.sort((i, j) => i - j);
 
-    let e = context.model.entities;
+    let e = context.model.data.entities;
 
     let map = new SourceCategoryMap(context, '_entity', 'id');
 
@@ -233,12 +233,12 @@ function _exptl(context: mmCifContext) {
 
 
 function findSecondary(test: (t: Core.Structure.SecondaryStructureType) => boolean, context: mmCifContext) {
-    if (!context.model.secondaryStructure) return;
+    if (!context.model.data.secondaryStructure) return;
 
     let starts: number[] = [], ends: number[] = [], lengths: number[] = [],
         ssIndices: number[] = [];
 
-    let struct = context.model.secondaryStructure.filter(s => test(s.type));
+    let struct = context.model.data.secondaryStructure.filter(s => test(s.type));
 
     if (!struct.length) return;
 
@@ -290,7 +290,7 @@ function _struct_conf(context: mmCifContext) {
     let ssIndices = findSecondary(t => t === helix || t === turn, context);
     if (!ssIndices || !ssIndices.starts.length) return;
 
-    let rs = context.model.residues;
+    let rs = context.model.data.residues;
     let data = { indices: ssIndices, residues: rs, index: context.fragment.residueIndices, helixCounter: 0, turnCounter: 0, helix, turn };
     let fields: FieldDesc<typeof data>[] = [
         { name: 'conf_type_id', string: (data, i) => data.indices.struct[data.indices.ssIndices[i]].type === data.helix ? 'HELX_P' : 'TURN_P' },
@@ -336,7 +336,7 @@ function _struct_sheet_range(context: mmCifContext) {
     let ssIndices = findSecondary(t => t === sheet, context);
     if (!ssIndices || !ssIndices.starts.length) return;
 
-    let rs = context.model.residues;
+    let rs = context.model.data.residues;
     let data = { indices: ssIndices, residues: rs, index: context.fragment.residueIndices };
     let fields: FieldDesc<typeof data>[] = [
         { name: 'sheet_id', string: (data, i) => { let val = data.indices.struct[data.indices.ssIndices[i]].info.sheetId; return val !== null && val !== undefined ? '' + val : (i + 1).toString() } },
@@ -639,7 +639,7 @@ function _pdbx_struct_oper_list(context: mmCifContext) {
 }
 
 function _struct_asym(context: mmCifContext) {
-    let data = { index: context.fragment.chainIndices, chains: context.model.chains, parent: context.model.parent };
+    let data = { index: context.fragment.chainIndices, chains: context.model.data.chains, parent: context.model.parent };
     let fields: FieldDesc<typeof data>[] = [
         { name: 'id', string: (data, i) => data.chains.asymId[data.index[i]] },
         { name: 'pdbx_blank_PDB_chainid_flag', string: (data, i) => !data.chains.asymId[data.index[i]] ? 'Y' : 'N' },
@@ -649,7 +649,7 @@ function _struct_asym(context: mmCifContext) {
             name: 'details', string: (data, i) => {
                 let idx = data.index[i];
                 if (data.chains.sourceChainIndex && data.parent) {
-                    if (data.parent.chains.asymId[data.chains.sourceChainIndex[idx]] !== data.chains.asymId[idx]) {
+                    if (data.parent.data.chains.asymId[data.chains.sourceChainIndex[idx]] !== data.chains.asymId[idx]) {
                         return 'Added by the Coordinate Server';
                     }
                 }
@@ -676,7 +676,7 @@ interface EntityPolyEntry {
     pdbx_seq_one_letter_code: string | null;
     pdbx_seq_one_letter_code_can: string | null;
     pdbx_strand_id: string;
-    strand_set: Set<string>;
+    strand_set: Core.Utils.FastSet<string>;
     multine?: boolean;
 }
 
@@ -684,7 +684,7 @@ function _entity_poly(context: mmCifContext) {
     let cat = context.data.getCategory('_entity_poly');
     if (!cat) return;
 
-    let entityMap = new Map<string, EntityPolyEntry>();
+    let entityMap = Core.Utils.FastMap.create<string, EntityPolyEntry>();
 
     let poly: EntityPolyEntry[] = [];
     let _entity = {
@@ -706,14 +706,14 @@ function _entity_poly(context: mmCifContext) {
             pdbx_seq_one_letter_code: _entity.pdbx_seq_one_letter_code.getString(i),
             pdbx_seq_one_letter_code_can: _entity.pdbx_seq_one_letter_code_can.getString(i),
             pdbx_strand_id: '',
-            strand_set: new Set<string>()
+            strand_set: Core.Utils.FastSet.create<string>()
         };
 
         entityMap.set(eId, e);
         poly.push(e);
     }
     
-    let chains = context.model.chains;
+    let chains = context.model.data.chains;
     
     for (let chain of context.fragment.chainIndices) {
         let asymId = chains.authAsymId[chain];
@@ -758,7 +758,7 @@ function _pdbx_struct_mod_residue(context: mmCifContext) {
     let info = mmCifContext.modifiedResidues(context);
     if (!info.map.size) return;
 
-    let names = context.model.residues.name;
+    let names = context.model.data.residues.name;
 
     for (let res of context.fragment.residueIndices) {
         if (!info.names.has(names[res])) continue;
@@ -775,7 +775,7 @@ function _pdbx_struct_mod_residue(context: mmCifContext) {
         residues,
         parent_comp_id: cat.getColumn('parent_comp_id'),
         details: cat.getColumn('details'),
-        resTable: context.model.residues
+        resTable: context.model.data.residues
     };
     let fields: FieldDesc<typeof data>[] = [
         { name: 'id', string: (data, i) => (i + 1).toString() },
@@ -875,10 +875,11 @@ function _atom_site(context: mmCifContext) {
     let cat = context.data.getCategory('_atom_site')!;
     let data = {
         atomIndex: context.fragment.atomIndices,
-        atoms: context.model.atoms,
-        residues: context.model.residues,
-        chains: context.model.chains,
-        entities: context.model.entities,
+        positions: context.model.positions,
+        atoms: context.model.data.atoms,
+        residues: context.model.data.residues,
+        chains: context.model.data.chains,
+        entities: context.model.data.entities,
         modelId: context.model.modelId,
 
         label_seq_id: cat.getColumn('label_seq_id'),
@@ -912,9 +913,9 @@ function _atom_site(context: mmCifContext) {
 
         { name: 'pdbx_PDB_ins_code', string: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]], presence: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
-        { name: 'Cartn_x', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.atoms.x[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.atoms.x[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
-        { name: 'Cartn_y', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.atoms.y[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.atoms.y[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
-        { name: 'Cartn_z', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.atoms.z[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.atoms.z[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_x', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.positions.x[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.positions.x[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_y', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.positions.y[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.positions.y[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_z', string: (data, i) => '' + Math.round(data.coordRoundFactor * data.positions.z[data.atomIndex[i]]) / data.coordRoundFactor, number: (data, i) => data.positions.z[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },
 
         { name: 'occupancy', string: (data, i) => '' + Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100, number: (data, i) => data.atoms.occupancy[data.atomIndex[i]], typedArray: Float32Array, encoder: Encoders.occupancy },
         { name: 'B_iso_or_equiv', string: (data, i) => '' + Math.round(data.bRoundFactor * data.atoms.tempFactor[data.atomIndex[i]]) / data.bRoundFactor, number: (data, i) => data.atoms.tempFactor[data.atomIndex[i]], typedArray: Float32Array, encoder: coordinateEncoder },

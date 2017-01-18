@@ -1,4 +1,7 @@
-﻿# 1.3.12
+﻿# 1.3.13
+* Updated to Core 3.0.0.
+
+# 1.3.12
 * BinaryCIF update.
 
 # 1.3.11

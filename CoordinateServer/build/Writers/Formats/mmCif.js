@@ -5,16 +5,16 @@ var Context_1 = require("../Context");
 var mmCifContext;
 (function (mmCifContext) {
     function isComplete(mmCtx) {
-        return mmCtx.model.source === Core.Structure.MoleculeModelSource.File
-            ? mmCtx.fragment.atomCount === mmCtx.model.atoms.count
+        return mmCtx.model.source === Core.Structure.Molecule.Model.Source.File
+            ? mmCtx.fragment.atomCount === mmCtx.model.data.atoms.count
             : false;
     }
     mmCifContext.isComplete = isComplete;
     function residueNameSet(mmCtx) {
         if (mmCtx._residueNameSet)
             return mmCtx._residueNameSet;
-        var set = new Set();
-        var name = mmCtx.model.residues.name;
+        var set = Core.Utils.FastSet.create();
+        var name = mmCtx.model.data.residues.name;
         for (var _i = 0, _a = mmCtx.fragment.residueIndices; _i < _a.length; _i++) {
             var i = _a[_i];
             set.add(name[i]);
@@ -26,8 +26,8 @@ var mmCifContext;
     function computeModres(mmCtx) {
         if (mmCtx._modres)
             return;
-        var map = new Map();
-        var names = new Set();
+        var map = Core.Utils.FastMap.create();
+        var names = Core.Utils.FastSet.create();
         mmCtx._modres = { map: map, names: names };
         var _mod_res = mmCtx.data.getCategory('_pdbx_struct_mod_residue');
         if (!_mod_res)
@@ -49,11 +49,11 @@ var mmCifContext;
     }
     mmCifContext.modifiedResidues = modifiedResidues;
     function getSourceResidueStringId(mmCtx, i) {
-        var res = mmCtx.model.residues, chains = mmCtx.model.chains, asymId;
+        var res = mmCtx.model.data.residues, chains = mmCtx.model.data.chains, asymId;
         if (chains.sourceChainIndex) {
             var parent_1 = mmCtx.model.parent;
             if (parent_1) {
-                asymId = parent_1.chains.asymId[chains.sourceChainIndex[res.chainIndex[i]]];
+                asymId = parent_1.data.chains.asymId[chains.sourceChainIndex[res.chainIndex[i]]];
             }
             else {
                 asymId = res.asymId[i];
@@ -82,7 +82,7 @@ var SourceCategoryMap = (function () {
         this.context = context;
         this.name = name;
         this.keyColumnName = keyColumnName;
-        this.byKey = new Map();
+        this.byKey = Core.Utils.FastMap.create();
         this.category = void 0;
         var cat = context.data.getCategory(name);
         if (!cat)
@@ -148,18 +148,18 @@ function _entity(context) {
     var f = context.fragment;
     if (!f.entityIndices.length)
         return void 0;
-    var uniqueEntities = new Set();
+    var uniqueEntities = Core.Utils.FastSet.create();
     var entityIndices = [];
     for (var _i = 0, _a = f.entityIndices; _i < _a.length; _i++) {
         var i = _a[_i];
-        var id = context.model.entities.entityId[i];
+        var id = context.model.data.entities.entityId[i];
         if (!uniqueEntities.has(id)) {
             entityIndices.push(i);
             uniqueEntities.add(id);
         }
     }
     entityIndices.sort(function (i, j) { return i - j; });
-    var e = context.model.entities;
+    var e = context.model.data.entities;
     var map = new SourceCategoryMap(context, '_entity', 'id');
     var data = { id: e.entityId, type: e.type, index: entityIndices, map: map };
     var fields = [
@@ -210,10 +210,10 @@ function _exptl(context) {
     };
 }
 function findSecondary(test, context) {
-    if (!context.model.secondaryStructure)
+    if (!context.model.data.secondaryStructure)
         return;
     var starts = [], ends = [], lengths = [], ssIndices = [];
-    var struct = context.model.secondaryStructure.filter(function (s) { return test(s.type); });
+    var struct = context.model.data.secondaryStructure.filter(function (s) { return test(s.type); });
     if (!struct.length)
         return;
     var currentStructure = 0, currentStart = struct[0].startResidueIndex, currentEnd = struct[0].endResidueIndex;
@@ -259,7 +259,7 @@ function _struct_conf(context) {
     var ssIndices = findSecondary(function (t) { return t === helix || t === turn; }, context);
     if (!ssIndices || !ssIndices.starts.length)
         return;
-    var rs = context.model.residues;
+    var rs = context.model.data.residues;
     var data = { indices: ssIndices, residues: rs, index: context.fragment.residueIndices, helixCounter: 0, turnCounter: 0, helix: helix, turn: turn };
     var fields = [
         { name: 'conf_type_id', string: function (data, i) { return data.indices.struct[data.indices.ssIndices[i]].type === data.helix ? 'HELX_P' : 'TURN_P'; } },
@@ -297,7 +297,7 @@ function _struct_sheet_range(context) {
     var ssIndices = findSecondary(function (t) { return t === sheet; }, context);
     if (!ssIndices || !ssIndices.starts.length)
         return;
-    var rs = context.model.residues;
+    var rs = context.model.data.residues;
     var data = { indices: ssIndices, residues: rs, index: context.fragment.residueIndices };
     var fields = [
         { name: 'sheet_id', string: function (data, i) { var val = data.indices.struct[data.indices.ssIndices[i]].info.sheetId; return val !== null && val !== undefined ? '' + val : (i + 1).toString(); } },
@@ -560,7 +560,7 @@ function _pdbx_struct_oper_list(context) {
     };
 }
 function _struct_asym(context) {
-    var data = { index: context.fragment.chainIndices, chains: context.model.chains, parent: context.model.parent };
+    var data = { index: context.fragment.chainIndices, chains: context.model.data.chains, parent: context.model.parent };
     var fields = [
         { name: 'id', string: function (data, i) { return data.chains.asymId[data.index[i]]; } },
         { name: 'pdbx_blank_PDB_chainid_flag', string: function (data, i) { return !data.chains.asymId[data.index[i]] ? 'Y' : 'N'; } },
@@ -570,7 +570,7 @@ function _struct_asym(context) {
             name: 'details', string: function (data, i) {
                 var idx = data.index[i];
                 if (data.chains.sourceChainIndex && data.parent) {
-                    if (data.parent.chains.asymId[data.chains.sourceChainIndex[idx]] !== data.chains.asymId[idx]) {
+                    if (data.parent.data.chains.asymId[data.chains.sourceChainIndex[idx]] !== data.chains.asymId[idx]) {
                         return 'Added by the Coordinate Server';
                     }
                 }
@@ -591,7 +591,7 @@ function _entity_poly(context) {
     var cat = context.data.getCategory('_entity_poly');
     if (!cat)
         return;
-    var entityMap = new Map();
+    var entityMap = Core.Utils.FastMap.create();
     var poly = [];
     var _entity = {
         entity_id: cat.getColumn('entity_id'),
@@ -611,12 +611,12 @@ function _entity_poly(context) {
             pdbx_seq_one_letter_code: _entity.pdbx_seq_one_letter_code.getString(i),
             pdbx_seq_one_letter_code_can: _entity.pdbx_seq_one_letter_code_can.getString(i),
             pdbx_strand_id: '',
-            strand_set: new Set()
+            strand_set: Core.Utils.FastSet.create()
         };
         entityMap.set(eId, e);
         poly.push(e);
     }
-    var chains = context.model.chains;
+    var chains = context.model.data.chains;
     for (var _i = 0, _a = context.fragment.chainIndices; _i < _a.length; _i++) {
         var chain = _a[_i];
         var asymId = chains.authAsymId[chain];
@@ -658,7 +658,7 @@ function _pdbx_struct_mod_residue(context) {
     var info = mmCifContext.modifiedResidues(context);
     if (!info.map.size)
         return;
-    var names = context.model.residues.name;
+    var names = context.model.data.residues.name;
     for (var _i = 0, _a = context.fragment.residueIndices; _i < _a.length; _i++) {
         var res = _a[_i];
         if (!info.names.has(names[res]))
@@ -674,7 +674,7 @@ function _pdbx_struct_mod_residue(context) {
         residues: residues,
         parent_comp_id: cat.getColumn('parent_comp_id'),
         details: cat.getColumn('details'),
-        resTable: context.model.residues
+        resTable: context.model.data.residues
     };
     var fields = [
         { name: 'id', string: function (data, i) { return (i + 1).toString(); } },
@@ -755,10 +755,11 @@ function _atom_site(context) {
     var cat = context.data.getCategory('_atom_site');
     var data = {
         atomIndex: context.fragment.atomIndices,
-        atoms: context.model.atoms,
-        residues: context.model.residues,
-        chains: context.model.chains,
-        entities: context.model.entities,
+        positions: context.model.positions,
+        atoms: context.model.data.atoms,
+        residues: context.model.data.residues,
+        chains: context.model.data.chains,
+        entities: context.model.data.entities,
         modelId: context.model.modelId,
         label_seq_id: cat.getColumn('label_seq_id'),
         Cartn_x_esd: cat.getColumn('Cartn_x_esd'),
@@ -782,9 +783,9 @@ function _atom_site(context) {
         { name: 'label_entity_id', string: function (data, i) { return data.entities.entityId[data.atoms.entityIndex[data.atomIndex[i]]]; } },
         { name: 'label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(); }, number: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]]; }, typedArray: Int32Array, encoder: Context_1.Encoders.ids, presence: function (data, i) { return data.label_seq_id.getValuePresence(data.atomIndex[i]); } },
         { name: 'pdbx_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]]; }, presence: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] ? 0 /* Present */ : 1 /* NotSpecified */; } },
-        { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.atoms.x[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.atoms.x[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
-        { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.atoms.y[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.atoms.y[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
-        { name: 'Cartn_z', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.atoms.z[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.atoms.z[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.positions.x[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.positions.x[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.positions.y[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.positions.y[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
+        { name: 'Cartn_z', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.positions.z[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.positions.z[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
         { name: 'occupancy', string: function (data, i) { return '' + Math.round(100 * data.atoms.occupancy[data.atomIndex[i]]) / 100; }, number: function (data, i) { return data.atoms.occupancy[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: Context_1.Encoders.occupancy },
         { name: 'B_iso_or_equiv', string: function (data, i) { return '' + Math.round(data.bRoundFactor * data.atoms.tempFactor[data.atomIndex[i]]) / data.bRoundFactor; }, number: function (data, i) { return data.atoms.tempFactor[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
         { name: 'pdbx_formal_charge', string: function (data, i) { return data.pdbx_formal_charge.getString(data.atoms.rowIndex[data.atomIndex[i]]); }, presence: function (data, i) { return data.pdbx_formal_charge.getValuePresence(data.atoms.rowIndex[data.atomIndex[i]]); } },

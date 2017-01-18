@@ -499,7 +499,7 @@ declare namespace CIFTools.Binary {
         function by(f: Provider): Encoder;
         function byteArray(data: Encoding.FloatArray | Encoding.IntArray): Result;
         function fixedPoint(factor: number): Provider;
-        function intervalQuantizaiton(min: number, max: number, numSteps: number): Provider;
+        function intervalQuantizaiton(min: number, max: number, numSteps: number, arrayType?: new (size: number) => Encoding.IntArray): Provider;
         function runLength(data: Encoding.IntArray): Result;
         function delta(data: Int8Array | Int16Array | Int32Array): Result;
         /**
@@ -1510,10 +1510,13 @@ declare namespace __LiteMolRx {
         shareReplay(bufferSize?: number, window?: number, scheduler?: IScheduler): Observable<T>;
     }
 }
-declare namespace LiteMol.Core {
-    export import Rx = __LiteMolRx;
+declare namespace LiteMol {
     type Promise<T> = __Promise.Promise<T>;
     const Promise: typeof __Promise.Promise;
+}
+declare namespace LiteMol.Core {
+    export import Rx = __LiteMolRx;
+    export import Promise = LiteMol.Promise;
     namespace Formats {
         export import CIF = CIFTools;
     }
@@ -1525,48 +1528,70 @@ declare namespace LiteMol.Core {
     };
 }
 declare namespace LiteMol.Core {
+    function computation<A>(c: (ctx: Computation.Context) => Promise<A>): Computation<A>;
     class Computation<A> {
         private computation;
-        bind<B>(next: (r: A) => Computation<B>): Computation<B>;
-        map<B>(f: (r: A) => B): Computation<{}>;
-        run(ctx?: Computation.Context<A>): Computation.RunningComputation<A>;
-        constructor(computation: (ctx: Computation.Context<A>) => void);
+        run(ctx?: Computation.Context): __Promise.Promise<A>;
+        runWithContext(ctx?: Computation.Context): Computation.Running<A>;
+        constructor(computation: (ctx: Computation.Context) => Promise<A>);
     }
     module Computation {
-        function create<A>(computation: (ctx: Context<A>) => void): Computation<A>;
-        function resolve<A>(a: A): Computation<{}>;
-        function schedule<T>(ctx: Context<any>, f: () => T, afterMs?: number): __Promise.Promise<T>;
-        interface ProgressInfo {
+        function resolve<A>(a: A): Computation<A>;
+        function reject<A>(reason: any): Computation<A>;
+        function createContext(): Computation.Context;
+        const Aborted = "Aborted";
+        const UpdateProgressDelta = 100;
+        interface Progress {
             message: string;
             isIndeterminate: boolean;
             current: number;
             max: number;
             requestAbort?: () => void;
         }
-        class Context<A> {
-            schedule(action: () => void, afterMs?: number): void;
-            private _abortRequested;
-            readonly abortRequested: boolean;
-            setRequestAbort(abort?: () => void): void;
-            private _abortRequest;
-            readonly abortRequest: () => boolean;
-            private progressTick;
-            private progress;
-            progressStream: Rx.BehaviorSubject<ProgressInfo>;
-            update(msg: string, abort?: () => void, current?: number, max?: number): void;
-            private promiseStack;
-            __push(resolve: (r: A) => void, reject: (err: any) => void): void;
-            private _resolve(result);
-            private _reject(err);
-            resolve: any;
-            reject: any;
-            abort(): void;
-            constructor();
+        interface Context {
+            progress: Rx.Observable<Progress>;
+            requestAbort(): void;
+            /**
+             * Checks if the computation was aborted. If so, throws.
+             * Otherwise, updates the progress.
+             */
+            updateProgress(msg: string, abort?: boolean | (() => void), current?: number, max?: number): void;
         }
-        interface RunningComputation<A> {
-            progress: Rx.Observable<ProgressInfo>;
+        interface Running<A> {
+            progress: Rx.Observable<Progress>;
             result: Promise<A>;
         }
+    }
+}
+declare namespace LiteMol.Core.Utils {
+    interface FastMap<K extends string | number, V> {
+        readonly size: number;
+        set(key: K, v: V): void;
+        get(key: K): V | undefined;
+        delete(key: K): boolean;
+        has(key: K): boolean;
+        clear(): void;
+        forEach<Context>(f: (value: V, key: K, ctx?: Context) => void, ctx?: Context): void;
+    }
+    interface MapLike<K extends string | number, V> {
+        get(key: K): V | undefined;
+        has(key: K): boolean;
+    }
+    interface FastSet<T extends string | number> {
+        readonly size: number;
+        add(key: T): boolean;
+        delete(key: T): boolean;
+        has(key: T): boolean;
+        clear(): void;
+        forEach<Context>(f: (key: T, ctx?: Context) => void, ctx?: Context): void;
+    }
+    namespace FastMap {
+        function create<K extends string | number, V>(): FastMap<K, V>;
+        function of<K extends string | number, V>(data: (K | V)[][]): FastMap<K, V>;
+    }
+    namespace FastSet {
+        function create<T extends string | number>(): FastSet<T>;
+        function of(xs: (string | number)[]): FastSet<string | number>;
     }
 }
 declare namespace LiteMol.Core.Utils {
@@ -1575,7 +1600,52 @@ declare namespace LiteMol.Core.Utils {
     function debounce<T>(func: () => T, wait: number): () => T;
 }
 declare namespace LiteMol.Core.Utils {
-    function integerSetToSortedTypedArray(set: Set<number>): number[];
+    type DataTable<Schema> = DataTable.Base<Schema> & DataTable.Columns<Schema>;
+    module DataTable {
+        type Definition<Schema> = {
+            [T in keyof Schema]: ((size: number) => Schema[T][]) | undefined;
+        };
+        type Columns<Schema> = {
+            readonly [P in keyof Schema]: Schema[P][];
+        };
+        interface ColumnDescriptor<Schema> {
+            name: keyof Schema;
+            creator: (size: number) => any;
+        }
+        type TypedArrayContructor = Float32ArrayConstructor | Float64ArrayConstructor | Int32ArrayConstructor | Uint32ArrayConstructor | Int16ArrayConstructor | Uint16ArrayConstructor | Int8ArrayConstructor | Uint8ArrayConstructor;
+        function typedColumn(t: TypedArrayContructor): (size: number) => number[];
+        function customColumn<T>(): (size: number) => T[];
+        const stringColumn: (size: number) => string[];
+        const stringNullColumn: (size: number) => (string | null)[];
+        interface Base<Schema> {
+            count: number;
+            indices: number[];
+            columns: ColumnDescriptor<Schema>[];
+            getBuilder(count: number): Builder<Schema>;
+            getRawData(): any[][];
+            /**
+             * Get a MUTABLE representation of a row.
+             * Calling getRow() with differnt 'i' will change update old reference.
+             */
+            getRow(i: number): Schema;
+        }
+        interface Builder<Schema> {
+            count: number;
+            columns: ColumnDescriptor<Schema>[];
+            addColumn<T>(name: keyof Schema, creator: (size: number) => T): T;
+            getRawData(): any[][];
+            /**
+             * This functions clones the table and defines all its column inside the constructor, hopefully making the JS engine
+             * use internal class instead of dictionary representation.
+             */
+            seal(): DataTable<Schema>;
+        }
+        function builder<Schema>(count: number): Builder<Schema>;
+        function ofDefinition<Schema>(definition: Definition<Schema>, count: number): DataTable<Schema>;
+    }
+}
+declare namespace LiteMol.Core.Utils {
+    function integerSetToSortedTypedArray(set: FastSet<number>): number[];
     /**
      * A a JS native array with the given size.
      */
@@ -1607,12 +1677,12 @@ declare namespace LiteMol.Core.Utils {
         function add2<T>(array: ChunkedArray<T>, x: T, y: T): number;
         function add<T>(array: ChunkedArray<T>, x: T): number;
         function compact<T>(array: ChunkedArray<T>): T[];
-        function forVertex3D<T>(chunkVertexCount?: number): ChunkedArray<number>;
-        function forIndexBuffer<T>(chunkIndexCount?: number): ChunkedArray<number>;
-        function forTokenIndices<T>(chunkTokenCount?: number): ChunkedArray<number>;
-        function forIndices<T>(chunkTokenCount?: number): ChunkedArray<number>;
-        function forInt32<T>(chunkSize?: number): ChunkedArray<number>;
-        function forFloat32<T>(chunkSize?: number): ChunkedArray<number>;
+        function forVertex3D(chunkVertexCount?: number): ChunkedArray<number>;
+        function forIndexBuffer(chunkIndexCount?: number): ChunkedArray<number>;
+        function forTokenIndices(chunkTokenCount?: number): ChunkedArray<number>;
+        function forIndices(chunkTokenCount?: number): ChunkedArray<number>;
+        function forInt32(chunkSize?: number): ChunkedArray<number>;
+        function forFloat32(chunkSize?: number): ChunkedArray<number>;
         function forArray<T>(chunkSize?: number): ChunkedArray<T>;
         function create<T>(creator: (size: number) => any, chunkElementCount: number, elementSize: number): ChunkedArray<T>;
     }
@@ -1658,11 +1728,12 @@ declare namespace LiteMol.Core.Formats {
         shortcuts: string[];
         extensions: string[];
         isBinary?: boolean;
-        parse: (data: string | ArrayBuffer, params?: {
-            id?: string;
-        }) => Computation<ParserResult<any>>;
+        parse: (data: string | ArrayBuffer, params?: FormatInfo.Params) => Computation<ParserResult<any>>;
     }
     namespace FormatInfo {
+        type Params = {
+            id?: string;
+        };
         function is(o: any): o is FormatInfo;
         function fromShortcut(all: FormatInfo[], name: string): FormatInfo | undefined;
         function formatRegExp(info: FormatInfo): RegExp;
@@ -1702,7 +1773,9 @@ declare namespace LiteMol.Core.Formats {
     /**
      * This ensures there is only 1 instance of a short string.
      */
-    type ShortStringPool = Map<string, string>;
+    type ShortStringPool = {
+        [key: string]: string;
+    };
     namespace ShortStringPool {
         function create(): ShortStringPool;
         function get(pool: ShortStringPool, str: string): string;
@@ -1719,7 +1792,7 @@ declare namespace LiteMol.Core.Formats.Molecule.PDB {
     type HelperData = {
         dot: TokenRange;
         question: TokenRange;
-        numberTokens: Map<number, TokenRange>;
+        numberTokens: Utils.FastMap<number, TokenRange>;
         data: string;
     };
     class MoleculeData {
@@ -1773,15 +1846,12 @@ declare namespace LiteMol.Core.Formats.Molecule.PDB {
 }
 declare namespace LiteMol.Core.Formats.Molecule.PDB {
     class Parser {
-        id: string;
-        private data;
         private static tokenizeAtom(tokens, tokenizer);
         private static tokenize(id, data);
         static getDotRange(length: number): TokenRange;
-        static getNumberRanges(length: number): Map<number, TokenRange>;
+        static getNumberRanges(length: number): Utils.FastMap<number, TokenRange>;
         static getQuestionmarkRange(length: number): TokenRange;
         static parse(id: string, data: string): ParserResult<CIF.File>;
-        constructor(id: string, data: string);
     }
     function toCifFile(id: string, data: string): ParserResult<CIF.File>;
 }
@@ -2163,65 +2233,99 @@ declare namespace LiteMol.Core.Geometry.MolecularSurface {
     }
     function createMolecularIsoFieldAsync(parameters: MolecularSurfaceInputParameters): Computation<MolecularIsoField>;
     interface MolecularSurfaceInputParameters {
-        positions: Core.Structure.PositionTableSchema;
+        positions: Core.Structure.PositionTable;
         atomIndices: number[];
         parameters?: MolecularIsoSurfaceParameters;
     }
     function computeMolecularSurfaceAsync(parameters: MolecularSurfaceInputParameters): Computation<MolecularIsoSurfaceGeometryData>;
 }
 declare namespace LiteMol.Core.Structure {
-    class DataTableColumnDescriptor {
+    import DataTable = Utils.DataTable;
+    interface Position {
+        x: number;
+        y: number;
+        z: number;
+    }
+    interface Atom {
+        id: number;
         name: string;
-        creator: (size: number) => any;
-        constructor(name: string, creator: (size: number) => any);
+        authName: string;
+        elementSymbol: string;
+        altLoc: string | null;
+        occupancy: number;
+        tempFactor: number;
+        residueIndex: number;
+        chainIndex: number;
+        entityIndex: number;
+        rowIndex: number;
     }
-    class DataTable {
-        count: number;
-        indices: number[];
-        columns: DataTableColumnDescriptor[];
-        getBuilder(count: number): DataTableBuilder;
-        getRawData(): any[][];
-        constructor(count: number, srcColumns: DataTableColumnDescriptor[], srcData: {
-            [name: string]: any;
-        });
+    interface Residue {
+        name: string;
+        seqNumber: number;
+        asymId: string;
+        authName: string;
+        authSeqNumber: number;
+        authAsymId: string;
+        insCode: string | null;
+        entityId: string;
+        isHet: number;
+        atomStartIndex: number;
+        atomEndIndex: number;
+        chainIndex: number;
+        entityIndex: number;
+        secondaryStructureIndex: number;
     }
-    class DataTableBuilder {
-        count: number;
-        columns: DataTableColumnDescriptor[];
-        addColumn<T>(name: string, creator: (size: number) => T): T;
-        getRawData(): any[][];
-        /**
-         * This functions clones the table and defines all its column inside the constructor, hopefully making the JS engine
-         * use internal class instead of dictionary representation.
-         */
-        seal<TTable extends DataTable>(): TTable;
-        constructor(count: number);
+    interface Chain {
+        asymId: string;
+        authAsymId: string;
+        entityId: string;
+        atomStartIndex: number;
+        atomEndIndex: number;
+        residueStartIndex: number;
+        residueEndIndex: number;
+        entityIndex: number;
+        sourceChainIndex: number;
+        operatorIndex: number;
     }
-    enum EntityType {
-        Polymer = 0,
-        NonPolymer = 1,
-        Water = 2,
-        Unknown = 3,
+    interface Entity {
+        entityId: string;
+        atomStartIndex: number;
+        atomEndIndex: number;
+        residueStartIndex: number;
+        residueEndIndex: number;
+        chainStartIndex: number;
+        chainEndIndex: number;
+        type: Entity.Type;
     }
-    const enum BondType {
-        Unknown = 0,
-        Single = 1,
-        Double = 2,
-        Triple = 3,
-        Aromatic = 4,
-        Metallic = 5,
-        Ion = 6,
-        Hydrogen = 7,
-        DisulfideBridge = 8,
+    namespace Entity {
+        type Type = 'polymer' | 'non-polymer' | 'water' | 'unknown';
+    }
+    interface Bond {
+        atomAIndex: number;
+        atomBIndex: number;
+        type: Bond.Type;
+    }
+    namespace Bond {
+        const enum Type {
+            Unknown = 0,
+            Single = 1,
+            Double = 2,
+            Triple = 3,
+            Aromatic = 4,
+            Metallic = 5,
+            Ion = 6,
+            Hydrogen = 7,
+            DisulfideBridge = 8,
+        }
     }
     class ComponentBondInfoEntry {
         id: string;
-        map: Map<string, Map<string, BondType>>;
-        add(a: string, b: string, order: BondType, swap?: boolean): void;
+        map: Utils.FastMap<string, Utils.FastMap<string, Bond.Type>>;
+        add(a: string, b: string, order: Bond.Type, swap?: boolean): void;
         constructor(id: string);
     }
     class ComponentBondInfo {
-        entries: Map<string, ComponentBondInfoEntry>;
+        entries: Utils.FastMap<string, ComponentBondInfoEntry>;
         newEntry(id: string): ComponentBondInfoEntry;
     }
     /**
@@ -2299,210 +2403,77 @@ declare namespace LiteMol.Core.Structure {
             [id: string]: AssemblyOperator;
         }, assemblies: AssemblyGen[]);
     }
-    interface PositionTableSchema extends DataTable {
-        x: number[];
-        y: number[];
-        z: number[];
-    }
-    interface DefaultAtomTableSchema extends DataTable {
-        id: number[];
-        name: string[];
-        authName: string[];
-        elementSymbol: string[];
-        x: number[];
-        y: number[];
-        z: number[];
-        altLoc: (string | null)[];
-        occupancy: number[];
-        tempFactor: number[];
-        rowIndex: number[];
-        residueIndex: number[];
-        chainIndex: number[];
-        entityIndex: number[];
-    }
-    interface DefaultResidueTableSchema extends DataTable {
-        name: string[];
-        seqNumber: number[];
-        asymId: string[];
-        authName: string[];
-        authSeqNumber: number[];
-        authAsymId: string[];
-        insCode: (string | null)[];
-        entityId: string[];
-        isHet: number[];
-        atomStartIndex: number[];
-        atomEndIndex: number[];
-        chainIndex: number[];
-        entityIndex: number[];
-        secondaryStructureIndex: number[];
-    }
-    interface DefaultChainTableSchema extends DataTable {
-        asymId: string[];
-        authAsymId: string[];
-        entityId: string[];
-        atomStartIndex: number[];
-        atomEndIndex: number[];
-        residueStartIndex: number[];
-        residueEndIndex: number[];
-        entityIndex: number[];
-        sourceChainIndex?: number[];
-        operatorIndex?: number[];
-    }
-    interface DefaultEntityTableSchema extends DataTable {
-        entityId: string[];
-        entityType: EntityType[];
-        atomStartIndex: number[];
-        atomEndIndex: number[];
-        residueStartIndex: number[];
-        residueEndIndex: number[];
-        chainStartIndex: number[];
-        chainEndIndex: number[];
-        type: string[];
-    }
-    interface DefaultBondTableSchema extends DataTable {
-        atomAIndex: number[];
-        atomBIndex: number[];
-        type: BondType[];
-    }
+    type PositionTable = DataTable<Position>;
+    type AtomTable = DataTable<Atom>;
+    type ResidueTable = DataTable<Residue>;
+    type ChainTable = DataTable<Chain>;
+    type EntityTable = DataTable<Entity>;
+    type BondTable = DataTable<Bond>;
     /**
      * Default Builders
      */
-    namespace DefaultDataTables {
-        function forAtoms(count: number): {
-            table: DefaultAtomTableSchema;
-            columns: {
-                id: Int32Array;
-                x: Float32Array;
-                y: Float32Array;
-                z: Float32Array;
-                altLoc: never[];
-                rowIndex: Int32Array;
-                residueIndex: Int32Array;
-                chainIndex: Int32Array;
-                entityIndex: Int32Array;
-                name: string[];
-                elementSymbol: string[];
-                occupancy: Float32Array;
-                tempFactor: Float32Array;
-                authName: string[];
-            };
-        };
-        function forResidues(count: number): {
-            table: DefaultResidueTableSchema;
-            columns: {
-                name: string[];
-                seqNumber: Int32Array;
-                asymId: string[];
-                authName: string[];
-                authSeqNumber: Int32Array;
-                authAsymId: string[];
-                insCode: (string | null)[];
-                entityId: string[];
-                isHet: Int8Array;
-                atomStartIndex: Int32Array;
-                atomEndIndex: Int32Array;
-                chainIndex: Int32Array;
-                entityIndex: Int32Array;
-                secondaryStructureIndex: Int32Array;
-            };
-        };
-        function forChains(count: number): {
-            table: DefaultChainTableSchema;
-            columns: {
-                asymId: string[];
-                entityId: string[];
-                authAsymId: string[];
-                atomStartIndex: Int32Array;
-                atomEndIndex: Int32Array;
-                residueStartIndex: Int32Array;
-                residueEndIndex: Int32Array;
-                entityIndex: Int32Array;
-            };
-        };
-        function forEntities(count: number): {
-            table: DefaultEntityTableSchema;
-            columns: {
-                entityId: string[];
-                entityType: EntityType[];
-                type: string[];
-                atomStartIndex: Int32Array;
-                atomEndIndex: Int32Array;
-                residueStartIndex: Int32Array;
-                residueEndIndex: Int32Array;
-                chainStartIndex: Int32Array;
-                chainEndIndex: Int32Array;
-            };
-        };
-        function forBonds(count: number): {
-            table: DefaultBondTableSchema;
-            columns: {
-                atomAIndex: Int32Array;
-                atomBIndex: Int32Array;
-                type: Int8Array;
-            };
-        };
-    }
-    enum MoleculeModelSource {
-        File = 0,
-        Computed = 1,
+    namespace Tables {
+        const Positions: DataTable.Definition<Position>;
+        const Atoms: DataTable.Definition<Atom>;
+        const Residues: DataTable.Definition<Residue>;
+        const Chains: DataTable.Definition<Chain>;
+        const Entities: DataTable.Definition<Entity>;
+        const Bonds: DataTable.Definition<Bond>;
     }
     class Operator {
         matrix: number[];
         id: string;
         isIdentity: boolean;
         apply(v: Geometry.LinearAlgebra.ObjectVec3): void;
-        static applyToModelUnsafe(matrix: number[], m: MoleculeModel): void;
+        static applyToModelUnsafe(matrix: number[], m: Molecule.Model): void;
         constructor(matrix: number[], id: string, isIdentity: boolean);
     }
-    interface MoleculeModelData {
-        id: string;
-        modelId: string;
-        atoms: DefaultAtomTableSchema;
-        residues: DefaultResidueTableSchema;
-        chains: DefaultChainTableSchema;
-        entities: DefaultEntityTableSchema;
-        covalentBonds?: DefaultBondTableSchema;
-        nonCovalentbonds?: DefaultBondTableSchema;
-        componentBonds?: ComponentBondInfo;
-        secondaryStructure: SecondaryStructureElement[];
-        symmetryInfo?: SymmetryInfo;
-        assemblyInfo?: AssemblyInfo;
-        parent?: MoleculeModel;
-        source: MoleculeModelSource;
-        operators?: Operator[];
+    interface Molecule {
+        readonly properties: Molecule.Properties;
+        readonly id: string;
+        readonly models: Molecule.Model[];
     }
-    class MoleculeModel implements MoleculeModelData {
-        private _queryContext;
-        id: string;
-        modelId: string;
-        atoms: DefaultAtomTableSchema;
-        residues: DefaultResidueTableSchema;
-        chains: DefaultChainTableSchema;
-        entities: DefaultEntityTableSchema;
-        covalentBonds?: DefaultBondTableSchema;
-        nonCovalentbonds?: DefaultBondTableSchema;
-        componentBonds?: ComponentBondInfo;
-        secondaryStructure: SecondaryStructureElement[];
-        symmetryInfo?: SymmetryInfo;
-        assemblyInfo?: AssemblyInfo;
-        parent?: MoleculeModel;
-        source: MoleculeModelSource;
-        operators?: Operator[];
-        readonly queryContext: Query.Context;
-        query(q: Query.Source): Query.FragmentSeq;
-        constructor(data: MoleculeModelData);
-    }
-    interface MoleculeProperties {
-        experimentMethod?: string;
-    }
-    class Molecule {
-        id: string;
-        models: MoleculeModel[];
-        properties: MoleculeProperties;
-        constructor(id: string, models: MoleculeModel[], properties?: MoleculeProperties);
-    }
-    namespace MoleculeModel {
-        function withTransformedXYZ<T>(model: MoleculeModel, ctx: T, transform: (ctx: T, x: number, y: number, z: number, out: Geometry.LinearAlgebra.ObjectVec3) => void): MoleculeModel;
+    namespace Molecule {
+        function create(id: string, models: Model[], properties?: Properties): Molecule;
+        interface Properties {
+            experimentMethod?: string;
+        }
+        interface Bonds {
+            covalent?: BondTable;
+            nonCovalent?: BondTable;
+            computed?: BondTable;
+            readonly component?: ComponentBondInfo;
+        }
+        interface Model extends Model.Base {
+            readonly queryContext: Query.Context;
+        }
+        namespace Model {
+            function create(model: Base): Model;
+            enum Source {
+                File = 0,
+                Computed = 1,
+            }
+            interface Base {
+                readonly id: string;
+                readonly modelId: string;
+                readonly positions: PositionTable;
+                readonly data: Data;
+                readonly source: Source;
+                readonly parent?: Model;
+                readonly operators?: Operator[];
+            }
+            interface Data {
+                readonly atoms: AtomTable;
+                readonly residues: ResidueTable;
+                readonly chains: ChainTable;
+                readonly entities: EntityTable;
+                readonly bonds: Bonds;
+                readonly secondaryStructure: SecondaryStructureElement[];
+                readonly symmetryInfo?: SymmetryInfo;
+                readonly assemblyInfo?: AssemblyInfo;
+            }
+            function withTransformedXYZ<T>(model: Model, ctx: T, transform: (ctx: T, x: number, y: number, z: number, out: Geometry.LinearAlgebra.ObjectVec3) => void): Model;
+        }
     }
 }
 declare namespace LiteMol.Core.Structure {
@@ -2529,9 +2500,9 @@ declare namespace LiteMol.Core.Structure {
     }
 }
 declare namespace LiteMol.Core.Structure {
-    function buildPivotGroupSymmetry(model: MoleculeModel, radius: number, pivotsQuery?: Query.Source): MoleculeModel;
-    function buildSymmetryMates(model: MoleculeModel, radius: number): MoleculeModel;
-    function buildAssembly(model: MoleculeModel, assembly: AssemblyGen): MoleculeModel;
+    function buildPivotGroupSymmetry(model: Molecule.Model, radius: number, pivotsQuery?: Query.Source): Molecule.Model;
+    function buildSymmetryMates(model: Molecule.Model, radius: number): Molecule.Model;
+    function buildAssembly(model: Molecule.Model, assembly: AssemblyGen): Molecule.Model;
 }
 declare namespace LiteMol.Core.Structure {
     /**
@@ -2539,6 +2510,7 @@ declare namespace LiteMol.Core.Structure {
      */
     type Query = (ctx: Query.Context) => Query.FragmentSeq;
     namespace Query {
+        function apply(q: Source, m: Molecule.Model): FragmentSeq;
         type Source = Query | string | Builder;
         /**
          * The context of a query.
@@ -2563,7 +2535,7 @@ declare namespace LiteMol.Core.Structure {
             /**
              * The structure this context is based on.
              */
-            structure: MoleculeModel;
+            structure: Molecule.Model;
             /**
              * Get a kd-tree for the atoms in the current context.
              */
@@ -2579,7 +2551,7 @@ declare namespace LiteMol.Core.Structure {
             /**
              * Create a new context based on the provide structure.
              */
-            static ofStructure(structure: MoleculeModel): Context;
+            static ofStructure(structure: Molecule.Model): Context;
             /**
              * Create a new context from a sequence of fragments.
              */
@@ -2587,8 +2559,8 @@ declare namespace LiteMol.Core.Structure {
             /**
              * Create a new context from a sequence of fragments.
              */
-            static ofAtomIndices(structure: MoleculeModel, atomIndices: number[]): Context;
-            constructor(structure: MoleculeModel, mask: Context.Mask);
+            static ofAtomIndices(structure: Molecule.Model, atomIndices: number[]): Context;
+            constructor(structure: Molecule.Model, mask: Context.Mask);
             private makeTree();
         }
         namespace Context {
@@ -2600,8 +2572,8 @@ declare namespace LiteMol.Core.Structure {
                 has(i: number): boolean;
             }
             module Mask {
-                function ofStructure(structure: MoleculeModel): Mask;
-                function ofIndices(structure: MoleculeModel, atomIndices: number[]): Mask;
+                function ofStructure(structure: Molecule.Model): Mask;
+                function ofIndices(structure: Molecule.Model, atomIndices: number[]): Mask;
                 function ofFragments(seq: FragmentSeq): Mask;
             }
         }
@@ -2675,7 +2647,7 @@ declare namespace LiteMol.Core.Structure {
              * Create a fragment from an integer set.
              * Assumes the set is in the given context's mask.
              */
-            static ofSet(context: Context, atomIndices: Set<number>): Fragment;
+            static ofSet(context: Context, atomIndices: Utils.FastSet<number>): Fragment;
             /**
              * Create a fragment from an integer array.
              * Assumes the set is in the given context's mask.
@@ -2818,16 +2790,16 @@ declare namespace LiteMol.Core.Structure.Query {
      */
     namespace Compiler {
         function compileEverything(): (ctx: Context) => FragmentSeq;
-        function compileAtoms(elements: string[] | number[], sel: (model: Structure.MoleculeModel) => string[] | number[]): (ctx: Context) => FragmentSeq;
+        function compileAtoms(elements: string[] | number[], sel: (model: Structure.Molecule.Model) => string[] | number[]): (ctx: Context) => FragmentSeq;
         function compileAtomIndices(indices: number[]): (ctx: Context) => FragmentSeq;
-        function compileFromIndices(complement: boolean, indices: number[], tableProvider: (molecule: Structure.MoleculeModel) => {
+        function compileFromIndices(complement: boolean, indices: number[], tableProvider: (molecule: Structure.Molecule.Model) => {
             atomStartIndex: number[];
             atomEndIndex: number[];
-        } & Structure.DataTable): Query;
-        function compileAtomRanges(complement: boolean, ids: ResidueIdSchema[], tableProvider: (molecule: Structure.MoleculeModel) => {
+        } & Utils.DataTable<any>): Query;
+        function compileAtomRanges(complement: boolean, ids: ResidueIdSchema[], tableProvider: (molecule: Structure.Molecule.Model) => {
             atomStartIndex: number[];
             atomEndIndex: number[];
-        } & Structure.DataTable): Query;
+        } & Utils.DataTable<any>): Query;
         function compileSequence(seqEntityId: string, seqAsymId: string | AsymIdSchema, start: ResidueIdSchema, end: ResidueIdSchema): Query;
         function compileHetGroups(): Query;
         function compileNonHetPolymer(): Query;

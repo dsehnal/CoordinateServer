@@ -1,7 +1,7 @@
 ﻿import * as Core from 'LiteMol-core'
 
 export class Model {
-    constructor(public model: Core.Structure.MoleculeModel) {
+    constructor(public model: Core.Structure.Molecule.Model) {
     }
 }
 

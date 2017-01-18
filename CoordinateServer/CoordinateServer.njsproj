@@ -163,8 +163,8 @@
   </ProjectExtensions>
   <PropertyGroup>
     <PreBuildEvent>
-      copy $(ProjectDir)..\..\LiteMol\dist\LiteMol-core.js $(ProjectDir)node_modules\LiteMol-core.js
-      copy $(ProjectDir)..\..\LiteMol\dist\LiteMol-core.d.ts $(ProjectDir)src\typings\LiteMol-core.d.ts
+      copy $(ProjectDir)..\..\LiteMol\dist\js\LiteMol-core.js $(ProjectDir)node_modules\LiteMol-core.js
+      copy $(ProjectDir)..\..\LiteMol\dist\js\LiteMol-core.d.ts $(ProjectDir)src\typings\LiteMol-core.d.ts
     </PreBuildEvent>
   </PropertyGroup>
 </Project>
