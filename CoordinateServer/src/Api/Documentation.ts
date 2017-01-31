@@ -131,7 +131,7 @@ function createDocumentationHTML(appPrefix: string) {
         html.push(`</div>`);
     }
    
-    html.push(`<div style='color: #999;font-size:smaller;margin: 20px 0; text-align: right'>&copy; 2016 David Sehnal | LiteMol Core ${Core.VERSION.number} - ${Core.VERSION.date}, Node ${process.version}</div>`);
+    html.push(`<div style='color: #999;font-size:smaller;margin: 20px 0; text-align: right'>&copy; 2016 &ndash; now, David Sehnal | LiteMol Core ${Core.VERSION.number} - ${Core.VERSION.date} | Node ${process.version}</div>`);
     
 
     html.push(
