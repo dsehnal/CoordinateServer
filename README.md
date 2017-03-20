@@ -23,7 +23,7 @@ There is an instance of the server at the [WebChemDev](https://webchemdev.ncbr.m
     ```
     git clone https://github.com/dsehnal/CoordinateServer.git
     ```
-    or [download it as ZIP](https://github.com/dsehnal/CoordinateServer/archive/master.zip). No building is required, only the `build` folder in the archive is needed.
+    or [download it as ZIP](https://github.com/dsehnal/CoordinateServer/archive/master.zip). No building is required, only the `build` folder and the ``package.json`` file in the archive are needed.
 
 - ``"cd CoordinateServer"``
 
