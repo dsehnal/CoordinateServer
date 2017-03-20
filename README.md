@@ -38,7 +38,7 @@ There is an instance of the server at the [WebChemDev](https://webchemdev.ncbr.m
     * Edit the `appPrefix`. This determines the prefix of the server after the domain name, for example ``appPrefix: 'CoordinateServer'`` => ``http://localhost:PORT/CoordinateServer``.
     * Map to your mmCIF files.
     * Setup cache.
-    * Setup server restarts.
+    * Setup server restarts (this requires [forever.js](https://github.com/foreverjs/forever) or a similar tool to work). This is because of a [flaw in Node.js/v8](https://github.com/nodejs/node/issues/8670).
 
 - Run it:
     ```
