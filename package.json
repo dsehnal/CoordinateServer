@@ -1,0 +1,29 @@
+{
+  "name": "coordinate-server",
+  "version": "1.4.0",
+  "description": "A server for efficiently accessing macromolecular data.",
+  "scripts": {},
+  "main": "",
+  "author": "David Sehnal <david.sehnal@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dsehnal/CoordinateServer"
+  },
+  "bugs": {
+    "url": "https://github.com/dsehnal/CoordinateServer/issues"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/compression": "0.0.33",
+    "@types/express": "^4.0.35",
+    "@types/node": "0.0.2",
+    "gulp": "^3.9.1",
+    "gulp-clean": "^0.3.2",
+    "gulp-typescript": "^3.1.5",
+    "typescript": "^2.2.1"
+  },
+  "dependencies": {
+    "compression": "^1.6.2",
+    "express": "^4.14.0"
+  }
+}
