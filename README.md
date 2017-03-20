@@ -12,8 +12,6 @@ The application is written in [TypeScript](https://www.typescriptlang.org/) on t
 
 There is an instance of the server at the [WebChemDev](https://webchemdev.ncbr.muni.cz/CoordinateServer/) and PDBe.
 
-
-
 # Running the Server 
 
 **The server currently only works on [mmCIF](http://mmcif.wwpdb.org/) files.**
@@ -62,7 +60,7 @@ run
 It is recommended that you split queries of larger data sets into jobs that contain
 no more than 10000 entities.
 
-#### Job entry template
+### Job entry template
 
 The ``jobs.json`` file needs with specify a list of jobs using this template:
 
@@ -106,3 +104,7 @@ web for the API documentation.
     ```
     gulp
     ```
+
+# License
+
+This project is licensed under the Apache 2.0 license. See the [LICENSE](https://github.com/dsehnal/CoordinateServer/blob/master/LICENSE) file for more info.
