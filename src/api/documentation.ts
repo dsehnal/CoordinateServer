@@ -60,8 +60,21 @@ function createDocumentationHTML(appPrefix: string) {
 
     html.push(`<div style='text-align: center; margin-top: 48px'><img style='max-width: 100%' src='${logoData}' alt='Coordinate Server' /></div>`);
     html.push(`<div style='text-align: center; margin-top: 12px;'><span style='font-weight: bold'>${ApiVersion}</span>, powered by <a href='https://github.com/dsehnal/LiteMol' target='_blank' style='font-weight: bold; color: black'>LiteMol</a></div>`);
-    html.push(`<div style='text-align: justify; padding: 24px 0; border-bottom: 1px solid #eee'>CoordinateServer is a fast, web-based tool for returning a subset of mmCIF coordinate data for a PDB entry held in the PDB archive. The server is able to return the specific portions of the structure that are relevant, as specified in your query. For example, the coordinates of the atoms within a 5Å radius around the ligand binding site, including symmetry mates. As a result, it greatly reduces the time needed to transmit and manipulate the data.</div>`);
-
+    html.push(
+`<div style='text-align: justify; padding: 24px 0; border-bottom: 1px solid #eee'>
+    <p>
+        CoordinateServer is a fast, web-based tool for returning a subset of mmCIF coordinate data for a PDB entry held in the PDB archive. 
+        The server is able to return the specific portions of the structure that are relevant, as specified in your query. For example, the coordinates 
+        of the atoms within a 5Å radius around the ligand binding site, including symmetry mates. As a result, it greatly reduces the time needed 
+        to transmit and manipulate the data.
+    </p>
+    <p>
+        The server uses the text based <a href='https://en.wikipedia.org/wiki/Crystallographic_Information_File'>CIF</a> and binary 
+        <a href='https://github.com/dsehnal/BinaryCIF' style='font-weight: bold'>BinaryCIF</a> 
+        formats to deliver the data to the client. 
+        The server support is integrated into the <a href='https://github.com/dsehnal/LiteMol' style='font-weight: bold'>LiteMol Viewer</a>.
+    </p>
+</div>`);
     
     for (let entry of Queries.QueryList) {
         let id = entry.name;

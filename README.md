@@ -10,7 +10,7 @@ As a result, it greatly reduces the time needed to transmit and manipulate the d
 The application is written in [TypeScript](https://www.typescriptlang.org/) on top of the
 [LiteMol](https://github.com/dsehnal/LiteMol) and [CIFTools.js](https://github.com/dsehnal/CIFTools.js) libraries. 
 
-There is an instance of the server at the [WebChemDev](https://webchemdev.ncbr.muni.cz/CoordinateServer/) and PDBe.
+There is an instance of the server at the [WebChem](https://webchem.ncbr.muni.cz/CoordinateServer/) and PDBe.
 
 # Running the Server 
 
