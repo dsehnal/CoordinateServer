@@ -50,6 +50,9 @@ There is an instance of the server at the [WebChem](https://webchem.ncbr.muni.cz
 
     In production it is a good idea to use a service that will keep the server running, such as [forever.js](https://github.com/foreverjs/forever).
 
+    Depending on the use case of the server, it might be a good idea to enable response caching on your server 
+    (for example Apache's [mod_cache](https://httpd.apache.org/docs/2.4/mod/mod_cache.html) and [mod_cache_disk](https://httpd.apache.org/docs/2.4/mod/mod_cache_disk.html)).
+
 # Command Line Mode
 
 Create one or more `jobs.json` files (refer to `examplejobs.json` for the template or see below) and 
