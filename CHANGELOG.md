@@ -1,4 +1,7 @@
-﻿# 1.4.0
+﻿# 1.4.1
+* Fixed a buf in assembly generation in LiteMol Core.
+
+# 1.4.0
 * Updated to the latest LiteMol-core.
 * Refactored to get rid of Visual Studio project.
 
