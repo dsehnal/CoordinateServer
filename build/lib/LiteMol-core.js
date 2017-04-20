@@ -10199,7 +10199,7 @@ var __LiteMol_Core = function () {
                     var _d = data_2[_i];
                     var d = _d.data;
                     for (var i = 0, _b = _d.count; i < _b; i++) {
-                        var p = presence ? presence(data, i) : 0 /* Present */;
+                        var p = presence ? presence(d, i) : 0 /* Present */;
                         if (p !== 0 /* Present */) {
                             mask[offset] = p;
                             if (isNative)
