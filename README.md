@@ -83,8 +83,8 @@ The ``jobs.json`` file needs with specify a list of jobs using this template:
 ```
 
 The values for `query` are the same as the names of the queries in the WebAPI. The param
-names in `params` are the same as well. Refer to the default page of the CoordinateServer
-web for the API documentation. 
+names in `params` are the same as well. For the available queries refer to the [API reference](docs/api-reference.md) 
+or the default page of the CoordinateServer service. 
 
 # Building
 

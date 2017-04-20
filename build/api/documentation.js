@@ -27,7 +27,8 @@ function createDocumentationHTML(appPrefix) {
         html.push("<div class='cs-docs-query-wrap'>");
         html.push("<a name=\"" + id + "\"></a>");
         html.push("<h2 onclick='javascript:toggle(\"coordserver-documentation-" + id + "-body\", event)'>" + q.niceName + " <span>/" + id + "</span><br/> <small>" + q.description + "</small></h2>");
-        var url = "", params = q.queryParams.concat(Queries.CommonQueryParamsInfo);
+        var url = "";
+        var params = q.queryParams.concat(Queries.CommonQueryParamsInfo);
         html.push("<div id='coordserver-documentation-" + id + "-body' style='display: none; margin: 24px 24px 0 24px'>");
         html.push("<h4>Example</h4>");
         var exampleParams = params.filter(function (p) { return p.exampleValue !== void 0; });
@@ -39,7 +40,7 @@ function createDocumentationHTML(appPrefix) {
         if (params.length > 0) {
             html.push("<h4>Parameters</h4>");
             //html.push(`<ul class='list-unstyled'>`);
-            //for (let p of params) {
+            //for (const p of params) {
             //    html.push(`<li style='margin-bottom: 3px'><span class='cs-docs-param-name'>${p.name}</span> <span style='font-size: smaller; color: #666'>:: ${Queries.QueryParamType[p.type]}</span>`);
             //    if (p.defaultValue !== void 0) {
             //        html.push(`(<span style='font-size:smaller'>= <span title='Default value'>${p.defaultValue})</span></span>`);
@@ -75,3 +76,38 @@ function createDocumentationHTML(appPrefix) {
     html.push("</div>", "</body>", "</html>");
     return html.join('\n');
 }
+function createAPIrefMarkdown() {
+    var markdown = [];
+    markdown.push("# CoordinateServer API reference\n");
+    for (var _i = 0, _a = Queries.QueryList; _i < _a.length; _i++) {
+        var entry = _a[_i];
+        var id = entry.name;
+        var q = entry.description;
+        markdown.push("## " + q.niceName + " ``/" + id + "``\n");
+        markdown.push(q.description + "\n");
+        var params = q.queryParams.concat(Queries.CommonQueryParamsInfo);
+        markdown.push("### Example\n");
+        var exampleParams = params.filter(function (p) { return p.exampleValue !== void 0; });
+        var examplePdbId = entry.description.exampleId ? entry.description.exampleId : '1cbs';
+        var exampleUrl = !exampleParams.length
+            ? "/" + examplePdbId + "/" + id
+            : "/" + examplePdbId + "/" + id + "?" + exampleParams.map(function (p) { return p.name + "=" + p.exampleValue; }).join('&');
+        markdown.push("``" + exampleUrl + "``\n");
+        if (params.length > 0) {
+            markdown.push("### Parameters\n");
+            markdown.push("|Name|Type|Default|Description|\n");
+            markdown.push("|----|----|-------|-----------|\n");
+            for (var _b = 0, params_2 = params; _b < params_2.length; _b++) {
+                var p = params_2[_b];
+                markdown.push("|``" + p.name + "``", "|" + Queries.QueryParamType[p.type], "|" + (p.defaultValue !== void 0 ? p.defaultValue : ''), "|" + p.description, "|\n");
+            }
+            markdown.push("### Included mmCIF Categories\n");
+            markdown.push((q.includedCategories || Queries.DefaultCategories).concat('_atom_site').join(', ') + "\n");
+            markdown.push("\n___\n\n");
+        }
+    }
+    markdown.push("Generated for CoordinateServer " + version_1.default + ", LiteMol Core " + Core.VERSION.number + " - " + Core.VERSION.date + "\n");
+    return markdown.join('');
+}
+exports.createAPIrefMarkdown = createAPIrefMarkdown;
+console.log(createAPIrefMarkdown());
