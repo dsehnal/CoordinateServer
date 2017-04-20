@@ -1,7 +1,7 @@
+"use strict";
 /*
  * Copyright (c) 2016 - now, David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Core = require("../../lib/LiteMol-core");
 var context_1 = require("../context");
@@ -784,7 +784,7 @@ function _atom_site(context) {
         { name: 'label_comp_id', string: function (data, i) { return data.residues.name[data.atoms.residueIndex[data.atomIndex[i]]]; } },
         { name: 'label_asym_id', string: function (data, i) { return data.chains.asymId[data.atoms.chainIndex[data.atomIndex[i]]]; } },
         { name: 'label_entity_id', string: function (data, i) { return data.entities.entityId[data.atoms.entityIndex[data.atomIndex[i]]]; } },
-        { name: 'label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(); }, number: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]]; }, typedArray: Int32Array, encoder: context_1.Encoders.ids, presence: function (data, i) { return data.label_seq_id.getValuePresence(data.atomIndex[i]); } },
+        { name: 'label_seq_id', string: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(); }, number: function (data, i) { return data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]]; }, typedArray: Int32Array, encoder: context_1.Encoders.ids, presence: function (data, i) { return data.label_seq_id.getValuePresence(data.atoms.rowIndex[data.atomIndex[i]]); } },
         { name: 'pdbx_PDB_ins_code', string: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]]; }, presence: function (data, i) { return data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] ? 0 /* Present */ : 1 /* NotSpecified */; } },
         { name: 'Cartn_x', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.positions.x[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.positions.x[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
         { name: 'Cartn_y', string: function (data, i) { return '' + Math.round(data.coordRoundFactor * data.positions.y[data.atomIndex[i]]) / data.coordRoundFactor; }, number: function (data, i) { return data.positions.y[data.atomIndex[i]]; }, typedArray: Float32Array, encoder: coordinateEncoder },
@@ -797,14 +797,14 @@ function _atom_site(context) {
         { name: 'auth_asym_id', string: function (data, i) { return data.chains.authAsymId[data.atoms.chainIndex[data.atomIndex[i]]]; } },
         { name: 'auth_seq_id', string: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(); }, number: function (data, i) { return data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]]; }, typedArray: Int32Array, encoder: context_1.Encoders.ids },
     ];
-    if (data.Cartn_x_esd && data.Cartn_x_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
-        fields.push({ name: 'Cartn_x_esd', string: function (data, i) { return data.Cartn_x_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_x_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: coordinateEncoder }, { name: 'Cartn_y_esd', string: function (data, i) { return data.Cartn_y_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_y_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: coordinateEncoder }, { name: 'Cartn_z_esd', string: function (data, i) { return data.Cartn_z_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.Cartn_z_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: coordinateEncoder });
+    if (data.Cartn_x_esd && data.Cartn_x_esd.getValuePresence(0) === 0 /* Present */) {
+        fields.push({ name: 'Cartn_x_esd', string: function (data, i) { return data.Cartn_x_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]); }, number: function (data, i) { return data.Cartn_x_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]); }, typedArray: Float32Array, encoder: coordinateEncoder }, { name: 'Cartn_y_esd', string: function (data, i) { return data.Cartn_y_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]); }, number: function (data, i) { return data.Cartn_y_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]); }, typedArray: Float32Array, encoder: coordinateEncoder }, { name: 'Cartn_z_esd', string: function (data, i) { return data.Cartn_z_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]); }, number: function (data, i) { return data.Cartn_z_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]); }, typedArray: Float32Array, encoder: coordinateEncoder });
     }
-    if (data.occupancy_esd && data.occupancy_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
-        fields.push({ name: 'occupancy_esd', string: function (data, i) { return data.occupancy_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.occupancy_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: context_1.Encoders.occupancy });
+    if (data.occupancy_esd && data.occupancy_esd.getValuePresence(0) === 0 /* Present */) {
+        fields.push({ name: 'occupancy_esd', string: function (data, i) { return data.occupancy_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]); }, number: function (data, i) { return data.occupancy_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]); }, typedArray: Float32Array, encoder: context_1.Encoders.occupancy });
     }
-    if (data.B_iso_or_equiv_esd && data.B_iso_or_equiv_esd.getValuePresence(data.atomIndex[0]) === 0 /* Present */) {
-        fields.push({ name: 'B_iso_or_equiv_esd', string: function (data, i) { return data.B_iso_or_equiv_esd.getString(data.atomIndex[i]); }, number: function (data, i) { return data.B_iso_or_equiv_esd.getFloat(data.atomIndex[i]); }, typedArray: Float32Array, encoder: coordinateEncoder });
+    if (data.B_iso_or_equiv_esd && data.B_iso_or_equiv_esd.getValuePresence(0) === 0 /* Present */) {
+        fields.push({ name: 'B_iso_or_equiv_esd', string: function (data, i) { return data.B_iso_or_equiv_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]); }, number: function (data, i) { return data.B_iso_or_equiv_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]); }, typedArray: Float32Array, encoder: coordinateEncoder });
     }
     fields.push({ name: 'pdbx_PDB_model_num', string: function (data, i) { return data.modelId; } });
     return {

@@ -1,4 +1,7 @@
-﻿# 1.4.1
+﻿# 1.4.2
+* Fixed a bug in _atom_site writer for symmetry/assembly data.
+
+# 1.4.1
 * Fixed a buf in assembly generation in LiteMol Core.
 
 # 1.4.0

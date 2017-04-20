@@ -1,7 +1,7 @@
+"use strict";
 /*
  * Copyright (c) 2016 - now, David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Provider = require("./provider");
 var logger_1 = require("../utils/logger");

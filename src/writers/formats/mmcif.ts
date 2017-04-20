@@ -915,7 +915,7 @@ function _atom_site(context: mmCifContext) {
         { name: 'label_comp_id', string: (data, i) => data.residues.name[data.atoms.residueIndex[data.atomIndex[i]]] },
         { name: 'label_asym_id', string: (data, i) => data.chains.asymId[data.atoms.chainIndex[data.atomIndex[i]]] },
         { name: 'label_entity_id', string: (data, i) => data.entities.entityId[data.atoms.entityIndex[data.atomIndex[i]]] },
-        { name: 'label_seq_id', string: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(), number: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]], typedArray: Int32Array, encoder: Encoders.ids, presence: (data, i) => data.label_seq_id.getValuePresence(data.atomIndex[i]) },
+        { name: 'label_seq_id', string: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(), number: (data, i) => data.residues.seqNumber[data.atoms.residueIndex[data.atomIndex[i]]], typedArray: Int32Array, encoder: Encoders.ids, presence: (data, i) => data.label_seq_id.getValuePresence(data.atoms.rowIndex[data.atomIndex[i]]) },
 
         { name: 'pdbx_PDB_ins_code', string: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]], presence: (data, i) => data.residues.insCode[data.atoms.residueIndex[data.atomIndex[i]]] ? CIF.ValuePresence.Present : CIF.ValuePresence.NotSpecified },
 
@@ -934,20 +934,20 @@ function _atom_site(context: mmCifContext) {
         { name: 'auth_seq_id', string: (data, i) => data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]].toString(), number: (data, i) => data.residues.authSeqNumber[data.atoms.residueIndex[data.atomIndex[i]]], typedArray: Int32Array, encoder: Encoders.ids },
     ];
 
-    if (data.Cartn_x_esd && data.Cartn_x_esd.getValuePresence(data.atomIndex[0]) === CIF.ValuePresence.Present) {
+    if (data.Cartn_x_esd && data.Cartn_x_esd.getValuePresence(0) === CIF.ValuePresence.Present) {
         fields.push(
-            { name: 'Cartn_x_esd', string: (data, i) => data.Cartn_x_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_x_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: coordinateEncoder },
-            { name: 'Cartn_y_esd', string: (data, i) => data.Cartn_y_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_y_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: coordinateEncoder },
-            { name: 'Cartn_z_esd', string: (data, i) => data.Cartn_z_esd.getString(data.atomIndex[i]), number: (data, i) => data.Cartn_z_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: coordinateEncoder }
+            { name: 'Cartn_x_esd', string: (data, i) => data.Cartn_x_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]), number: (data, i) => data.Cartn_x_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]), typedArray: Float32Array, encoder: coordinateEncoder },
+            { name: 'Cartn_y_esd', string: (data, i) => data.Cartn_y_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]), number: (data, i) => data.Cartn_y_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]), typedArray: Float32Array, encoder: coordinateEncoder },
+            { name: 'Cartn_z_esd', string: (data, i) => data.Cartn_z_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]), number: (data, i) => data.Cartn_z_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]), typedArray: Float32Array, encoder: coordinateEncoder }
         )
     }
 
-    if (data.occupancy_esd && data.occupancy_esd.getValuePresence(data.atomIndex[0]) === CIF.ValuePresence.Present) {
-        fields.push({ name: 'occupancy_esd', string: (data, i) => data.occupancy_esd.getString(data.atomIndex[i]), number: (data, i) => data.occupancy_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: Encoders.occupancy });
+    if (data.occupancy_esd && data.occupancy_esd.getValuePresence(0) === CIF.ValuePresence.Present) {
+        fields.push({ name: 'occupancy_esd', string: (data, i) => data.occupancy_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]), number: (data, i) => data.occupancy_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]), typedArray: Float32Array, encoder: Encoders.occupancy });
     }
 
-    if (data.B_iso_or_equiv_esd && data.B_iso_or_equiv_esd.getValuePresence(data.atomIndex[0]) === CIF.ValuePresence.Present) {
-        fields.push({ name: 'B_iso_or_equiv_esd', string: (data, i) => data.B_iso_or_equiv_esd.getString(data.atomIndex[i]), number: (data, i) => data.B_iso_or_equiv_esd.getFloat(data.atomIndex[i]), typedArray: Float32Array, encoder: coordinateEncoder });
+    if (data.B_iso_or_equiv_esd && data.B_iso_or_equiv_esd.getValuePresence(0) === CIF.ValuePresence.Present) {
+        fields.push({ name: 'B_iso_or_equiv_esd', string: (data, i) => data.B_iso_or_equiv_esd.getString(data.atoms.rowIndex[data.atomIndex[i]]), number: (data, i) => data.B_iso_or_equiv_esd.getFloat(data.atoms.rowIndex[data.atomIndex[i]]), typedArray: Float32Array, encoder: coordinateEncoder });
     }
 
     fields.push({ name: 'pdbx_PDB_model_num', string: (data, i) => data.modelId });

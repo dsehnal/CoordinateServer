@@ -204,5 +204,3 @@ export function createAPIrefMarkdown() {
 
     return markdown.join('');
 }
-
-console.log(createAPIrefMarkdown())

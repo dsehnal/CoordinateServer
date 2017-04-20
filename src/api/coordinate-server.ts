@@ -87,7 +87,7 @@ export function processQuery(
             return;
         }
 
-        Logger.log(`${reqId}: Found ${found} fragment(s).`)
+        Logger.log(`${reqId}: Found ${found} fragment(s).`);
 
         perf.start('format');
         formatter(config.writer, formatConfig, models);
