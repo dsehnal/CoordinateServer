@@ -185,7 +185,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         query: (p, m) => {
             let id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Queries.residues(id).ambientResidues(p.radius);
+            return Queries.residues(id).union().ambientResidues(p.radius);
         },
         queryParams: [
             CommonParameters.entityId,
@@ -213,12 +213,11 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
     "ligandInteraction": {
         niceName: 'Ligand Interaction',
         description: "Identifies symmetry mates and returns the specified atom set and all residues within the given radius.",
-        query: (p, m) => {
-            
+        query: (p, m) => {            
             let chains = Queries.chains.apply(null, m.data.chains.asymId.map(x => { return { asymId: x } })),
                 id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Queries.residues(id).inside(chains).ambientResidues(p.radius).wholeResidues();
+            return Queries.residues(id).inside(chains).union().ambientResidues(p.radius).wholeResidues();
         },
         modelTransform: (p, m) => {
             let id = Core.Utils.extend({}, p);

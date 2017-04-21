@@ -127,7 +127,7 @@ var QueryMap = {
         query: function (p, m) {
             var id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Queries.residues(id).ambientResidues(p.radius);
+            return Queries.residues(id).union().ambientResidues(p.radius);
         },
         queryParams: [
             CommonParameters.entityId,
@@ -158,7 +158,7 @@ var QueryMap = {
         query: function (p, m) {
             var chains = Queries.chains.apply(null, m.data.chains.asymId.map(function (x) { return { asymId: x }; })), id = Core.Utils.extend({}, p);
             delete id.radius;
-            return Queries.residues(id).inside(chains).ambientResidues(p.radius).wholeResidues();
+            return Queries.residues(id).inside(chains).union().ambientResidues(p.radius).wholeResidues();
         },
         modelTransform: function (p, m) {
             var id = Core.Utils.extend({}, p);

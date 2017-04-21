@@ -1,5 +1,6 @@
 ﻿# 1.4.2
 * Fixed a bug in _atom_site writer for symmetry/assembly data.
+* Optimized /ligandInteraction and /ambientResidues queries if they are used for large input sets (i.e. just /ligandInteraction).
 
 # 1.4.1
 * Fixed a buf in assembly generation in LiteMol Core.
