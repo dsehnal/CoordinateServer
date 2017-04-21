@@ -61,6 +61,8 @@ function runJob(jobIndex: number, workload: LocalApiWorkload) {
     
     let filename = job.inputFilename;
     
+
+    Logger.log(`[local] Reading '${filename}'...`);
     Provider.readMolecule(filename,
         (parserErr, m) => {
             if (parserErr) {
@@ -80,16 +82,14 @@ function runJob(jobIndex: number, workload: LocalApiWorkload) {
             Logger.error(`IO error (${filename}): ${ioErr}, all jobs with inputFilename skipped.`);
         },
         unexpectedErr => {
-            Logger.error(`Unexpected error: ${unexpectedErr}`);
+            Logger.error(`Unexpected error (${filename}): ${unexpectedErr}`);
         },
         () => {
             runJob(jobIndex + batchSize, workload);
         });
-
 }
 
 export function run(workload: LocalApiWorkload) {
-
     let missing = new Set<string>();
     let filtered = workload.filter(job => {
         let q = !!Queries.getQueryByName(job.query);

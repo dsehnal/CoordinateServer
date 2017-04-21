@@ -74,6 +74,7 @@ function doCifError(response: express.Response, message: string, id: string, que
 
 function mapQuery(app: express.Express, query: Queries.ApiQuery) {
     app.get(makePath(':id/' + query.name), (req, res) => {
+        Logger.log(`[server] Query '${req.params.id}/${query.name}'...`);
 
         ApiState.pendingQueries++;
         

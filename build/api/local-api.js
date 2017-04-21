@@ -43,6 +43,7 @@ function runJob(jobIndex, workload) {
         batchSize++;
     }
     var filename = job.inputFilename;
+    logger_1.default.log("[local] Reading '" + filename + "'...");
     Provider.readMolecule(filename, function (parserErr, m) {
         if (parserErr) {
             logger_1.default.error("Parser error (" + filename + "): " + parserErr + ", all jobs with inputFilename skipped.");
@@ -59,7 +60,7 @@ function runJob(jobIndex, workload) {
     }, function (ioErr) {
         logger_1.default.error("IO error (" + filename + "): " + ioErr + ", all jobs with inputFilename skipped.");
     }, function (unexpectedErr) {
-        logger_1.default.error("Unexpected error: " + unexpectedErr);
+        logger_1.default.error("Unexpected error (" + filename + "): " + unexpectedErr);
     }, function () {
         runJob(jobIndex + batchSize, workload);
     });

@@ -63,6 +63,7 @@ function doCifError(response, message, id, queryName, params) {
 }
 function mapQuery(app, query) {
     app.get(makePath(':id/' + query.name), function (req, res) {
+        logger_1.default.log("[server] Query '" + req.params.id + "/" + query.name + "'...");
         exports.ApiState.pendingQueries++;
         var id = req.params.id;
         var filename = server_config_1.default.mapPdbIdToFilename(id);
