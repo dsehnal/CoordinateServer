@@ -24,6 +24,8 @@ exports.DefaultCategories = [
     '_symmetry',
     '_entity_poly',
     '_struct_asym',
+    '_struct_conn',
+    '_struct_conn_type',
     '_pdbx_struct_mod_residue',
     '_chem_comp_bond',
     '_atom_sites'
@@ -38,6 +40,8 @@ var SymmetryCategories = [
     '_struct_sheet_range',
     '_entity_poly',
     '_struct_asym',
+    '_struct_conn',
+    '_struct_conn_type',
     '_pdbx_struct_mod_residue',
     '_chem_comp_bond',
     '_atom_sites'

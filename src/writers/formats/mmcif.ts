@@ -4,6 +4,7 @@
 
 import * as Core from '../../lib/LiteMol-core'
 import { Context, Encoders, FormatConfig, WritableFragments, createResultHeaderCategory, createParamsCategory } from '../context'
+import { categoryMapper } from '../direct-category-mapper'
 
 import CIF = Core.Formats.CIF
 
@@ -141,8 +142,6 @@ export function float64field<T>(name: string, value: (data: T, i: number) => num
 export function int32field<T>(name: string, value: (data: T, i: number) => number): FieldDesc<T> {
     return { name, string: (data, i) => value(data, i).toString(), number: value, typedArray: Int32Array, encoder: Encoders.int32 };
 }
-
-
 
 function _entry(context: mmCifContext) {    
     return <CategoryInstance<string>>{
@@ -377,6 +376,56 @@ function _struct_sheet_range(context: mmCifContext) {
             fields
         }
     };
+}
+
+function _struct_conn(context: mmCifContext) {
+    const cat = context.data.getCategory('_struct_conn');
+    if (!cat) return;
+    return categoryMapper(cat, [
+        { name: 'id', type: 'String' },
+        { name: 'conn_type_id', type: 'String' },
+        { name: 'pdbx_PDB_id', type: 'String' },
+        { name: 'ptnr1_label_asym_id', type: 'String' },
+        { name: 'ptnr1_label_comp_id', type: 'String' },
+        { name: 'ptnr1_label_seq_id', type: 'Int' },
+        { name: 'ptnr1_label_atom_id', type: 'String' },
+        { name: 'pdbx_ptnr1_label_alt_id', type: 'String' },
+        { name: 'pdbx_ptnr1_PDB_ins_code', type: 'String' },
+        { name: 'pdbx_ptnr1_standard_comp_id', type: 'String' },
+        { name: 'ptnr1_symmetry', type: 'String' },
+        { name: 'ptnr2_label_asym_id', type: 'String' },
+        { name: 'ptnr2_label_comp_id', type: 'String' },
+        { name: 'ptnr2_label_seq_id', type: 'Int' },
+        { name: 'ptnr2_label_atom_id', type: 'String' },
+        { name: 'pdbx_ptnr2_label_alt_id', type: 'String' },
+        { name: 'pdbx_ptnr2_PDB_ins_code', type: 'String' },
+        { name: 'ptnr1_auth_asym_id', type: 'String' },
+        { name: 'ptnr1_auth_comp_id', type: 'String' },
+        { name: 'ptnr1_auth_seq_id', type: 'Int' },
+        { name: 'ptnr2_auth_asym_id', type: 'String' },
+        { name: 'ptnr2_auth_comp_id', type: 'String' },
+        { name: 'ptnr2_auth_seq_id', type: 'Int' },
+        { name: 'ptnr2_symmetry', type: 'String' },
+        { name: 'pdbx_ptnr3_label_asym_id', type: 'String' },
+        { name: 'pdbx_ptnr3_label_comp_id', type: 'String' },
+        { name: 'pdbx_ptnr3_label_seq_id', type: 'Int' },
+        { name: 'pdbx_ptnr3_label_alt_id', type: 'String' },
+        { name: 'pdbx_ptnr3_label_atom_id', type: 'String' },
+        { name: 'pdbx_ptnr3_PDB_ins_code', type: 'String' },
+        { name: 'details', type: 'String' },
+        { name: 'pdbx_dist_value', type: 'Float32' },
+        { name: 'pdbx_value_order', type: 'String' }
+    ]);
+}
+
+function _struct_conn_type(context: mmCifContext) {
+    const cat = context.data.getCategory('_struct_conn_type');
+    if (!cat) return;
+    return categoryMapper(cat, [
+        { name: 'id', type: 'String' },
+        { name: 'criteria', type: 'String' },
+        { name: 'reference', type: 'String' },
+    ]);
 }
 
 function _chem_comp_bond(context: mmCifContext) {
@@ -970,6 +1019,8 @@ const Categories = {
     _symmetry,
     _struct_conf, 
     _struct_sheet_range,
+    _struct_conn,
+    _struct_conn_type,
     _chem_comp_bond,
     _pdbx_struct_assembly,
     _pdbx_struct_assembly_gen,

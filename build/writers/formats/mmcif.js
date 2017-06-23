@@ -5,6 +5,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Core = require("../../lib/LiteMol-core");
 var context_1 = require("../context");
+var direct_category_mapper_1 = require("../direct-category-mapper");
 var CIF = Core.Formats.CIF;
 var mmCifContext;
 (function (mmCifContext) {
@@ -329,6 +330,56 @@ function _struct_sheet_range(context) {
             fields: fields
         }
     };
+}
+function _struct_conn(context) {
+    var cat = context.data.getCategory('_struct_conn');
+    if (!cat)
+        return;
+    return direct_category_mapper_1.categoryMapper(cat, [
+        { name: 'id', type: 'String' },
+        { name: 'conn_type_id', type: 'String' },
+        { name: 'pdbx_PDB_id', type: 'String' },
+        { name: 'ptnr1_label_asym_id', type: 'String' },
+        { name: 'ptnr1_label_comp_id', type: 'String' },
+        { name: 'ptnr1_label_seq_id', type: 'Int' },
+        { name: 'ptnr1_label_atom_id', type: 'String' },
+        { name: 'pdbx_ptnr1_label_alt_id', type: 'String' },
+        { name: 'pdbx_ptnr1_PDB_ins_code', type: 'String' },
+        { name: 'pdbx_ptnr1_standard_comp_id', type: 'String' },
+        { name: 'ptnr1_symmetry', type: 'String' },
+        { name: 'ptnr2_label_asym_id', type: 'String' },
+        { name: 'ptnr2_label_comp_id', type: 'String' },
+        { name: 'ptnr2_label_seq_id', type: 'Int' },
+        { name: 'ptnr2_label_atom_id', type: 'String' },
+        { name: 'pdbx_ptnr2_label_alt_id', type: 'String' },
+        { name: 'pdbx_ptnr2_PDB_ins_code', type: 'String' },
+        { name: 'ptnr1_auth_asym_id', type: 'String' },
+        { name: 'ptnr1_auth_comp_id', type: 'String' },
+        { name: 'ptnr1_auth_seq_id', type: 'Int' },
+        { name: 'ptnr2_auth_asym_id', type: 'String' },
+        { name: 'ptnr2_auth_comp_id', type: 'String' },
+        { name: 'ptnr2_auth_seq_id', type: 'Int' },
+        { name: 'ptnr2_symmetry', type: 'String' },
+        { name: 'pdbx_ptnr3_label_asym_id', type: 'String' },
+        { name: 'pdbx_ptnr3_label_comp_id', type: 'String' },
+        { name: 'pdbx_ptnr3_label_seq_id', type: 'Int' },
+        { name: 'pdbx_ptnr3_label_alt_id', type: 'String' },
+        { name: 'pdbx_ptnr3_label_atom_id', type: 'String' },
+        { name: 'pdbx_ptnr3_PDB_ins_code', type: 'String' },
+        { name: 'details', type: 'String' },
+        { name: 'pdbx_dist_value', type: 'Float32' },
+        { name: 'pdbx_value_order', type: 'String' }
+    ]);
+}
+function _struct_conn_type(context) {
+    var cat = context.data.getCategory('_struct_conn_type');
+    if (!cat)
+        return;
+    return direct_category_mapper_1.categoryMapper(cat, [
+        { name: 'id', type: 'String' },
+        { name: 'criteria', type: 'String' },
+        { name: 'reference', type: 'String' },
+    ]);
 }
 function _chem_comp_bond(context) {
     var cat = context.data.getCategory('_chem_comp_bond');
@@ -824,6 +875,8 @@ var Categories = {
     _symmetry: _symmetry,
     _struct_conf: _struct_conf,
     _struct_sheet_range: _struct_sheet_range,
+    _struct_conn: _struct_conn,
+    _struct_conn_type: _struct_conn_type,
     _chem_comp_bond: _chem_comp_bond,
     _pdbx_struct_assembly: _pdbx_struct_assembly,
     _pdbx_struct_assembly_gen: _pdbx_struct_assembly_gen,
