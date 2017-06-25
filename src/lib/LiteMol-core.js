@@ -8069,7 +8069,7 @@ var __LiteMolRx = __LiteMolRxTemp.Rx;
  */
 var CIFTools;
 (function (CIFTools) {
-    CIFTools.VERSION = { number: "1.1.5", date: "April 20 2017" };
+    CIFTools.VERSION = { number: "1.1.6", date: "June 26 2017" };
 })(CIFTools || (CIFTools = {}));
 /*
  * Copyright (c) 2016 - now David Sehnal, licensed under MIT License, See LICENSE file for more info.
@@ -10836,14 +10836,15 @@ var CIFTools;
                     if (value === 0) {
                         size += 1;
                     }
-                    else if (value === upperLimit || value === lowerLimit) {
-                        size += 2;
-                    }
                     else if (value > 0) {
                         size += Math.ceil(value / upperLimit);
+                        if (value % upperLimit === 0)
+                            size += 1;
                     }
                     else {
                         size += Math.ceil(value / lowerLimit);
+                        if (value % lowerLimit === 0)
+                            size += 1;
                     }
                 }
                 return size;
@@ -11158,7 +11159,7 @@ var CIFTools;
         Binary.Writer = Writer;
     })(Binary = CIFTools.Binary || (CIFTools.Binary = {}));
 })(CIFTools || (CIFTools = {}));
-
+"use strict";
 /*
  * Copyright (c) 2016 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
@@ -11185,7 +11186,7 @@ var LiteMol;
 (function (LiteMol) {
     var Core;
     (function (Core) {
-        Core.VERSION = { number: "3.1.5", date: "June 21 2017" };
+        Core.VERSION = { number: "3.2.0", date: "June 26 2017" };
     })(Core = LiteMol.Core || (LiteMol.Core = {}));
 })(LiteMol || (LiteMol = {}));
 /*
@@ -11755,6 +11756,12 @@ var LiteMol;
                         this.columns[this.columns.length] = { name: name, creator: creator };
                         return c;
                     };
+                    BuilderImpl.prototype.addRawColumn = function (name, creator, data) {
+                        var c = data;
+                        Object.defineProperty(this, name, { enumerable: true, configurable: false, writable: false, value: c });
+                        this.columns[this.columns.length] = { name: name, creator: creator };
+                        return c;
+                    };
                     BuilderImpl.prototype.getRawData = function () {
                         var _this = this;
                         return this.columns.map(function (c) { return _this[c.name]; });
@@ -12295,8 +12302,8 @@ var LiteMol;
                     ];
                     function getAtomSiteColumns(category) {
                         var ret = Core.Utils.FastMap.create();
-                        for (var _i = 0, AtomSiteColumns_1 = AtomSiteColumns; _i < AtomSiteColumns_1.length; _i++) {
-                            var c = AtomSiteColumns_1[_i];
+                        for (var _a = 0, AtomSiteColumns_1 = AtomSiteColumns; _a < AtomSiteColumns_1.length; _a++) {
+                            var c = AtomSiteColumns_1[_a];
                             ret.set(c, category.getColumn(c));
                         }
                         return ret;
@@ -12545,8 +12552,8 @@ var LiteMol;
                     function splitNonconsecutiveSecondaryStructure(residues, elements) {
                         var ret = [];
                         var authSeqNumber = residues.authSeqNumber;
-                        for (var _i = 0, elements_1 = elements; _i < elements_1.length; _i++) {
-                            var s = elements_1[_i];
+                        for (var _a = 0, elements_1 = elements; _a < elements_1.length; _a++) {
+                            var s = elements_1[_a];
                             var partStart = s.startResidueIndex;
                             var end = s.endResidueIndex - 1;
                             for (var i = s.startResidueIndex; i < end; i++) {
@@ -12572,8 +12579,8 @@ var LiteMol;
                     }
                     function updateSSIndicesAndFilterEmpty(elements, structure) {
                         var residues = structure.residues, count = residues.count, asymId = residues.asymId, seqNumber = residues.seqNumber, insCode = residues.insCode, currentElement = void 0, key = '', starts = Core.Utils.FastMap.create(), ends = Core.Utils.FastMap.create();
-                        for (var _i = 0, elements_2 = elements; _i < elements_2.length; _i++) {
-                            var e = elements_2[_i];
+                        for (var _a = 0, elements_2 = elements; _a < elements_2.length; _a++) {
+                            var e = elements_2[_a];
                             key = e.startResidueId.asymId + ' ' + e.startResidueId.seqNumber;
                             if (e.startResidueId.insCode)
                                 key += ' ' + e.startResidueId.insCode;
@@ -12603,8 +12610,8 @@ var LiteMol;
                             currentElement.endResidueIndex = count;
                         }
                         var nonEmpty = [];
-                        for (var _a = 0, elements_3 = elements; _a < elements_3.length; _a++) {
-                            var e = elements_3[_a];
+                        for (var _b = 0, elements_3 = elements; _b < elements_3.length; _b++) {
+                            var e = elements_3[_b];
                             if (e.startResidueIndex < 0 || e.endResidueIndex < 0)
                                 continue;
                             if (e.type === 3 /* Sheet */ && e.length < 3)
@@ -12712,14 +12719,92 @@ var LiteMol;
                     function assignSecondaryStructureIndex(residues, ss) {
                         var ssIndex = residues.secondaryStructureIndex;
                         var index = 0;
-                        for (var _i = 0, ss_1 = ss; _i < ss_1.length; _i++) {
-                            var s = ss_1[_i];
+                        for (var _a = 0, ss_1 = ss; _a < ss_1.length; _a++) {
+                            var s = ss_1[_a];
                             for (var i = s.startResidueIndex; i < s.endResidueIndex; i++) {
                                 ssIndex[i] = index;
                             }
                             index++;
                         }
                         return ssIndex;
+                    }
+                    function findResidueIndexByLabel(structure, asymId, seqNumber, insCode) {
+                        var _a = structure.chains, _asymId = _a.asymId, residueStartIndex = _a.residueStartIndex, residueEndIndex = _a.residueEndIndex, cCount = _a.count;
+                        var _b = structure.residues, _seqNumber = _b.seqNumber, _insCode = _b.insCode;
+                        for (var cI = 0; cI < cCount; cI++) {
+                            if (_asymId[cI] !== asymId)
+                                continue;
+                            for (var rI = residueStartIndex[cI], _r = residueEndIndex[cI]; rI < _r; rI++) {
+                                if (_seqNumber[rI] === seqNumber && _insCode[rI] === insCode)
+                                    return rI;
+                            }
+                        }
+                        return -1;
+                    }
+                    function findAtomIndexByLabelName(atoms, structure, residueIndex, atomName, altLoc) {
+                        var _a = structure.residues, atomStartIndex = _a.atomStartIndex, atomEndIndex = _a.atomEndIndex;
+                        var _atomName = atoms.name, _altLoc = atoms.altLoc;
+                        for (var i = atomStartIndex[residueIndex], _i = atomEndIndex[residueIndex]; i <= _i; i++) {
+                            if (_atomName[i] === atomName && _altLoc[i] === altLoc)
+                                return i;
+                        }
+                        return -1;
+                    }
+                    function getStructConn(data, atoms, structure) {
+                        var cat = data.getCategory('_struct_conn');
+                        if (!cat)
+                            return void 0;
+                        var _idCols = function (i) { return ({
+                            label_asym_id: cat.getColumn('ptnr' + i + '_label_asym_id'),
+                            label_seq_id: cat.getColumn('ptnr' + i + '_label_seq_id'),
+                            label_atom_id: cat.getColumn('ptnr' + i + '_label_atom_id'),
+                            label_alt_id: cat.getColumn('pdbx_ptnr' + i + '_label_alt_id'),
+                            ins_code: cat.getColumn('pdbx_ptnr' + i + '_PDB_ins_code'),
+                            symmetry: cat.getColumn('ptnr' + i + '_symmetry')
+                        }); };
+                        var conn_type_id = cat.getColumn('conn_type_id');
+                        var pdbx_dist_value = cat.getColumn('pdbx_dist_value');
+                        var pdbx_value_order = cat.getColumn('pdbx_value_order');
+                        var p1 = _idCols(1);
+                        var p2 = _idCols(2);
+                        var p3 = _idCols(3);
+                        var _p = function (row, ps) {
+                            if (ps.label_asym_id.getValuePresence(row) !== 0 /* Present */)
+                                return void 0;
+                            var residueIndex = findResidueIndexByLabel(structure, ps.label_asym_id.getString(row), ps.label_seq_id.getInteger(row), ps.ins_code.getString(row));
+                            if (residueIndex < 0)
+                                return void 0;
+                            var atomIndex = findAtomIndexByLabelName(atoms, structure, residueIndex, ps.label_atom_id.getString(row), ps.label_alt_id.getString(row));
+                            if (atomIndex < 0)
+                                return void 0;
+                            return { residueIndex: residueIndex, atomIndex: atomIndex, symmetry: ps.symmetry.getString(row) || '1_555' };
+                        };
+                        var _ps = function (row) {
+                            var ret = [];
+                            var p = _p(row, p1);
+                            if (p)
+                                ret.push(p);
+                            p = _p(row, p2);
+                            if (p)
+                                ret.push(p);
+                            p = _p(row, p3);
+                            if (p)
+                                ret.push(p);
+                            return ret;
+                        };
+                        var entries = [];
+                        for (var i = 0; i < cat.rowCount; i++) {
+                            var partners = _ps(i);
+                            if (partners.length < 2)
+                                continue;
+                            entries.push({
+                                type: conn_type_id.getString(i),
+                                distance: pdbx_dist_value.getFloat(i),
+                                order: pdbx_value_order.getString(i) || 'unknown',
+                                partners: partners
+                            });
+                        }
+                        return new Core.Structure.StructConn(entries);
                     }
                     function parseOperatorList(value) {
                         // '(X0)(1-5)' becomes [['X0']['1', '2', '3', '4', '5']]
@@ -12868,6 +12953,7 @@ var LiteMol;
                                     chains: structure.chains,
                                     entities: structure.entities,
                                     bonds: {
+                                        structConn: getStructConn(data, atoms, structure),
                                         component: getComponentBonds(data.getCategory('_chem_comp_bond'))
                                     },
                                     secondaryStructure: ss,
@@ -13649,7 +13735,7 @@ var LiteMol;
                                 chains: chains,
                                 entities: entities,
                                 bonds: {
-                                    covalent: state.bonds,
+                                    input: state.bonds,
                                 },
                                 secondaryStructure: ss,
                                 symmetryInfo: void 0,
@@ -14884,291 +14970,6 @@ var LiteMol;
     (function (Core) {
         var Geometry;
         (function (Geometry) {
-            /**
-             * A buffer that only remembers the values.
-             */
-            var SubdivisionTree3DResultIndexBuffer;
-            (function (SubdivisionTree3DResultIndexBuffer) {
-                function ensureCapacity(buffer) {
-                    var newCapacity = buffer.capacity * 2 + 1, newIdx = new Int32Array(newCapacity), i;
-                    if (buffer.count < 32) {
-                        for (i = 0; i < buffer.count; i++) {
-                            newIdx[i] = buffer.indices[i];
-                        }
-                    }
-                    else {
-                        newIdx.set(buffer.indices);
-                    }
-                    buffer.indices = newIdx;
-                    buffer.capacity = newCapacity;
-                }
-                function add(distSq, index) {
-                    if (this.count + 1 >= this.capacity) {
-                        ensureCapacity(this);
-                    }
-                    this.indices[this.count++] = index;
-                }
-                function reset() {
-                    this.count = 0;
-                }
-                function create(initialCapacity) {
-                    if (initialCapacity < 1)
-                        initialCapacity = 1;
-                    return {
-                        indices: new Int32Array(initialCapacity),
-                        count: 0,
-                        capacity: initialCapacity,
-                        hasPriorities: false,
-                        priorities: void 0,
-                        add: add,
-                        reset: reset
-                    };
-                }
-                SubdivisionTree3DResultIndexBuffer.create = create;
-            })(SubdivisionTree3DResultIndexBuffer = Geometry.SubdivisionTree3DResultIndexBuffer || (Geometry.SubdivisionTree3DResultIndexBuffer = {}));
-            /**
-             * A buffer that remembers values and priorities.
-             */
-            var SubdivisionTree3DResultPriorityBuffer;
-            (function (SubdivisionTree3DResultPriorityBuffer) {
-                function ensureCapacity(buffer) {
-                    var newCapacity = buffer.capacity * 2 + 1, newIdx = new Int32Array(newCapacity), newPrio = new Float32Array(newCapacity), i;
-                    if (buffer.count < 32) {
-                        for (i = 0; i < buffer.count; i++) {
-                            newIdx[i] = buffer.indices[i];
-                            newPrio[i] = buffer.priorities[i];
-                        }
-                    }
-                    else {
-                        newIdx.set(buffer.indices);
-                        newPrio.set(buffer.priorities);
-                    }
-                    buffer.indices = newIdx;
-                    buffer.priorities = newPrio;
-                    buffer.capacity = newCapacity;
-                }
-                function add(distSq, index) {
-                    if (this.count + 1 >= this.capacity)
-                        ensureCapacity(this);
-                    this.priorities[this.count] = distSq;
-                    this.indices[this.count++] = index;
-                }
-                function reset() {
-                    this.count = 0;
-                }
-                function create(initialCapacity) {
-                    if (initialCapacity < 1)
-                        initialCapacity = 1;
-                    return {
-                        indices: new Int32Array(initialCapacity),
-                        count: 0,
-                        capacity: initialCapacity,
-                        hasPriorities: true,
-                        priorities: new Float32Array(initialCapacity),
-                        add: add,
-                        reset: reset
-                    };
-                }
-                SubdivisionTree3DResultPriorityBuffer.create = create;
-            })(SubdivisionTree3DResultPriorityBuffer = Geometry.SubdivisionTree3DResultPriorityBuffer || (Geometry.SubdivisionTree3DResultPriorityBuffer = {}));
-            var SubdivisionTree3DQueryContext;
-            (function (SubdivisionTree3DQueryContext) {
-                /**
-                 * Query the tree and store the result to this.buffer. Overwrites the old result.
-                 */
-                function nearest(x, y, z, radius) {
-                    this.pivot[0] = x;
-                    this.pivot[1] = y;
-                    this.pivot[2] = z;
-                    this.radius = radius;
-                    this.radiusSq = radius * radius;
-                    this.buffer.reset();
-                    SubdivisionTree3DNode.nearest(this.tree.root, this, 0);
-                }
-                function create(tree, buffer) {
-                    return {
-                        tree: tree,
-                        indices: tree.indices,
-                        positions: tree.positions,
-                        buffer: buffer,
-                        pivot: [0.1, 0.1, 0.1],
-                        radius: 1.1,
-                        radiusSq: 1.1 * 1.1,
-                        nearest: nearest
-                    };
-                }
-                SubdivisionTree3DQueryContext.create = create;
-            })(SubdivisionTree3DQueryContext = Geometry.SubdivisionTree3DQueryContext || (Geometry.SubdivisionTree3DQueryContext = {}));
-            var SubdivisionTree3D;
-            (function (SubdivisionTree3D) {
-                /**
-                 * Create a context used for querying the data.
-                 */
-                function createContextRadius(tree, radiusEstimate, includePriorities) {
-                    if (includePriorities === void 0) { includePriorities = false; }
-                    return SubdivisionTree3DQueryContext.create(tree, includePriorities
-                        ? SubdivisionTree3DResultPriorityBuffer.create(Math.max((radiusEstimate * radiusEstimate) | 0, 8))
-                        : SubdivisionTree3DResultIndexBuffer.create(Math.max((radiusEstimate * radiusEstimate) | 0, 8)));
-                }
-                SubdivisionTree3D.createContextRadius = createContextRadius;
-                /**
-                 * Takes data and a function that calls SubdivisionTree3DPositionBuilder.add(x, y, z) on each data element.
-                 */
-                function create(data, f, leafSize) {
-                    if (leafSize === void 0) { leafSize = 32; }
-                    var _a = SubdivisionTree3DBuilder.build(data, f, leafSize), root = _a.root, indices = _a.indices, positions = _a.positions;
-                    return { data: data, root: root, indices: indices, positions: positions };
-                }
-                SubdivisionTree3D.create = create;
-            })(SubdivisionTree3D = Geometry.SubdivisionTree3D || (Geometry.SubdivisionTree3D = {}));
-            var PositionBuilder;
-            (function (PositionBuilder) {
-                function add(builder, x, y, z) {
-                    builder.data[builder._count++] = x;
-                    builder.data[builder._count++] = y;
-                    builder.data[builder._count++] = z;
-                    builder.boundsMin[0] = Math.min(x, builder.boundsMin[0]);
-                    builder.boundsMin[1] = Math.min(y, builder.boundsMin[1]);
-                    builder.boundsMin[2] = Math.min(z, builder.boundsMin[2]);
-                    builder.boundsMax[0] = Math.max(x, builder.boundsMax[0]);
-                    builder.boundsMax[1] = Math.max(y, builder.boundsMax[1]);
-                    builder.boundsMax[2] = Math.max(z, builder.boundsMax[2]);
-                }
-                PositionBuilder.add = add;
-                function create(size) {
-                    var data = new Float32Array((size * 3) | 0);
-                    var bounds = Box3D.createInfinite();
-                    var boundsMin = bounds.min;
-                    var boundsMax = bounds.max;
-                    return { _count: 0, data: data, bounds: bounds, boundsMin: boundsMin, boundsMax: boundsMax };
-                }
-                PositionBuilder.create = create;
-            })(PositionBuilder || (PositionBuilder = {}));
-            var SubdivisionTree3DNode;
-            (function (SubdivisionTree3DNode) {
-                function nearestLeaf(node, ctx) {
-                    var pivot = ctx.pivot, indices = ctx.indices, positions = ctx.positions, rSq = ctx.radiusSq, dx, dy, dz, o, m, i;
-                    for (i = node.startIndex; i < node.endIndex; i++) {
-                        o = 3 * indices[i];
-                        dx = pivot[0] - positions[o];
-                        dy = pivot[1] - positions[o + 1];
-                        dz = pivot[2] - positions[o + 2];
-                        m = dx * dx + dy * dy + dz * dz;
-                        if (m <= rSq)
-                            ctx.buffer.add(m, indices[i]);
-                    }
-                }
-                function nearestNode(node, ctx, dim) {
-                    var pivot = ctx.pivot[dim], left = pivot < node.splitValue;
-                    if (left ? pivot + ctx.radius > node.splitValue : pivot - ctx.radius < node.splitValue) {
-                        nearest(node.left, ctx, (dim + 1) % 3);
-                        nearest(node.right, ctx, (dim + 1) % 3);
-                    }
-                    else if (left) {
-                        nearest(node.left, ctx, (dim + 1) % 3);
-                    }
-                    else {
-                        nearest(node.right, ctx, (dim + 1) % 3);
-                    }
-                }
-                function nearest(node, ctx, dim) {
-                    // check for empty.
-                    if (node.startIndex === node.endIndex)
-                        return;
-                    // is leaf?
-                    if (isNaN(node.splitValue))
-                        nearestLeaf(node, ctx);
-                    else
-                        nearestNode(node, ctx, dim);
-                }
-                SubdivisionTree3DNode.nearest = nearest;
-                function create(splitValue, startIndex, endIndex, left, right) {
-                    return { splitValue: splitValue, startIndex: startIndex, endIndex: endIndex, left: left, right: right };
-                }
-                SubdivisionTree3DNode.create = create;
-            })(SubdivisionTree3DNode = Geometry.SubdivisionTree3DNode || (Geometry.SubdivisionTree3DNode = {}));
-            var Box3D;
-            (function (Box3D) {
-                function createInfinite() {
-                    return {
-                        min: [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE],
-                        max: [-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE]
-                    };
-                }
-                Box3D.createInfinite = createInfinite;
-            })(Box3D = Geometry.Box3D || (Geometry.Box3D = {}));
-            /**
-             * A helper to build the tree.
-             */
-            var SubdivisionTree3DBuilder;
-            (function (SubdivisionTree3DBuilder) {
-                function split(state, startIndex, endIndex, coord) {
-                    var delta = endIndex - startIndex + 1;
-                    if (delta <= 0) {
-                        return state.emptyNode;
-                    }
-                    else if (delta <= state.leafSize) {
-                        return SubdivisionTree3DNode.create(NaN, startIndex, endIndex + 1, state.emptyNode, state.emptyNode);
-                    }
-                    var min = state.bounds.min[coord], max = state.bounds.max[coord], median = 0.5 * (min + max), midIndex = 0, l = startIndex, r = endIndex, t, left, right;
-                    while (l < r) {
-                        t = state.indices[r];
-                        state.indices[r] = state.indices[l];
-                        state.indices[l] = t;
-                        while (l <= endIndex && state.positions[3 * state.indices[l] + coord] <= median)
-                            l++;
-                        while (r >= startIndex && state.positions[3 * state.indices[r] + coord] > median)
-                            r--;
-                    }
-                    midIndex = l - 1;
-                    state.bounds.max[coord] = median;
-                    left = split(state, startIndex, midIndex, (coord + 1) % 3);
-                    state.bounds.max[coord] = max;
-                    state.bounds.min[coord] = median;
-                    right = split(state, midIndex + 1, endIndex, (coord + 1) % 3);
-                    state.bounds.min[coord] = min;
-                    return SubdivisionTree3DNode.create(median, startIndex, endIndex + 1, left, right);
-                }
-                function createAdder(builder) {
-                    var add = PositionBuilder.add;
-                    return function (x, y, z) {
-                        add(builder, x, y, z);
-                    };
-                }
-                function build(data, f, leafSize) {
-                    var positions = PositionBuilder.create(data.length), indices = new Int32Array(data.length);
-                    var add = createAdder(positions);
-                    for (var i = 0; i < data.length; i++) {
-                        indices[i] = i;
-                        f(data[i], add);
-                    }
-                    // help gc
-                    add = void 0;
-                    var state = {
-                        bounds: positions.bounds,
-                        positions: positions.data,
-                        leafSize: leafSize,
-                        indices: indices,
-                        emptyNode: SubdivisionTree3DNode.create(NaN, -1, -1, void 0, void 0),
-                    };
-                    var root = split(state, 0, indices.length - 1, 0);
-                    state = void 0;
-                    return { root: root, indices: indices, positions: positions.data };
-                }
-                SubdivisionTree3DBuilder.build = build;
-            })(SubdivisionTree3DBuilder || (SubdivisionTree3DBuilder = {}));
-        })(Geometry = Core.Geometry || (Core.Geometry = {}));
-    })(Core = LiteMol.Core || (LiteMol.Core = {}));
-})(LiteMol || (LiteMol = {}));
-/*
- * Copyright (c) 2016 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
- */
-var LiteMol;
-(function (LiteMol) {
-    var Core;
-    (function (Core) {
-        var Geometry;
-        (function (Geometry) {
             "use strict";
             var Surface;
             (function (Surface) {
@@ -15383,6 +15184,360 @@ var LiteMol;
                 }
                 Surface.transform = transform;
             })(Surface = Geometry.Surface || (Geometry.Surface = {}));
+        })(Geometry = Core.Geometry || (Core.Geometry = {}));
+    })(Core = LiteMol.Core || (LiteMol.Core = {}));
+})(LiteMol || (LiteMol = {}));
+/*
+ * Copyright (c) 2016 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
+ */
+var LiteMol;
+(function (LiteMol) {
+    var Core;
+    (function (Core) {
+        var Geometry;
+        (function (Geometry) {
+            var Query3D;
+            (function (Query3D) {
+                var Box3D;
+                (function (Box3D) {
+                    function createInfinite() {
+                        return {
+                            min: [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE],
+                            max: [-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE]
+                        };
+                    }
+                    Box3D.createInfinite = createInfinite;
+                })(Box3D = Query3D.Box3D || (Query3D.Box3D = {}));
+                var QueryContext;
+                (function (QueryContext) {
+                    function add(ctx, distSq, index) {
+                        var buffer = ctx.buffer;
+                        buffer.squaredDistances[buffer.count] = distSq;
+                        buffer.elements[buffer.count++] = buffer.sourceElements[index];
+                    }
+                    QueryContext.add = add;
+                    function resetBuffer(buffer) { buffer.count = 0; }
+                    function createBuffer(sourceElements) {
+                        return {
+                            sourceElements: sourceElements,
+                            elements: [],
+                            count: 0,
+                            squaredDistances: []
+                        };
+                    }
+                    /**
+                     * Query the tree and store the result to this.buffer. Overwrites the old result.
+                     */
+                    function update(ctx, x, y, z, radius) {
+                        ctx.pivot[0] = x;
+                        ctx.pivot[1] = y;
+                        ctx.pivot[2] = z;
+                        ctx.radius = radius;
+                        ctx.radiusSq = radius * radius;
+                        resetBuffer(ctx.buffer);
+                    }
+                    QueryContext.update = update;
+                    function create(structure, sourceElements) {
+                        return {
+                            structure: structure,
+                            buffer: createBuffer(sourceElements),
+                            pivot: [0.1, 0.1, 0.1],
+                            radius: 1.1,
+                            radiusSq: 1.1 * 1.1
+                        };
+                    }
+                    QueryContext.create = create;
+                })(QueryContext = Query3D.QueryContext || (Query3D.QueryContext = {}));
+                var PositionBuilder;
+                (function (PositionBuilder) {
+                    function add(builder, x, y, z) {
+                        builder.data[builder._count++] = x;
+                        builder.data[builder._count++] = y;
+                        builder.data[builder._count++] = z;
+                        builder.boundsMin[0] = Math.min(x, builder.boundsMin[0]);
+                        builder.boundsMin[1] = Math.min(y, builder.boundsMin[1]);
+                        builder.boundsMin[2] = Math.min(z, builder.boundsMin[2]);
+                        builder.boundsMax[0] = Math.max(x, builder.boundsMax[0]);
+                        builder.boundsMax[1] = Math.max(y, builder.boundsMax[1]);
+                        builder.boundsMax[2] = Math.max(z, builder.boundsMax[2]);
+                    }
+                    PositionBuilder.add = add;
+                    function create(size) {
+                        var data = new Float32Array((size * 3) | 0);
+                        var bounds = Box3D.createInfinite();
+                        var boundsMin = bounds.min;
+                        var boundsMax = bounds.max;
+                        return { _count: 0, data: data, bounds: bounds, boundsMin: boundsMin, boundsMax: boundsMax };
+                    }
+                    PositionBuilder.create = create;
+                    function createAdder(builder) {
+                        var add = PositionBuilder.add;
+                        return function (x, y, z) {
+                            add(builder, x, y, z);
+                        };
+                    }
+                    PositionBuilder.createAdder = createAdder;
+                })(PositionBuilder || (PositionBuilder = {}));
+                function createInputData(elements, f) {
+                    var positions = PositionBuilder.create(elements.length);
+                    var indices = new Int32Array(elements.length);
+                    var add = PositionBuilder.createAdder(positions);
+                    for (var i = 0; i < elements.length; i++) {
+                        indices[i] = i;
+                        f(elements[i], add);
+                    }
+                    return { elements: elements, positions: positions.data, bounds: positions.bounds, indices: indices };
+                }
+                Query3D.createInputData = createInputData;
+            })(Query3D = Geometry.Query3D || (Geometry.Query3D = {}));
+        })(Geometry = Core.Geometry || (Core.Geometry = {}));
+    })(Core = LiteMol.Core || (LiteMol.Core = {}));
+})(LiteMol || (LiteMol = {}));
+/*
+ * Copyright (c) 2016 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
+ */
+var LiteMol;
+(function (LiteMol) {
+    var Core;
+    (function (Core) {
+        var Geometry;
+        (function (Geometry) {
+            var Query3D;
+            (function (Query3D) {
+                var SubdivisionTree3DNode;
+                (function (SubdivisionTree3DNode) {
+                    function nearestLeaf(node, ctx) {
+                        var pivot = ctx.pivot, _a = ctx.structure, indices = _a.indices, positions = _a.positions, rSq = ctx.radiusSq, dx, dy, dz, o, m, i;
+                        for (i = node.startIndex; i < node.endIndex; i++) {
+                            o = 3 * indices[i];
+                            dx = pivot[0] - positions[o];
+                            dy = pivot[1] - positions[o + 1];
+                            dz = pivot[2] - positions[o + 2];
+                            m = dx * dx + dy * dy + dz * dz;
+                            if (m <= rSq)
+                                Query3D.QueryContext.add(ctx, m, indices[i]);
+                        }
+                    }
+                    function nearestNode(node, ctx, dim) {
+                        var pivot = ctx.pivot[dim], left = pivot < node.splitValue;
+                        if (left ? pivot + ctx.radius > node.splitValue : pivot - ctx.radius < node.splitValue) {
+                            nearest(node.left, ctx, (dim + 1) % 3);
+                            nearest(node.right, ctx, (dim + 1) % 3);
+                        }
+                        else if (left) {
+                            nearest(node.left, ctx, (dim + 1) % 3);
+                        }
+                        else {
+                            nearest(node.right, ctx, (dim + 1) % 3);
+                        }
+                    }
+                    function nearest(node, ctx, dim) {
+                        // check for empty.
+                        if (node.startIndex === node.endIndex)
+                            return;
+                        // is leaf?
+                        if (isNaN(node.splitValue))
+                            nearestLeaf(node, ctx);
+                        else
+                            nearestNode(node, ctx, dim);
+                    }
+                    SubdivisionTree3DNode.nearest = nearest;
+                    function create(splitValue, startIndex, endIndex, left, right) {
+                        return { splitValue: splitValue, startIndex: startIndex, endIndex: endIndex, left: left, right: right };
+                    }
+                    SubdivisionTree3DNode.create = create;
+                })(SubdivisionTree3DNode || (SubdivisionTree3DNode = {}));
+                /**
+                 * A helper to build the tree.
+                 */
+                var SubdivisionTree3DBuilder;
+                (function (SubdivisionTree3DBuilder) {
+                    function split(state, startIndex, endIndex, coord) {
+                        var delta = endIndex - startIndex + 1;
+                        if (delta <= 0) {
+                            return state.emptyNode;
+                        }
+                        else if (delta <= state.leafSize) {
+                            return SubdivisionTree3DNode.create(NaN, startIndex, endIndex + 1, state.emptyNode, state.emptyNode);
+                        }
+                        var min = state.bounds.min[coord], max = state.bounds.max[coord], median = 0.5 * (min + max), midIndex = 0, l = startIndex, r = endIndex, t, left, right;
+                        while (l < r) {
+                            t = state.indices[r];
+                            state.indices[r] = state.indices[l];
+                            state.indices[l] = t;
+                            while (l <= endIndex && state.positions[3 * state.indices[l] + coord] <= median)
+                                l++;
+                            while (r >= startIndex && state.positions[3 * state.indices[r] + coord] > median)
+                                r--;
+                        }
+                        midIndex = l - 1;
+                        state.bounds.max[coord] = median;
+                        left = split(state, startIndex, midIndex, (coord + 1) % 3);
+                        state.bounds.max[coord] = max;
+                        state.bounds.min[coord] = median;
+                        right = split(state, midIndex + 1, endIndex, (coord + 1) % 3);
+                        state.bounds.min[coord] = min;
+                        return SubdivisionTree3DNode.create(median, startIndex, endIndex + 1, left, right);
+                    }
+                    function build(_a, leafSize) {
+                        var elements = _a.elements, positions = _a.positions, bounds = _a.bounds, indices = _a.indices;
+                        var state = {
+                            bounds: bounds,
+                            positions: positions,
+                            leafSize: leafSize,
+                            indices: indices,
+                            emptyNode: SubdivisionTree3DNode.create(NaN, -1, -1, void 0, void 0),
+                        };
+                        var root = split(state, 0, indices.length - 1, 0);
+                        return { root: root, indices: indices, positions: positions };
+                    }
+                    SubdivisionTree3DBuilder.build = build;
+                })(SubdivisionTree3DBuilder || (SubdivisionTree3DBuilder = {}));
+                function createSubdivisionTree(data, leafSize) {
+                    if (leafSize === void 0) { leafSize = 32; }
+                    var tree = SubdivisionTree3DBuilder.build(data, leafSize);
+                    return function (radiusEstimate) {
+                        var ctx = Query3D.QueryContext.create(tree, data.elements);
+                        return function (x, y, z, radius) {
+                            Query3D.QueryContext.update(ctx, x, y, z, radius);
+                            SubdivisionTree3DNode.nearest(tree.root, ctx, 0);
+                            return ctx.buffer;
+                        };
+                    };
+                }
+                Query3D.createSubdivisionTree = createSubdivisionTree;
+            })(Query3D = Geometry.Query3D || (Geometry.Query3D = {}));
+        })(Geometry = Core.Geometry || (Core.Geometry = {}));
+    })(Core = LiteMol.Core || (LiteMol.Core = {}));
+})(LiteMol || (LiteMol = {}));
+/*
+ * Copyright (c) 2017 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
+ */
+var LiteMol;
+(function (LiteMol) {
+    var Core;
+    (function (Core) {
+        var Geometry;
+        (function (Geometry) {
+            var Query3D;
+            (function (Query3D) {
+                /**
+                 * Adapted from https://github.com/arose/ngl
+                 * MIT License Copyright (C) 2014+ Alexander Rose
+                 */
+                function nearest(ctx) {
+                    var _a = ctx.structure, _b = _a.min, minX = _b[0], minY = _b[1], minZ = _b[2], _c = _a.size, sX = _c[0], sY = _c[1], sZ = _c[2], bucketOffset = _a.bucketOffset, bucketCounts = _a.bucketCounts, bucketArray = _a.bucketArray, grid = _a.grid, positions = _a.positions;
+                    var r = ctx.radius, rSq = ctx.radiusSq, _d = ctx.pivot, x = _d[0], y = _d[1], z = _d[2];
+                    var loX = Math.max(0, (x - r - minX) >> 3 /* Exp */);
+                    var loY = Math.max(0, (y - r - minY) >> 3 /* Exp */);
+                    var loZ = Math.max(0, (z - r - minZ) >> 3 /* Exp */);
+                    var hiX = Math.min(sX, (x + r - minX) >> 3 /* Exp */);
+                    var hiY = Math.min(sY, (y + r - minY) >> 3 /* Exp */);
+                    var hiZ = Math.min(sZ, (z + r - minZ) >> 3 /* Exp */);
+                    for (var ix = loX; ix <= hiX; ix++) {
+                        for (var iy = loY; iy <= hiY; iy++) {
+                            for (var iz = loZ; iz <= hiZ; iz++) {
+                                var idx = (((ix * sY) + iy) * sZ) + iz;
+                                var bucketIdx = grid[idx];
+                                if (bucketIdx > 0) {
+                                    var k = bucketIdx - 1;
+                                    var offset = bucketOffset[k];
+                                    var count = bucketCounts[k];
+                                    var end = offset + count;
+                                    for (var i = offset; i < end; i++) {
+                                        var idx_1 = bucketArray[i];
+                                        var dx = positions[3 * idx_1 + 0] - x;
+                                        var dy = positions[3 * idx_1 + 1] - y;
+                                        var dz = positions[3 * idx_1 + 2] - z;
+                                        var distSq = dx * dx + dy * dy + dz * dz;
+                                        if (distSq <= rSq) {
+                                            Query3D.QueryContext.add(ctx, distSq, idx_1);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                function _build(state) {
+                    var bounds = state.bounds, _a = state.size, sX = _a[0], sY = _a[1], sZ = _a[2], positions = state.positions, indices = state.indices;
+                    var n = sX * sY * sZ;
+                    var count = indices.length;
+                    var _b = bounds.min, minX = _b[0], minY = _b[1], minZ = _b[2];
+                    var bucketCount = 0;
+                    var grid = new Uint32Array(n);
+                    var bucketIndex = new Int32Array(count);
+                    for (var i = 0; i < count; i++) {
+                        var x = (positions[3 * i + 0] - minX) >> 3 /* Exp */;
+                        var y = (positions[3 * i + 1] - minY) >> 3 /* Exp */;
+                        var z = (positions[3 * i + 2] - minZ) >> 3 /* Exp */;
+                        var idx = (((x * sY) + y) * sZ) + z;
+                        if ((grid[idx] += 1) === 1) {
+                            bucketCount += 1;
+                        }
+                        bucketIndex[i] = idx;
+                    }
+                    var bucketCounts = new Int32Array(bucketCount);
+                    for (var i = 0, j = 0; i < n; i++) {
+                        var c = grid[i];
+                        if (c > 0) {
+                            grid[i] = j + 1;
+                            bucketCounts[j] = c;
+                            j += 1;
+                        }
+                    }
+                    var bucketOffset = new Uint32Array(count);
+                    for (var i = 1; i < count; ++i) {
+                        bucketOffset[i] += bucketOffset[i - 1] + bucketCounts[i - 1];
+                    }
+                    var bucketFill = new Int32Array(bucketCount);
+                    var bucketArray = new Int32Array(count);
+                    for (var i = 0; i < count; i++) {
+                        var bucketIdx = grid[bucketIndex[i]];
+                        if (bucketIdx > 0) {
+                            var k = bucketIdx - 1;
+                            bucketArray[bucketOffset[k] + bucketFill[k]] = i;
+                            bucketFill[k] += 1;
+                        }
+                    }
+                    return {
+                        size: state.size,
+                        bucketArray: bucketArray,
+                        bucketCounts: bucketCounts,
+                        bucketOffset: bucketOffset,
+                        grid: grid,
+                        min: state.bounds.min,
+                        positions: positions
+                    };
+                }
+                function build(_a) {
+                    var elements = _a.elements, positions = _a.positions, bounds = _a.bounds, indices = _a.indices;
+                    var size = [
+                        ((bounds.max[0] - bounds.min[0]) >> 3 /* Exp */) + 1,
+                        ((bounds.max[1] - bounds.min[1]) >> 3 /* Exp */) + 1,
+                        ((bounds.max[2] - bounds.min[2]) >> 3 /* Exp */) + 1
+                    ];
+                    var state = {
+                        size: size,
+                        positions: positions,
+                        indices: indices,
+                        bounds: bounds
+                    };
+                    return _build(state);
+                }
+                function createSpatialHash(data) {
+                    var tree = build(data);
+                    return function (radiusEstimate) {
+                        var ctx = Query3D.QueryContext.create(tree, data.elements);
+                        return function (x, y, z, radius) {
+                            Query3D.QueryContext.update(ctx, x, y, z, radius);
+                            nearest(ctx);
+                            return ctx.buffer;
+                        };
+                    };
+                }
+                Query3D.createSpatialHash = createSpatialHash;
+            })(Query3D = Geometry.Query3D || (Geometry.Query3D = {}));
         })(Geometry = Core.Geometry || (Core.Geometry = {}));
     })(Core = LiteMol.Core || (LiteMol.Core = {}));
 })(LiteMol || (LiteMol = {}));
@@ -16462,6 +16617,71 @@ var LiteMol;
             }());
             Structure.SymmetryInfo = SymmetryInfo;
             /**
+             * Wraps _struct_conn mmCIF category.
+             */
+            var StructConn = (function () {
+                function StructConn(entries) {
+                    this.entries = entries;
+                    this._residuePairIndex = void 0;
+                    this._atomIndex = void 0;
+                }
+                StructConn._resKey = function (rA, rB) {
+                    if (rA < rB)
+                        return rA + "-" + rB;
+                    return rB + "-" + rA;
+                };
+                StructConn.prototype.getResiduePairIndex = function () {
+                    if (this._residuePairIndex)
+                        return this._residuePairIndex;
+                    this._residuePairIndex = Core.Utils.FastMap.create();
+                    for (var _i = 0, _a = this.entries; _i < _a.length; _i++) {
+                        var e = _a[_i];
+                        var ps = e.partners;
+                        var l = ps.length;
+                        for (var i = 0; i < l - 1; i++) {
+                            for (var j = i + i; j < l; j++) {
+                                var key = StructConn._resKey(ps[i].residueIndex, ps[j].residueIndex);
+                                if (this._residuePairIndex.has(key)) {
+                                    this._residuePairIndex.get(key).push(e);
+                                }
+                                else {
+                                    this._residuePairIndex.set(key, [e]);
+                                }
+                            }
+                        }
+                    }
+                    return this._residuePairIndex;
+                };
+                StructConn.prototype.getAtomIndex = function () {
+                    if (this._atomIndex)
+                        return this._atomIndex;
+                    this._atomIndex = Core.Utils.FastMap.create();
+                    for (var _i = 0, _a = this.entries; _i < _a.length; _i++) {
+                        var e = _a[_i];
+                        for (var _c = 0, _d = e.partners; _c < _d.length; _c++) {
+                            var p = _d[_c];
+                            var key = p.atomIndex;
+                            if (this._atomIndex.has(key)) {
+                                this._atomIndex.get(key).push(e);
+                            }
+                            else {
+                                this._atomIndex.set(key, [e]);
+                            }
+                        }
+                    }
+                    return this._atomIndex;
+                };
+                StructConn.prototype.getResidueEntries = function (residueAIndex, residueBIndex) {
+                    return this.getResiduePairIndex().get(StructConn._resKey(residueAIndex, residueBIndex)) || StructConn._emptyEntry;
+                };
+                StructConn.prototype.getAtomEntries = function (atomIndex) {
+                    return this.getAtomIndex().get(atomIndex) || StructConn._emptyEntry;
+                };
+                StructConn._emptyEntry = [];
+                return StructConn;
+            }());
+            Structure.StructConn = StructConn;
+            /**
              * Wraps an assembly operator.
              */
             var AssemblyOperator = (function () {
@@ -16620,6 +16840,7 @@ var LiteMol;
                                 queryContext = Structure.Query.Context.ofStructure(ret);
                                 return queryContext;
                             } });
+                        Structure.computeBonds(ret, ret.data.atoms.indices);
                         return ret;
                     }
                     Model.create = create;
@@ -16652,6 +16873,219 @@ var LiteMol;
                     Model.withTransformedXYZ = withTransformedXYZ;
                 })(Model = Molecule.Model || (Molecule.Model = {}));
             })(Molecule = Structure.Molecule || (Structure.Molecule = {}));
+        })(Structure = Core.Structure || (Core.Structure = {}));
+    })(Core = LiteMol.Core || (LiteMol.Core = {}));
+})(LiteMol || (LiteMol = {}));
+/*
+ * Copyright (c) 2017 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
+ */
+var LiteMol;
+(function (LiteMol) {
+    var Core;
+    (function (Core) {
+        var Structure;
+        (function (Structure) {
+            'use strict';
+            // H,D,T are all mapped to H
+            var __ElementIndex = { 'H': 0, 'h': 0, 'D': 0, 'd': 0, 'T': 0, 't': 0, 'He': 2, 'HE': 2, 'he': 2, 'Li': 3, 'LI': 3, 'li': 3, 'Be': 4, 'BE': 4, 'be': 4, 'B': 5, 'b': 5, 'C': 6, 'c': 6, 'N': 7, 'n': 7, 'O': 8, 'o': 8, 'F': 9, 'f': 9, 'Ne': 10, 'NE': 10, 'ne': 10, 'Na': 11, 'NA': 11, 'na': 11, 'Mg': 12, 'MG': 12, 'mg': 12, 'Al': 13, 'AL': 13, 'al': 13, 'Si': 14, 'SI': 14, 'si': 14, 'P': 15, 'p': 15, 'S': 16, 's': 16, 'Cl': 17, 'CL': 17, 'cl': 17, 'Ar': 18, 'AR': 18, 'ar': 18, 'K': 19, 'k': 19, 'Ca': 20, 'CA': 20, 'ca': 20, 'Sc': 21, 'SC': 21, 'sc': 21, 'Ti': 22, 'TI': 22, 'ti': 22, 'V': 23, 'v': 23, 'Cr': 24, 'CR': 24, 'cr': 24, 'Mn': 25, 'MN': 25, 'mn': 25, 'Fe': 26, 'FE': 26, 'fe': 26, 'Co': 27, 'CO': 27, 'co': 27, 'Ni': 28, 'NI': 28, 'ni': 28, 'Cu': 29, 'CU': 29, 'cu': 29, 'Zn': 30, 'ZN': 30, 'zn': 30, 'Ga': 31, 'GA': 31, 'ga': 31, 'Ge': 32, 'GE': 32, 'ge': 32, 'As': 33, 'AS': 33, 'as': 33, 'Se': 34, 'SE': 34, 'se': 34, 'Br': 35, 'BR': 35, 'br': 35, 'Kr': 36, 'KR': 36, 'kr': 36, 'Rb': 37, 'RB': 37, 'rb': 37, 'Sr': 38, 'SR': 38, 'sr': 38, 'Y': 39, 'y': 39, 'Zr': 40, 'ZR': 40, 'zr': 40, 'Nb': 41, 'NB': 41, 'nb': 41, 'Mo': 42, 'MO': 42, 'mo': 42, 'Tc': 43, 'TC': 43, 'tc': 43, 'Ru': 44, 'RU': 44, 'ru': 44, 'Rh': 45, 'RH': 45, 'rh': 45, 'Pd': 46, 'PD': 46, 'pd': 46, 'Ag': 47, 'AG': 47, 'ag': 47, 'Cd': 48, 'CD': 48, 'cd': 48, 'In': 49, 'IN': 49, 'in': 49, 'Sn': 50, 'SN': 50, 'sn': 50, 'Sb': 51, 'SB': 51, 'sb': 51, 'Te': 52, 'TE': 52, 'te': 52, 'I': 53, 'i': 53, 'Xe': 54, 'XE': 54, 'xe': 54, 'Cs': 55, 'CS': 55, 'cs': 55, 'Ba': 56, 'BA': 56, 'ba': 56, 'La': 57, 'LA': 57, 'la': 57, 'Ce': 58, 'CE': 58, 'ce': 58, 'Pr': 59, 'PR': 59, 'pr': 59, 'Nd': 60, 'ND': 60, 'nd': 60, 'Pm': 61, 'PM': 61, 'pm': 61, 'Sm': 62, 'SM': 62, 'sm': 62, 'Eu': 63, 'EU': 63, 'eu': 63, 'Gd': 64, 'GD': 64, 'gd': 64, 'Tb': 65, 'TB': 65, 'tb': 65, 'Dy': 66, 'DY': 66, 'dy': 66, 'Ho': 67, 'HO': 67, 'ho': 67, 'Er': 68, 'ER': 68, 'er': 68, 'Tm': 69, 'TM': 69, 'tm': 69, 'Yb': 70, 'YB': 70, 'yb': 70, 'Lu': 71, 'LU': 71, 'lu': 71, 'Hf': 72, 'HF': 72, 'hf': 72, 'Ta': 73, 'TA': 73, 'ta': 73, 'W': 74, 'w': 74, 'Re': 75, 'RE': 75, 're': 75, 'Os': 76, 'OS': 76, 'os': 76, 'Ir': 77, 'IR': 77, 'ir': 77, 'Pt': 78, 'PT': 78, 'pt': 78, 'Au': 79, 'AU': 79, 'au': 79, 'Hg': 80, 'HG': 80, 'hg': 80, 'Tl': 81, 'TL': 81, 'tl': 81, 'Pb': 82, 'PB': 82, 'pb': 82, 'Bi': 83, 'BI': 83, 'bi': 83, 'Po': 84, 'PO': 84, 'po': 84, 'At': 85, 'AT': 85, 'at': 85, 'Rn': 86, 'RN': 86, 'rn': 86, 'Fr': 87, 'FR': 87, 'fr': 87, 'Ra': 88, 'RA': 88, 'ra': 88, 'Ac': 89, 'AC': 89, 'ac': 89, 'Th': 90, 'TH': 90, 'th': 90, 'Pa': 91, 'PA': 91, 'pa': 91, 'U': 92, 'u': 92, 'Np': 93, 'NP': 93, 'np': 93, 'Pu': 94, 'PU': 94, 'pu': 94, 'Am': 95, 'AM': 95, 'am': 95, 'Cm': 96, 'CM': 96, 'cm': 96, 'Bk': 97, 'BK': 97, 'bk': 97, 'Cf': 98, 'CF': 98, 'cf': 98, 'Es': 99, 'ES': 99, 'es': 99, 'Fm': 100, 'FM': 100, 'fm': 100, 'Md': 101, 'MD': 101, 'md': 101, 'No': 102, 'NO': 102, 'no': 102, 'Lr': 103, 'LR': 103, 'lr': 103, 'Rf': 104, 'RF': 104, 'rf': 104, 'Db': 105, 'DB': 105, 'db': 105, 'Sg': 106, 'SG': 106, 'sg': 106, 'Bh': 107, 'BH': 107, 'bh': 107, 'Hs': 108, 'HS': 108, 'hs': 108, 'Mt': 109, 'MT': 109, 'mt': 109 };
+            var __ElementBondingRadii = { 0: 1.42, 1: 1.42, 2: 1.75, 3: 2, 4: 1.76, 5: 2, 6: 1.9, 7: 1.9, 8: 1.9, 9: 1.75, 10: 1.75, 11: 2, 12: 2.4, 13: 2.8, 14: 2.11, 15: 2.3, 16: 2.3, 17: 1.75, 18: 1.75, 19: 1, 20: 2.65, 21: 2.8, 22: 2.8, 23: 2.8, 24: 2.8, 25: 2.81, 26: 2.8, 27: 2.8, 28: 2.8, 29: 2.8, 30: 2.8, 31: 2.8, 32: 1.75, 33: 2.68, 34: 2.34, 35: 2.68, 36: 1.75, 37: 2.8, 38: 2.82, 39: 2.8, 40: 2.8, 41: 2.8, 42: 2.8, 43: 2.8, 44: 2.5, 45: 2.77, 46: 2.8, 47: 2.8, 48: 2.8, 49: 2.8, 50: 2.8, 51: 1.75, 52: 2.2, 53: 2.81, 54: 1.75, 55: 2.8, 56: 2.8, 57: 2.8, 58: 2.8, 59: 2.8, 60: 2.8, 61: 2.8, 62: 2.8, 63: 2.8, 64: 2.8, 65: 2.8, 66: 2.8, 67: 2.8, 68: 2.8, 69: 2.8, 70: 2.8, 71: 2.8, 72: 2.8, 73: 2.8, 74: 2.66, 75: 2.8, 76: 2.8, 77: 2.51, 78: 3.24, 79: 2.8, 80: 3, 81: 2.8, 82: 2.8, 83: 2.8, 84: 1.75, 85: 1.75, 86: 1.75, 87: 2.8, 88: 2.8, 89: 2.8, 90: 2.8, 91: 2.8, 92: 2.8, 93: 2.8, 94: 2.8, 95: 2.8, 96: 2.8, 97: 2.8, 98: 2.8, 99: 2.8, 100: 2.8, 101: 2.8, 102: 2.8, 103: 2.8, 104: 2.8, 105: 2.8, 106: 2.8, 107: 2.8, 108: 2.8, 109: 2.8 };
+            var __ElementBondThresholds = { 0: [[1.42, 1 /* Single */]], 1: [[1.42, 1 /* Single */]], 3: [[2.8, 5 /* Metallic */]], 4: [[2.8, 5 /* Metallic */]], 6: [[1.75, 1 /* Single */]], 7: [[1.6, 1 /* Single */]], 8: [[1.52, 1 /* Single */]], 11: [[2.8, 5 /* Metallic */]], 12: [[2.8, 5 /* Metallic */]], 13: [[2.8, 5 /* Metallic */]], 14: [[1.9, 1 /* Single */]], 15: [[1.9, 1 /* Single */]], 16: [[1.9, 1 /* Single */]], 17: [[1.8, 1 /* Single */]], 19: [[2.8, 5 /* Metallic */]], 20: [[2.8, 5 /* Metallic */]], 21: [[2.8, 5 /* Metallic */]], 22: [[2.8, 5 /* Metallic */]], 23: [[2.8, 5 /* Metallic */]], 24: [[2.8, 5 /* Metallic */]], 25: [[2.8, 5 /* Metallic */]], 26: [[2.8, 5 /* Metallic */]], 27: [[2.8, 5 /* Metallic */]], 28: [[2.8, 5 /* Metallic */]], 29: [[2.8, 5 /* Metallic */]], 30: [[2.8, 5 /* Metallic */]], 31: [[2.8, 5 /* Metallic */]], 33: [[2.68, 1 /* Single */]], 37: [[2.8, 5 /* Metallic */]], 38: [[2.8, 5 /* Metallic */]], 39: [[2.8, 5 /* Metallic */]], 40: [[2.8, 5 /* Metallic */]], 41: [[2.8, 5 /* Metallic */]], 42: [[2.8, 5 /* Metallic */]], 43: [[2.8, 5 /* Metallic */]], 44: [[2.8, 5 /* Metallic */]], 45: [[2.8, 5 /* Metallic */]], 46: [[2.8, 5 /* Metallic */]], 47: [[2.8, 5 /* Metallic */]], 48: [[2.8, 5 /* Metallic */]], 49: [[2.8, 5 /* Metallic */]], 50: [[2.8, 5 /* Metallic */]], 55: [[2.8, 5 /* Metallic */]], 56: [[2.8, 5 /* Metallic */]], 57: [[2.8, 5 /* Metallic */]], 58: [[2.8, 5 /* Metallic */]], 59: [[2.8, 5 /* Metallic */]], 60: [[2.8, 5 /* Metallic */]], 61: [[2.8, 5 /* Metallic */]], 62: [[2.8, 5 /* Metallic */]], 63: [[2.8, 5 /* Metallic */]], 64: [[2.8, 5 /* Metallic */]], 65: [[2.8, 5 /* Metallic */]], 66: [[2.8, 5 /* Metallic */]], 67: [[2.8, 5 /* Metallic */]], 68: [[2.8, 5 /* Metallic */]], 69: [[2.8, 5 /* Metallic */]], 70: [[2.8, 5 /* Metallic */]], 71: [[2.8, 5 /* Metallic */]], 72: [[2.8, 5 /* Metallic */]], 73: [[2.8, 5 /* Metallic */]], 74: [[2.8, 5 /* Metallic */]], 75: [[2.8, 5 /* Metallic */]], 76: [[2.8, 5 /* Metallic */]], 77: [[2.8, 5 /* Metallic */]], 78: [[2.8, 5 /* Metallic */]], 79: [[2.8, 5 /* Metallic */]], 80: [[2.8, 5 /* Metallic */]], 81: [[2.8, 5 /* Metallic */]], 82: [[2.8, 5 /* Metallic */]], 83: [[2.8, 5 /* Metallic */]], 87: [[2.8, 5 /* Metallic */]], 88: [[2.8, 5 /* Metallic */]], 89: [[2.8, 5 /* Metallic */]], 90: [[2.8, 5 /* Metallic */]], 91: [[2.8, 5 /* Metallic */]], 92: [[2.8, 5 /* Metallic */]], 93: [[2.8, 5 /* Metallic */]], 94: [[2.8, 5 /* Metallic */]], 95: [[2.8, 5 /* Metallic */]], 96: [[2.8, 5 /* Metallic */]], 97: [[2.8, 5 /* Metallic */]], 98: [[2.8, 5 /* Metallic */]], 99: [[2.8, 5 /* Metallic */]], 100: [[2.8, 5 /* Metallic */]], 101: [[2.8, 5 /* Metallic */]], 102: [[2.8, 5 /* Metallic */]], 103: [[2.8, 5 /* Metallic */]], 104: [[2.8, 5 /* Metallic */]], 105: [[2.8, 5 /* Metallic */]], 106: [[2.8, 5 /* Metallic */]], 107: [[2.8, 5 /* Metallic */]], 108: [[2.8, 5 /* Metallic */]], 109: [[2.8, 5 /* Metallic */]] };
+            var __ElementPairThresholds = { 0: [[0.8, 1 /* Single */]], 15: [[1.31, 1 /* Single */]], 21: [[1.3, 1 /* Single */]], 28: [[1.3, 1 /* Single */]], 36: [[1.05, 1 /* Single */]], 45: [[1, 1 /* Single */]], 60: [[1.84, 1 /* Single */]], 71: [[1.88, 1 /* Single */]], 82: [[1.76, 1 /* Single */]], 83: [[1.56, 1 /* Single */]], 84: [[1.25, 3 /* Triple */], [1.4, 2 /* Double */], [1.75, 1 /* Single */]], 95: [[1.63, 1 /* Single */]], 96: [[1.68, 1 /* Single */]], 97: [[1.27, 2 /* Double */], [1.6, 1 /* Single */]], 110: [[1.36, 1 /* Single */]], 111: [[1.26, 2 /* Double */], [1.59, 1 /* Single */]], 112: [[1.55, 1 /* Single */]], 126: [[1.45, 1 /* Single */]], 144: [[1.6, 1 /* Single */]], 153: [[1.4, 1 /* Single */]], 180: [[1.55, 1 /* Single */]], 197: [[2.4, 5 /* Metallic */]], 215: [[1.49, 2 /* Double */], [1.98, 1 /* Single */]], 216: [[1.91, 1 /* Single */]], 218: [[2.24, 5 /* Metallic */]], 240: [[2.02, 5 /* Metallic */]], 259: [[2, 1 /* Single */]], 282: [[1.9, 1 /* Single */]], 480: [[2.3, 1 /* Single */]], 511: [[2.3, 1 /* Single */]], 544: [[2.3, 1 /* Single */]], 595: [[1.54, 1 /* Single */]], 612: [[2.1, 1 /* Single */]], 630: [[1, 1 /* Single */]], 786: [[2.6, 1 /* Single */]], 826: [[1.82, 2 /* Double */], [2.27, 1 /* Single */]], 867: [[2.1, 1 /* Single */]], 869: [[1.7, 1 /* Single */], [1.93, 1 /* Single */]], 910: [[2.06, 1 /* Single */]], 911: [[1.8, 2 /* Double */], [2.05, 1 /* Single */]], 954: [[1.53, 2 /* Double */], [1.62, 1 /* Single */]], 1241: [[2.68, 1 /* Single */]], 1291: [[2.33, 1 /* Single */]], 1431: [[1, 1 /* Single */]], 1717: [[2.14, 1 /* Single */]], 1776: [[2.48, 1 /* Single */]], 1838: [[2.1, 1 /* Single */]], 1899: [[1.68, 2 /* Double */], [1.72, 1 /* Single */]], 2380: [[2.34, 1 /* Single */]], 3356: [[2.44, 1 /* Single */]], 3662: [[2.11, 1 /* Single */]], 3747: [[2.36, 1 /* Single */]], 3749: [[2.6, 1 /* Single */]], 4672: [[2.75, 1 /* Single */]], 5724: [[2.73, 1 /* Single */]], 5921: [[2.63, 1 /* Single */]], 6476: [[2.84, 1 /* Single */]], 6705: [[2.87, 1 /* Single */]], 8964: [[2.81, 1 /* Single */]] };
+            var DefaultBondingRadius = 2.001;
+            var MetalsSet = (function () {
+                var metals = ['LI', 'NA', 'K', 'RB', 'CS', 'FR', 'BE', 'MG', 'CA', 'SR', 'BA', 'RA', 'AL', 'GA', 'IN', 'SN', 'TL', 'PB', 'BI', 'SC', 'TI', 'V', 'CR', 'MN', 'FE', 'CO', 'NI', 'CU', 'ZN', 'Y', 'ZR', 'NB', 'MO', 'TC', 'RU', 'RH', 'PD', 'AG', 'CD', 'LA', 'HF', 'TA', 'W', 'RE', 'OS', 'IR', 'PT', 'AU', 'HG', 'AC', 'RF', 'DB', 'SG', 'BH', 'HS', 'MT', 'CE', 'PR', 'ND', 'PM', 'SM', 'EU', 'GD', 'TB', 'DY', 'HO', 'ER', 'TM', 'YB', 'LU', 'TH', 'PA', 'U', 'NP', 'PU', 'AM', 'CM', 'BK', 'CF', 'ES', 'FM', 'MD', 'NO', 'LR'];
+                var set = Core.Utils.FastSet.create();
+                for (var _i = 0, metals_1 = metals; _i < metals_1.length; _i++) {
+                    var m = metals_1[_i];
+                    set.add(__ElementIndex[m]);
+                }
+                return set;
+            })();
+            function pair(a, b) {
+                if (a < b)
+                    return (a + b) * (a + b + 1) / 2 + b;
+                else
+                    return (a + b) * (a + b + 1) / 2 + a;
+            }
+            function idx(e) {
+                var i = __ElementIndex[e];
+                if (i === void 0)
+                    return -1;
+                return i;
+            }
+            function bondingRadius(i) {
+                return __ElementBondingRadii[i] || DefaultBondingRadius;
+            }
+            var __empty = [];
+            function pairThresholds(i, j) {
+                if (i < 0 || j < 0)
+                    return __empty;
+                var r = __ElementPairThresholds[pair(i, j)];
+                if (r === void 0)
+                    return __empty;
+                return r;
+            }
+            var __defaultThresholds = [[DefaultBondingRadius, 1 /* Single */]];
+            function thresholds(i) {
+                if (i < 0)
+                    return __defaultThresholds;
+                var r = __ElementBondThresholds[i];
+                if (r === void 0)
+                    return __defaultThresholds;
+                return r;
+            }
+            var H_ID = __ElementIndex['H'];
+            function isHydrogen(i) {
+                return i === H_ID;
+            }
+            function isMetal(e) {
+                var i = __ElementIndex[e];
+                if (i === void 0)
+                    return false;
+                return MetalsSet.has(i);
+            }
+            function bondsFromInput(model, atomIndices) {
+                var bonds = model.data.bonds.input;
+                if (atomIndices.length === model.data.atoms.count)
+                    return bonds;
+                var mask = Structure.Query.Context.Mask.ofIndices(model, atomIndices);
+                var a = bonds.atomAIndex, b = bonds.atomBIndex, t = bonds.type;
+                var count = 0;
+                for (var i = 0, __i = bonds.count; i < __i; i++) {
+                    if (!mask.has(a[i]) || !mask.has(b[i]))
+                        continue;
+                    count++;
+                }
+                var ret = Core.Utils.DataTable.ofDefinition(Structure.Tables.Bonds, count);
+                var atomAIndex = ret.atomAIndex, atomBIndex = ret.atomBIndex, type = ret.type;
+                var elementSymbol = model.data.atoms.elementSymbol;
+                var offset = 0;
+                for (var i = 0, __i = bonds.count; i < __i; i++) {
+                    var u = a[i], v = b[i];
+                    if (!mask.has(u) || !mask.has(v))
+                        continue;
+                    atomAIndex[offset] = u;
+                    atomBIndex[offset] = v;
+                    var metal = isMetal(elementSymbol[u]) || isMetal(elementSymbol[v]);
+                    type[offset] = metal ? 5 /* Metallic */ : t[i];
+                    offset++;
+                }
+                return ret;
+            }
+            var ChunkedAdd = Core.Utils.ChunkedArray.add;
+            function addComponentBonds(_a, rI) {
+                var model = _a.model, mask = _a.mask, atomA = _a.atomA, atomB = _a.atomB, type = _a.type;
+                var _b = model.data.residues, atomStartIndex = _b.atomStartIndex, atomEndIndex = _b.atomEndIndex, residueName = _b.name;
+                var _c = model.data.atoms, atomName = _c.name, altLoc = _c.altLoc, elementSymbol = _c.elementSymbol;
+                var map = model.data.bonds.component.entries.get(residueName[rI]).map;
+                var start = atomStartIndex[rI], end = atomEndIndex[rI];
+                for (var i = start; i < end - 1; i++) {
+                    if (!mask.has(i))
+                        continue;
+                    var pairs = map.get(atomName[i]);
+                    if (!pairs)
+                        continue;
+                    var altA = altLoc[i];
+                    for (var j = i + 1; j < end; j++) {
+                        if (!mask.has(j))
+                            continue;
+                        var altB = altLoc[j];
+                        if (altA && altB && altA !== altB)
+                            continue;
+                        var order = pairs.get(atomName[j]);
+                        if (order === void 0)
+                            continue;
+                        var metal = isMetal(elementSymbol[i]) || isMetal(elementSymbol[j]);
+                        ChunkedAdd(atomA, i);
+                        ChunkedAdd(atomB, j);
+                        ChunkedAdd(type, metal ? 5 /* Metallic */ : order);
+                    }
+                }
+            }
+            function _computeBonds(model, atomIndices, params) {
+                var MAX_RADIUS = 3;
+                var /*structConn,*/ component = model.data.bonds.component;
+                var _a = model.positions, x = _a.x, y = _a.y, z = _a.z;
+                var _b = model.data.atoms, elementSymbol = _b.elementSymbol, residueIndex = _b.residueIndex, altLoc = _b.altLoc;
+                var residueName = model.data.residues.name;
+                var query3d = model.queryContext.lookup3d(MAX_RADIUS);
+                var atomA = Core.Utils.ChunkedArray.create(function (size) { return new Int32Array(size); }, (atomIndices.length * 1.33) | 0, 1);
+                var atomB = Core.Utils.ChunkedArray.create(function (size) { return new Int32Array(size); }, (atomIndices.length * 1.33) | 0, 1);
+                var type = Core.Utils.ChunkedArray.create(function (size) { return new Uint8Array(size); }, (atomIndices.length * 1.33) | 0, 1);
+                var mask = Structure.Query.Context.Mask.ofIndices(model, atomIndices);
+                var state = { model: model, mask: mask, atomA: atomA, atomB: atomB, type: type };
+                var lastResidue = -1;
+                var hasComponent = false;
+                for (var _i = 0, atomIndices_1 = atomIndices; _i < atomIndices_1.length; _i++) {
+                    var aI = atomIndices_1[_i];
+                    var raI = residueIndex[aI];
+                    if (raI !== lastResidue) {
+                        hasComponent = !!component && component.entries.has(residueName[raI]);
+                        hasComponent = false; // FIX!
+                        if (hasComponent) {
+                            addComponentBonds(state, raI);
+                        }
+                    }
+                    lastResidue = raI;
+                    var aeI = idx(elementSymbol[aI]);
+                    var bondingRadiusA = bondingRadius(aeI);
+                    var _c = query3d(x[aI], y[aI], z[aI], MAX_RADIUS), elements = _c.elements, count = _c.count, squaredDistances = _c.squaredDistances;
+                    var isHa = isHydrogen(aeI);
+                    var thresholdsA = thresholds(aeI);
+                    var altA = altLoc[aI];
+                    for (var ni = 0; ni < count; ni++) {
+                        var bI = elements[ni];
+                        if (bI <= aI || !mask.has(bI))
+                            continue;
+                        var altB = altLoc[bI];
+                        if (altA && altB && altA !== altB)
+                            continue;
+                        var beI = idx(elementSymbol[bI]);
+                        var rbI = residueIndex[bI];
+                        if (raI === rbI && hasComponent)
+                            continue;
+                        var isHb = isHydrogen(beI);
+                        if (isHa && isHb)
+                            continue;
+                        var dist = Math.sqrt(squaredDistances[ni]);
+                        if (dist === 0)
+                            continue;
+                        if (isHa || isHb) {
+                            if (dist < params.maxHbondLength) {
+                                ChunkedAdd(atomA, aI);
+                                ChunkedAdd(atomB, bI);
+                                ChunkedAdd(type, 1 /* Single */);
+                            }
+                            continue;
+                        }
+                        var pairedThresholds = pairThresholds(aeI, beI);
+                        var elemThresholds = pairedThresholds.length > 0
+                            ? pairedThresholds
+                            : beI < 0 || bondingRadiusA > bondingRadius(beI) ? thresholdsA : thresholds(beI);
+                        for (var _d = 0, elemThresholds_1 = elemThresholds; _d < elemThresholds_1.length; _d++) {
+                            var t = elemThresholds_1[_d];
+                            if (t[0] >= dist) {
+                                ChunkedAdd(atomA, aI);
+                                ChunkedAdd(atomB, bI);
+                                ChunkedAdd(type, t[1]);
+                                break;
+                            }
+                        }
+                    }
+                }
+                var ret = Core.Utils.DataTable.builder(atomA.elementCount);
+                ret.addRawColumn('atomAIndex', function (s) { return new Int32Array(s); }, Core.Utils.ChunkedArray.compact(atomA));
+                ret.addRawColumn('atomBIndex', function (s) { return new Int32Array(s); }, Core.Utils.ChunkedArray.compact(atomB));
+                ret.addRawColumn('type', function (s) { return new Uint8Array(s); }, Core.Utils.ChunkedArray.compact(type));
+                var dataTable = ret.seal();
+                return dataTable;
+            }
+            function computeBonds(model, atomIndices, params) {
+                if (model.data.bonds.input)
+                    return bondsFromInput(model, atomIndices);
+                return _computeBonds(model, atomIndices, { maxHbondLength: (params && params.maxHbondLength) || 1.15 });
+            }
+            Structure.computeBonds = computeBonds;
         })(Structure = Core.Structure || (Core.Structure = {}));
     })(Core = LiteMol.Core || (LiteMol.Core = {}));
 })(LiteMol || (LiteMol = {}));
@@ -18437,7 +18871,10 @@ var LiteMol;
                     chainResidueEnd[chainOffset] = assemblyResidueParts.length;
                     chainAtomEnd[chainOffset] = atomOffset;
                     var finalAtoms = atomTable.seal(), finalResidues = residueTableBuilder.seal(), finalChains = chainTableBuilder.seal(), finalEntities = entityTableBuilder.seal();
-                    var ss = buildSS(model, assemblyParts, finalResidues);
+                    var secondaryStructure = buildSS(model, assemblyParts, finalResidues);
+                    var structConn = model.data.bonds.structConn
+                        ? buildStructConn(model.data.bonds.structConn, transforms, assemblyParts.residues, assemblyParts.operators, model.data.residues, finalResidues)
+                        : void 0;
                     return Structure.Molecule.Model.create({
                         id: model.id,
                         modelId: model.modelId,
@@ -18447,15 +18884,110 @@ var LiteMol;
                             chains: finalChains,
                             entities: finalEntities,
                             bonds: {
+                                structConn: structConn,
                                 component: model.data.bonds.component
                             },
-                            secondaryStructure: ss,
+                            secondaryStructure: secondaryStructure
                         },
                         positions: positionTable,
                         parent: model,
                         source: Structure.Molecule.Model.Source.Computed,
                         operators: transforms.map(function (t) { return new Structure.Operator(t.transform, t.id, t.isIdentity); })
                     });
+                }
+                function buildStructConn(structConn, ops, residueParts, residueOpParts, oldResidues, newResidues) {
+                    var entries = structConn.entries;
+                    var opsMap = Core.Utils.FastMap.create();
+                    for (var i = 0, __i = ops.length; i < __i; i++) {
+                        opsMap.set(ops[i].id, i);
+                    }
+                    var transformMap = Core.Utils.FastMap.create();
+                    for (var _i = 0, entries_1 = entries; _i < entries_1.length; _i++) {
+                        var e = entries_1[_i];
+                        for (var _a = 0, _b = e.partners; _a < _b.length; _a++) {
+                            var p = _b[_a];
+                            if (!transformMap.has(p.residueIndex)) {
+                                transformMap.set(p.residueIndex, Core.Utils.FastMap.create());
+                            }
+                        }
+                    }
+                    for (var i = 0, __i = residueParts.length; i < __i; i++) {
+                        var r = residueParts[i];
+                        if (!transformMap.has(r))
+                            continue;
+                        transformMap.get(r).set(residueOpParts[i], i);
+                    }
+                    var oldStart = oldResidues.atomStartIndex;
+                    var newStart = newResidues.atomStartIndex;
+                    var ret = [];
+                    for (var _c = 0, entries_2 = entries; _c < entries_2.length; _c++) {
+                        var e = entries_2[_c];
+                        var allId = true;
+                        for (var _d = 0, _e = e.partners; _d < _e.length; _d++) {
+                            var p = _e[_d];
+                            if (p.symmetry !== '1_555') {
+                                allId = false;
+                                break;
+                            }
+                        }
+                        if (allId) {
+                            var _loop_1 = function (opIndex, __oi) {
+                                var allMapped = true;
+                                for (var _i = 0, _a = e.partners; _i < _a.length; _i++) {
+                                    var p = _a[_i];
+                                    if (!transformMap.get(p.residueIndex).has(opIndex)) {
+                                        allMapped = false;
+                                        break;
+                                    }
+                                }
+                                if (!allMapped)
+                                    return "continue";
+                                ret.push({
+                                    distance: e.distance,
+                                    order: e.order,
+                                    type: e.type,
+                                    partners: e.partners.map(function (p) {
+                                        var rI = transformMap.get(p.residueIndex).get(opIndex);
+                                        return {
+                                            residueIndex: rI,
+                                            atomIndex: newStart[rI] + (p.atomIndex - oldStart[p.residueIndex]),
+                                            symmetry: p.symmetry
+                                        };
+                                    })
+                                });
+                            };
+                            for (var opIndex = 0, __oi = ops.length; opIndex < __oi; opIndex++) {
+                                _loop_1(opIndex, __oi);
+                            }
+                        }
+                        else {
+                            var partners = [];
+                            for (var _f = 0, _g = e.partners; _f < _g.length; _f++) {
+                                var p = _g[_f];
+                                if (!opsMap.has(p.symmetry))
+                                    break;
+                                var op = opsMap.get(p.symmetry);
+                                var m = transformMap.get(p.residueIndex);
+                                if (!m.has(op))
+                                    break;
+                                var rI = m.get(op);
+                                partners.push({
+                                    residueIndex: rI,
+                                    atomIndex: newStart[rI] + (p.atomIndex - oldStart[p.residueIndex]),
+                                    symmetry: p.symmetry
+                                });
+                            }
+                            if (partners.length === e.partners.length) {
+                                ret.push({
+                                    distance: e.distance,
+                                    order: e.order,
+                                    type: e.type,
+                                    partners: partners
+                                });
+                            }
+                        }
+                    }
+                    return new Structure.StructConn(ret);
                 }
                 function buildSS(parent, assemblyParts, newResidues) {
                     var index = parent.data.residues.secondaryStructureIndex;
@@ -18724,14 +19256,14 @@ var LiteMol;
                         enumerable: true,
                         configurable: true
                     });
-                    Object.defineProperty(Context.prototype, "tree", {
+                    Object.defineProperty(Context.prototype, "lookup3d", {
                         /**
-                         * Get a kd-tree for the atoms in the current context.
+                         * Get a 3d loopup structure for the atoms in the current context.
                          */
                         get: function () {
-                            if (!this.lazyTree)
-                                this.makeTree();
-                            return this.lazyTree;
+                            if (!this.lazyLoopup3d)
+                                this.makeLookup3d();
+                            return this.lazyLoopup3d;
                         },
                         enumerable: true,
                         configurable: true
@@ -18770,13 +19302,14 @@ var LiteMol;
                     Context.ofAtomIndices = function (structure, atomIndices) {
                         return new Context(structure, Context.Mask.ofIndices(structure, atomIndices));
                     };
-                    Context.prototype.makeTree = function () {
+                    Context.prototype.makeLookup3d = function () {
                         var data = new Int32Array(this.mask.size), dataCount = 0, _a = this.structure.positions, x = _a.x, y = _a.y, z = _a.z;
                         for (var i = 0, _b = this.structure.positions.count; i < _b; i++) {
                             if (this.mask.has(i))
                                 data[dataCount++] = i;
                         }
-                        this.lazyTree = Core.Geometry.SubdivisionTree3D.create(data, function (i, add) { return add(x[i], y[i], z[i]); });
+                        var inputData = Core.Geometry.Query3D.createInputData(data, function (i, add) { return add(x[i], y[i], z[i]); });
+                        this.lazyLoopup3d = Core.Geometry.Query3D.createSpatialHash(inputData);
                     };
                     return Context;
                 }());
@@ -18807,15 +19340,15 @@ var LiteMol;
                             var f = atomIndices.length / structure.data.atoms.count;
                             if (f < 0.25) {
                                 var set = Core.Utils.FastSet.create();
-                                for (var _i = 0, atomIndices_1 = atomIndices; _i < atomIndices_1.length; _i++) {
-                                    var i = atomIndices_1[_i];
+                                for (var _i = 0, atomIndices_2 = atomIndices; _i < atomIndices_2.length; _i++) {
+                                    var i = atomIndices_2[_i];
                                     set.add(i);
                                 }
                                 return set;
                             }
                             var mask = new Int8Array(structure.data.atoms.count);
-                            for (var _a = 0, atomIndices_2 = atomIndices; _a < atomIndices_2.length; _a++) {
-                                var i = atomIndices_2[_a];
+                            for (var _a = 0, atomIndices_3 = atomIndices; _a < atomIndices_3.length; _a++) {
+                                var i = atomIndices_3[_a];
                                 mask[i] = 1;
                             }
                             return new BitMask(mask, atomIndices.length);
@@ -19771,16 +20304,16 @@ var LiteMol;
                     function compileAmbientResidues(where, radius) {
                         var _where = Builder.toQuery(where);
                         return function (ctx) {
-                            var src = _where(ctx), tree = ctx.tree, radiusCtx = Core.Geometry.SubdivisionTree3D.createContextRadius(tree, radius, false), buffer = radiusCtx.buffer, ret = new Query.HashFragmentSeqBuilder(ctx), _a = ctx.structure.positions, x = _a.x, y = _a.y, z = _a.z, residueIndex = ctx.structure.data.atoms.residueIndex, atomStart = ctx.structure.data.residues.atomStartIndex, atomEnd = ctx.structure.data.residues.atomEndIndex, treeData = tree.data;
+                            var src = _where(ctx), nearest = ctx.lookup3d(radius), ret = new Query.HashFragmentSeqBuilder(ctx), _a = ctx.structure.positions, x = _a.x, y = _a.y, z = _a.z, residueIndex = ctx.structure.data.atoms.residueIndex, atomStart = ctx.structure.data.residues.atomStartIndex, atomEnd = ctx.structure.data.residues.atomEndIndex;
                             for (var _i = 0, _c = src.fragments; _i < _c.length; _i++) {
                                 var f = _c[_i];
                                 var residues_1 = Core.Utils.FastSet.create();
                                 for (var _d = 0, _e = f.atomIndices; _d < _e.length; _d++) {
                                     var i = _e[_d];
                                     residues_1.add(residueIndex[i]);
-                                    radiusCtx.nearest(x[i], y[i], z[i], radius);
-                                    for (var j = 0, _l = buffer.count; j < _l; j++) {
-                                        residues_1.add(residueIndex[treeData[buffer.indices[j]]]);
+                                    var _f = nearest(x[i], y[i], z[i], radius), elements = _f.elements, count = _f.count;
+                                    for (var j = 0; j < count; j++) {
+                                        residues_1.add(residueIndex[elements[j]]);
                                     }
                                 }
                                 var atomCount = { count: 0, start: atomStart, end: atomEnd };

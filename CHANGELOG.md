@@ -1,4 +1,8 @@
-﻿# 1.4.4
+﻿# 1.4.5
+* Fixed a BinaryCIF encoding bug in CIFTools.
+* Using spatial hash instead of "subdivisions tree" for 3D neighborhood search.
+
+# 1.4.4
 * Added support for _struct_conn and _struct_conn_type categories.
 
 # 1.4.3

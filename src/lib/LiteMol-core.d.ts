@@ -1671,6 +1671,7 @@ declare namespace LiteMol.Core.Utils {
             count: number;
             columns: ColumnDescriptor<Schema>[];
             addColumn<T>(name: keyof Schema, creator: (size: number) => T): T;
+            addRawColumn<T>(name: keyof Schema, creator: (size: number) => T, data: T): T;
             getRawData(): any[][];
             /**
              * This functions clones the table and defines all its column inside the constructor, hopefully making the JS engine
@@ -2057,90 +2058,6 @@ declare namespace LiteMol.Core.Geometry.LinearAlgebra {
     }
 }
 declare namespace LiteMol.Core.Geometry {
-    /**
-     * Basic shape of the result buffer for range queries.
-     */
-    interface SubdivisionTree3DResultBuffer {
-        count: number;
-        indices: number[];
-        hasPriorities: boolean;
-        priorities: number[] | undefined;
-        add(distSq: number, index: number): void;
-        reset(): void;
-    }
-    /**
-     * A buffer that only remembers the values.
-     */
-    namespace SubdivisionTree3DResultIndexBuffer {
-        function create(initialCapacity: number): SubdivisionTree3DResultBuffer;
-    }
-    /**
-     * A buffer that remembers values and priorities.
-     */
-    namespace SubdivisionTree3DResultPriorityBuffer {
-        function create(initialCapacity: number): SubdivisionTree3DResultBuffer;
-    }
-    /**
-     * Query context. Handles the actual querying.
-     */
-    interface SubdivisionTree3DQueryContext<T> {
-        tree: SubdivisionTree3D<T>;
-        pivot: number[];
-        radius: number;
-        radiusSq: number;
-        indices: number[];
-        positions: number[];
-        buffer: SubdivisionTree3DResultBuffer;
-        nearest(x: number, y: number, z: number, radius: number): void;
-    }
-    namespace SubdivisionTree3DQueryContext {
-        function create<T>(tree: SubdivisionTree3D<T>, buffer: SubdivisionTree3DResultBuffer): SubdivisionTree3DQueryContext<T>;
-    }
-    /**
-     * A kd-like tree to query 3D data.
-     */
-    interface SubdivisionTree3D<T> {
-        data: T[];
-        indices: number[];
-        positions: number[];
-        root: SubdivisionTree3DNode;
-    }
-    namespace SubdivisionTree3D {
-        /**
-         * Create a context used for querying the data.
-         */
-        function createContextRadius<T>(tree: SubdivisionTree3D<T>, radiusEstimate: number, includePriorities?: boolean): SubdivisionTree3DQueryContext<T>;
-        /**
-         * Takes data and a function that calls SubdivisionTree3DPositionBuilder.add(x, y, z) on each data element.
-         */
-        function create<T>(data: T[], f: (e: T, add: (x: number, y: number, z: number) => void) => void, leafSize?: number): SubdivisionTree3D<T>;
-    }
-    /**
-     * A tree node.
-     */
-    interface SubdivisionTree3DNode {
-        splitValue: number;
-        startIndex: number;
-        endIndex: number;
-        left: SubdivisionTree3DNode;
-        right: SubdivisionTree3DNode;
-    }
-    namespace SubdivisionTree3DNode {
-        function nearest<T>(node: SubdivisionTree3DNode, ctx: SubdivisionTree3DQueryContext<T>, dim: number): void;
-        function create(splitValue: number, startIndex: number, endIndex: number, left: SubdivisionTree3DNode, right: SubdivisionTree3DNode): SubdivisionTree3DNode;
-    }
-    /**
-     * A helper to store boundary box.
-     */
-    interface Box3D {
-        min: number[];
-        max: number[];
-    }
-    namespace Box3D {
-        function createInfinite(): Box3D;
-    }
-}
-declare namespace LiteMol.Core.Geometry {
     interface Surface {
         /**
          * Number of vertices.
@@ -2184,6 +2101,65 @@ declare namespace LiteMol.Core.Geometry {
         function transformImmediate(surface: Surface, t: number[]): void;
         function transform(surface: Surface, t: number[]): Computation<Surface>;
     }
+}
+declare namespace LiteMol.Core.Geometry.Query3D {
+    /**
+     * Query context. Handles the actual querying.
+     */
+    type QueryFunc<T> = (x: number, y: number, z: number, radius: number) => Result<T>;
+    interface Result<T> {
+        readonly count: number;
+        readonly elements: T[];
+        readonly squaredDistances: number[];
+    }
+    interface InputData<T> {
+        elements: T[];
+        indices: Int32Array;
+        bounds: Box3D;
+        positions: number[];
+    }
+    type LookupStructure<T> = (radiusEstimate: number) => QueryFunc<T>;
+    /**
+     * A helper to store boundary box.
+     */
+    interface Box3D {
+        min: number[];
+        max: number[];
+    }
+    namespace Box3D {
+        function createInfinite(): Box3D;
+    }
+    /**
+    * Query context. Handles the actual querying.
+    */
+    interface QueryContext<T> {
+        structure: T;
+        pivot: number[];
+        radius: number;
+        radiusSq: number;
+        buffer: QueryContext.Buffer;
+    }
+    namespace QueryContext {
+        interface Buffer {
+            sourceElements: any[];
+            count: number;
+            elements: any[];
+            squaredDistances: number[];
+        }
+        function add<T>(ctx: QueryContext<T>, distSq: number, index: number): void;
+        /**
+         * Query the tree and store the result to this.buffer. Overwrites the old result.
+         */
+        function update<T>(ctx: QueryContext<T>, x: number, y: number, z: number, radius: number): void;
+        function create<T>(structure: T, sourceElements: any[]): QueryContext<T>;
+    }
+    function createInputData<T>(elements: T[], f: (e: T, add: (x: number, y: number, z: number) => void) => void): InputData<T>;
+}
+declare namespace LiteMol.Core.Geometry.Query3D {
+    function createSubdivisionTree<T>(data: InputData<T>, leafSize?: number): LookupStructure<T>;
+}
+declare namespace LiteMol.Core.Geometry.Query3D {
+    function createSpatialHash<T>(data: InputData<T>): LookupStructure<T>;
 }
 declare namespace LiteMol.Core.Geometry.MarchingCubes {
     /**
@@ -2322,25 +2298,12 @@ declare namespace LiteMol.Core.Structure {
     interface Bond {
         atomAIndex: number;
         atomBIndex: number;
-        type: Bond.Type;
-    }
-    namespace Bond {
-        const enum Type {
-            Unknown = 0,
-            Single = 1,
-            Double = 2,
-            Triple = 3,
-            Aromatic = 4,
-            Metallic = 5,
-            Ion = 6,
-            Hydrogen = 7,
-            DisulfideBridge = 8,
-        }
+        type: BondType;
     }
     class ComponentBondInfoEntry {
         id: string;
-        map: Utils.FastMap<string, Utils.FastMap<string, Bond.Type>>;
-        add(a: string, b: string, order: Bond.Type, swap?: boolean): void;
+        map: Utils.FastMap<string, Utils.FastMap<string, BondType>>;
+        add(a: string, b: string, order: BondType, swap?: boolean): void;
         constructor(id: string);
     }
     class ComponentBondInfo {
@@ -2384,6 +2347,34 @@ declare namespace LiteMol.Core.Structure {
         toFracTransform: number[];
         isNonStandardCrytalFrame: boolean;
         constructor(spacegroupName: string, cellSize: number[], cellAngles: number[], toFracTransform: number[], isNonStandardCrytalFrame: boolean);
+    }
+    /**
+     * Wraps _struct_conn mmCIF category.
+     */
+    class StructConn {
+        entries: StructConn.Entry[];
+        private _residuePairIndex;
+        private _atomIndex;
+        private static _resKey(rA, rB);
+        private getResiduePairIndex();
+        private getAtomIndex();
+        private static _emptyEntry;
+        getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>;
+        getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry>;
+        constructor(entries: StructConn.Entry[]);
+    }
+    namespace StructConn {
+        type Type = 'covale' | 'covale_base' | 'covale_phosphate' | 'covale_sugar' | 'disulf' | 'hydrog' | 'metalc' | 'mismat' | 'modres' | 'saltbr';
+        interface Entry {
+            type: Type;
+            distance: number;
+            order: 'sing' | 'doub' | 'trip' | 'quad' | 'unknown';
+            partners: {
+                residueIndex: number;
+                atomIndex: number;
+                symmetry: string;
+            }[];
+        }
     }
     /**
      * Wraps an assembly operator.
@@ -2458,9 +2449,8 @@ declare namespace LiteMol.Core.Structure {
             experimentMethod?: string;
         }
         interface Bonds {
-            covalent?: BondTable;
-            nonCovalent?: BondTable;
-            computed?: BondTable;
+            readonly structConn?: StructConn;
+            readonly input?: BondTable;
             readonly component?: ComponentBondInfo;
         }
         interface Model extends Model.Base {
@@ -2494,6 +2484,23 @@ declare namespace LiteMol.Core.Structure {
             function withTransformedXYZ<T>(model: Model, ctx: T, transform: (ctx: T, x: number, y: number, z: number, out: Geometry.LinearAlgebra.Vector3) => void): Model;
         }
     }
+}
+declare namespace LiteMol.Core.Structure {
+    const enum BondType {
+        Unknown = 0,
+        Single = 1,
+        Double = 2,
+        Triple = 3,
+        Aromatic = 4,
+        Metallic = 5,
+        Ion = 6,
+        Hydrogen = 7,
+        DisulfideBridge = 8,
+    }
+    interface BondComputationParameters {
+        maxHbondLength: number;
+    }
+    function computeBonds(model: Molecule.Model, atomIndices: number[], params?: Partial<BondComputationParameters>): Utils.DataTable<Bond>;
 }
 declare namespace LiteMol.Core.Structure {
     class Spacegroup {
@@ -2542,7 +2549,7 @@ declare namespace LiteMol.Core.Structure {
          */
         class Context {
             private mask;
-            private lazyTree;
+            private lazyLoopup3d;
             /**
              * Number of atoms in the current context.
              */
@@ -2556,9 +2563,9 @@ declare namespace LiteMol.Core.Structure {
              */
             structure: Molecule.Model;
             /**
-             * Get a kd-tree for the atoms in the current context.
+             * Get a 3d loopup structure for the atoms in the current context.
              */
-            readonly tree: Geometry.SubdivisionTree3D<number>;
+            readonly lookup3d: Geometry.Query3D.LookupStructure<number>;
             /**
              * Checks if an atom is included in the current context.
              */
@@ -2580,7 +2587,7 @@ declare namespace LiteMol.Core.Structure {
              */
             static ofAtomIndices(structure: Molecule.Model, atomIndices: number[]): Context;
             constructor(structure: Molecule.Model, mask: Context.Mask);
-            private makeTree();
+            private makeLookup3d();
         }
         namespace Context {
             /**
