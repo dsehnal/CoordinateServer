@@ -1,4 +1,3 @@
-
 ; var __LiteMol_Core = function () {
   'use strict';
 /*!
@@ -11159,12 +11158,14 @@ var CIFTools;
         Binary.Writer = Writer;
     })(Binary = CIFTools.Binary || (CIFTools.Binary = {}));
 })(CIFTools || (CIFTools = {}));
+var LiteMolCIFTools = CIFTools;
 "use strict";
 /*
  * Copyright (c) 2016 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
 var LiteMol;
 (function (LiteMol) {
+    //export type Promise<T> = GlobalPromise<T>;// __Promise.Promise<T>;
     LiteMol.Promise = __LiteMolPromise;
 })(LiteMol || (LiteMol = {}));
 (function (LiteMol) {
@@ -11175,7 +11176,7 @@ var LiteMol;
         Core.Promise = LiteMol.Promise;
         var Formats;
         (function (Formats) {
-            Formats.CIF = CIFTools;
+            Formats.CIF = LiteMolCIFTools;
         })(Formats = Core.Formats || (Core.Formats = {}));
     })(Core = LiteMol.Core || (LiteMol.Core = {}));
 })(LiteMol || (LiteMol = {}));
@@ -11186,7 +11187,7 @@ var LiteMol;
 (function (LiteMol) {
     var Core;
     (function (Core) {
-        Core.VERSION = { number: "3.2.0", date: "June 26 2017" };
+        Core.VERSION = { number: "3.2.1", date: "July 5 2017" };
     })(Core = LiteMol.Core || (LiteMol.Core = {}));
 })(LiteMol || (LiteMol = {}));
 /*
@@ -11262,6 +11263,8 @@ var LiteMol;
                                     return [3 /*break*/, 4];
                                 case 2:
                                     e_1 = _a.sent();
+                                    if (Computation.PRINT_CONSOLE_ERROR)
+                                        console.error(e_1);
                                     reject(e_1);
                                     return [3 /*break*/, 4];
                                 case 3:
@@ -11277,6 +11280,7 @@ var LiteMol;
         }());
         Core.Computation = Computation;
         (function (Computation) {
+            Computation.PRINT_CONSOLE_ERROR = false;
             function resolve(a) {
                 return computation(function () { return Core.Promise.resolve(a); });
             }
@@ -11396,11 +11400,8 @@ var LiteMol;
             var FastMap;
             (function (FastMap) {
                 function forEach(data, f, ctx) {
-                    var hasOwn = Object.prototype.hasOwnProperty;
                     for (var _i = 0, _a = Object.keys(data); _i < _a.length; _i++) {
                         var key = _a[_i];
-                        if (!hasOwn.call(data, key))
-                            continue;
                         var v = data[key];
                         if (v === void 0)
                             continue;
@@ -11462,11 +11463,8 @@ var LiteMol;
                  */
                 function ofObject(data) {
                     var ret = create();
-                    var hasOwn = Object.prototype.hasOwnProperty;
                     for (var _i = 0, _a = Object.keys(data); _i < _a.length; _i++) {
                         var key = _a[_i];
-                        if (!hasOwn.call(data, key))
-                            continue;
                         var v = data[key];
                         ret.set(key, v);
                     }
@@ -11477,10 +11475,9 @@ var LiteMol;
             var FastSet;
             (function (FastSet) {
                 function forEach(data, f, ctx) {
-                    var hasOwn = Object.prototype.hasOwnProperty;
                     for (var _i = 0, _a = Object.keys(data); _i < _a.length; _i++) {
                         var p = _a[_i];
-                        if (!hasOwn.call(data, p) || data[p] !== null)
+                        if (data[p] !== null)
                             continue;
                         f(p, ctx);
                     }
@@ -11536,6 +11533,103 @@ var LiteMol;
                 }
                 FastSet.ofArray = ofArray;
             })(FastSet = Utils.FastSet || (Utils.FastSet = {}));
+            var Mask;
+            (function (Mask) {
+                var EmptyMask = (function () {
+                    function EmptyMask(size) {
+                        this.size = size;
+                    }
+                    EmptyMask.prototype.has = function (i) { return false; };
+                    return EmptyMask;
+                }());
+                var SingletonMask = (function () {
+                    function SingletonMask(idx, size) {
+                        this.idx = idx;
+                        this.size = size;
+                    }
+                    SingletonMask.prototype.has = function (i) { return i === this.idx; };
+                    return SingletonMask;
+                }());
+                var BitMask = (function () {
+                    function BitMask(mask, size) {
+                        this.mask = mask;
+                        this.size = size;
+                    }
+                    BitMask.prototype.has = function (i) { return this.mask[i]; };
+                    return BitMask;
+                }());
+                var AllMask = (function () {
+                    function AllMask(size) {
+                        this.size = size;
+                    }
+                    AllMask.prototype.has = function (i) { return true; };
+                    return AllMask;
+                }());
+                function ofStructure(structure) {
+                    return new AllMask(structure.data.atoms.count);
+                }
+                Mask.ofStructure = ofStructure;
+                function ofIndices(totalCount, indices) {
+                    var len = indices.length;
+                    if (len === 0)
+                        return new EmptyMask(totalCount);
+                    if (len === 1)
+                        return new SingletonMask(indices[0], totalCount);
+                    var f = len / totalCount;
+                    if (f < 1 / 12) {
+                        var set = Utils.FastSet.create();
+                        for (var _i = 0, indices_1 = indices; _i < indices_1.length; _i++) {
+                            var i = indices_1[_i];
+                            set.add(i);
+                        }
+                        return set;
+                    }
+                    var mask = new Int8Array(totalCount);
+                    for (var _a = 0, indices_2 = indices; _a < indices_2.length; _a++) {
+                        var i = indices_2[_a];
+                        mask[i] = 1;
+                    }
+                    return new BitMask(mask, len);
+                }
+                Mask.ofIndices = ofIndices;
+                function ofFragments(seq) {
+                    var sizeEstimate = 0;
+                    for (var _i = 0, _a = seq.fragments; _i < _a.length; _i++) {
+                        var f = _a[_i];
+                        sizeEstimate += f.atomCount;
+                    }
+                    var count = seq.context.structure.data.atoms.count;
+                    if (sizeEstimate / count < 1 / 12) {
+                        // create set;
+                        var mask = Utils.FastSet.create();
+                        for (var _b = 0, _c = seq.fragments; _b < _c.length; _b++) {
+                            var f = _c[_b];
+                            for (var _d = 0, _e = f.atomIndices; _d < _e.length; _d++) {
+                                var i = _e[_d];
+                                mask.add(i);
+                            }
+                        }
+                        return mask;
+                    }
+                    else {
+                        var mask = new Int8Array(count);
+                        for (var _f = 0, _g = seq.fragments; _f < _g.length; _f++) {
+                            var f = _g[_f];
+                            for (var _h = 0, _j = f.atomIndices; _h < _j.length; _h++) {
+                                var i = _j[_h];
+                                mask[i] = 1;
+                            }
+                        }
+                        var size = 0;
+                        for (var i = 0; i < count; i++) {
+                            if (mask[i] !== 0)
+                                size++;
+                        }
+                        return new BitMask(mask, size);
+                    }
+                }
+                Mask.ofFragments = ofFragments;
+            })(Mask = Utils.Mask || (Utils.Mask = {}));
         })(Utils = Core.Utils || (Core.Utils = {}));
     })(Core = LiteMol.Core || (LiteMol.Core = {}));
 })(LiteMol || (LiteMol = {}));
@@ -11873,6 +11967,9 @@ var LiteMol;
                 ChunkedArray.add = add;
                 function compact(array) {
                     var ret = array.creator(array.elementSize * array.elementCount), offset = (array.parts.length - 1) * array.chunkSize, offsetInner = 0, part;
+                    if (array.parts.length === 1 && array.chunkSize === array.elementCount) {
+                        return array.parts[0];
+                    }
                     if (array.parts.length > 1) {
                         if (array.parts[0].buffer) {
                             for (var i = 0; i < array.parts.length - 1; i++) {
@@ -12013,6 +12110,20 @@ var LiteMol;
                 }
                 ArrayBuilder.create = create;
             })(ArrayBuilder = Utils.ArrayBuilder || (Utils.ArrayBuilder = {}));
+            function UniqueArray() {
+                return { _set: Utils.FastSet.create(), array: [] };
+            }
+            Utils.UniqueArray = UniqueArray;
+            (function (UniqueArray) {
+                function add(_a, e) {
+                    var _set = _a._set, array = _a.array;
+                    if (!_set.has(e)) {
+                        _set.add(e);
+                        array[array.length] = e;
+                    }
+                }
+                UniqueArray.add = add;
+            })(UniqueArray = Utils.UniqueArray || (Utils.UniqueArray = {}));
         })(Utils = Core.Utils || (Core.Utils = {}));
     })(Core = LiteMol.Core || (LiteMol.Core = {}));
 })(LiteMol || (LiteMol = {}));
@@ -12686,11 +12797,12 @@ var LiteMol;
                             var pdbx_end_PDB_ins_code = _struct_sheet_range.getColumn('pdbx_end_PDB_ins_code');
                             var symmetry = _struct_sheet_range.getColumn('symmetry');
                             var sheet_id = _struct_sheet_range.getColumn('sheet_id');
+                            var id = _struct_sheet_range.getColumn('id');
                             for (i = 0; i < _struct_sheet_range.rowCount; i++) {
                                 input[input.length] = new Core.Structure.SecondaryStructureElement(3 /* Sheet */, residueIdfromColumns(i, beg_label_asym_id, beg_label_seq_id, pdbx_beg_PDB_ins_code), residueIdfromColumns(i, end_label_asym_id, end_label_seq_id, pdbx_end_PDB_ins_code), {
                                     symmetry: symmetry.getString(i),
                                     sheetId: sheet_id.getString(i),
-                                    id: sheet_id.getString(i)
+                                    id: id.getString(i)
                                 });
                             }
                         }
@@ -12750,6 +12862,26 @@ var LiteMol;
                         }
                         return -1;
                     }
+                    function getModRes(data) {
+                        var cat = data.getCategory('_pdbx_struct_mod_residue');
+                        if (!cat)
+                            return void 0;
+                        var table = Core.Utils.DataTable.ofDefinition(Core.Structure.Tables.ModifiedResidues, cat.rowCount);
+                        var label_asym_id = cat.getColumn('label_asym_id');
+                        var label_seq_id = cat.getColumn('label_seq_id');
+                        var PDB_ins_code = cat.getColumn('PDB_ins_code');
+                        var parent_comp_id = cat.getColumn('parent_comp_id');
+                        var _details = cat.getColumn('details');
+                        var asymId = table.asymId, seqNumber = table.seqNumber, insCode = table.insCode, parent = table.parent, details = table.details;
+                        for (var i = 0, __i = cat.rowCount; i < __i; i++) {
+                            asymId[i] = label_asym_id.getString(i);
+                            seqNumber[i] = label_seq_id.getInteger(i);
+                            insCode[i] = PDB_ins_code.getString(i);
+                            parent[i] = parent_comp_id.getString(i);
+                            details[i] = _details.getString(i);
+                        }
+                        return table;
+                    }
                     function getStructConn(data, atoms, structure) {
                         var cat = data.getCategory('_struct_conn');
                         if (!cat)
@@ -12797,10 +12929,41 @@ var LiteMol;
                             var partners = _ps(i);
                             if (partners.length < 2)
                                 continue;
+                            var type = conn_type_id.getString(i);
+                            var orderType = (pdbx_value_order.getString(i) || '').toLowerCase();
+                            var bondType = 0 /* Unknown */;
+                            switch (orderType) {
+                                case 'sing':
+                                    bondType = 1 /* Single */;
+                                    break;
+                                case 'doub':
+                                    bondType = 2 /* Double */;
+                                    break;
+                                case 'trip':
+                                    bondType = 3 /* Triple */;
+                                    break;
+                                case 'quad':
+                                    bondType = 4 /* Aromatic */;
+                                    break;
+                            }
+                            switch (type) {
+                                case 'disulf':
+                                    bondType = 5 /* DisulfideBridge */;
+                                    break;
+                                case 'hydrog':
+                                    bondType = 8 /* Hydrogen */;
+                                    break;
+                                case 'metalc':
+                                    bondType = 6 /* Metallic */;
+                                    break;
+                                //case 'mismat': bondType = Structure.BondType.Single; break; 
+                                case 'saltbr':
+                                    bondType = 7 /* Ion */;
+                                    break;
+                            }
                             entries.push({
-                                type: conn_type_id.getString(i),
+                                bondType: bondType,
                                 distance: pdbx_dist_value.getFloat(i),
-                                order: pdbx_value_order.getString(i) || 'unknown',
                                 partners: partners
                             });
                         }
@@ -12956,6 +13119,7 @@ var LiteMol;
                                         structConn: getStructConn(data, atoms, structure),
                                         component: getComponentBonds(data.getCategory('_chem_comp_bond'))
                                     },
+                                    modifiedResidues: getModRes(data),
                                     secondaryStructure: ss,
                                     symmetryInfo: getSymmetryInfo(data),
                                     assemblyInfo: getAssemblyInfo(data),
@@ -14341,10 +14505,13 @@ var LiteMol;
                  * copies of the Software, and to permit persons to whom the Software is
                  * furnished to do so, subject to the following conditions:
                  */
+                function Matrix4() {
+                    return Matrix4.zero();
+                }
+                LinearAlgebra.Matrix4 = Matrix4;
                 /**
                  * Stores a 4x4 matrix in a column major (j * 4 + i indexing) format.
                  */
-                var Matrix4;
                 (function (Matrix4) {
                     function zero() {
                         // force double backing array by 0.1.
@@ -14628,7 +14795,7 @@ var LiteMol;
                     function fromRotation(out, rad, axis) {
                         var x = axis[0], y = axis[1], z = axis[2], len = Math.sqrt(x * x + y * y + z * z), s, c, t;
                         if (Math.abs(len) < 0.000001 /* Value */) {
-                            return null;
+                            return fromIdentity(out);
                         }
                         len = 1 / len;
                         x *= len;
@@ -14719,7 +14886,10 @@ var LiteMol;
                     }
                     Matrix4.determinant = determinant;
                 })(Matrix4 = LinearAlgebra.Matrix4 || (LinearAlgebra.Matrix4 = {}));
-                var Vector3;
+                function Vector3(x, y, z) {
+                    return Vector3.fromValues(x || 0, y || 0, z || 0);
+                }
+                LinearAlgebra.Vector3 = Vector3;
                 (function (Vector3) {
                     function zero() {
                         var out = [0.1, 0.0, 0.0];
@@ -14727,7 +14897,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.zero = zero;
-                    ;
                     function clone(a) {
                         var out = zero();
                         out[0] = a[0];
@@ -14736,7 +14905,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.clone = clone;
-                    ;
                     function fromObj(v) {
                         return fromValues(v.x, v.y, v.z);
                     }
@@ -14753,7 +14921,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.fromValues = fromValues;
-                    ;
                     function set(out, x, y, z) {
                         out[0] = x;
                         out[1] = y;
@@ -14761,7 +14928,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.set = set;
-                    ;
                     function copy(out, a) {
                         out[0] = a[0];
                         out[1] = a[1];
@@ -14769,7 +14935,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.copy = copy;
-                    ;
                     function add(out, a, b) {
                         out[0] = a[0] + b[0];
                         out[1] = a[1] + b[1];
@@ -14777,7 +14942,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.add = add;
-                    ;
                     function sub(out, a, b) {
                         out[0] = a[0] - b[0];
                         out[1] = a[1] - b[1];
@@ -14785,7 +14949,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.sub = sub;
-                    ;
                     function scale(out, a, b) {
                         out[0] = a[0] * b;
                         out[1] = a[1] * b;
@@ -14793,7 +14956,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.scale = scale;
-                    ;
                     function scaleAndAdd(out, a, b, scale) {
                         out[0] = a[0] + (b[0] * scale);
                         out[1] = a[1] + (b[1] * scale);
@@ -14801,31 +14963,26 @@ var LiteMol;
                         return out;
                     }
                     Vector3.scaleAndAdd = scaleAndAdd;
-                    ;
                     function distance(a, b) {
                         var x = b[0] - a[0], y = b[1] - a[1], z = b[2] - a[2];
                         return Math.sqrt(x * x + y * y + z * z);
                     }
                     Vector3.distance = distance;
-                    ;
                     function squaredDistance(a, b) {
                         var x = b[0] - a[0], y = b[1] - a[1], z = b[2] - a[2];
                         return x * x + y * y + z * z;
                     }
                     Vector3.squaredDistance = squaredDistance;
-                    ;
-                    function length(a) {
+                    function magnitude(a) {
                         var x = a[0], y = a[1], z = a[2];
                         return Math.sqrt(x * x + y * y + z * z);
                     }
-                    Vector3.length = length;
-                    ;
-                    function squaredLength(a) {
+                    Vector3.magnitude = magnitude;
+                    function squaredMagnitude(a) {
                         var x = a[0], y = a[1], z = a[2];
                         return x * x + y * y + z * z;
                     }
-                    Vector3.squaredLength = squaredLength;
-                    ;
+                    Vector3.squaredMagnitude = squaredMagnitude;
                     function normalize(out, a) {
                         var x = a[0], y = a[1], z = a[2];
                         var len = x * x + y * y + z * z;
@@ -14838,12 +14995,10 @@ var LiteMol;
                         return out;
                     }
                     Vector3.normalize = normalize;
-                    ;
                     function dot(a, b) {
                         return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
                     }
                     Vector3.dot = dot;
-                    ;
                     function cross(out, a, b) {
                         var ax = a[0], ay = a[1], az = a[2], bx = b[0], by = b[1], bz = b[2];
                         out[0] = ay * bz - az * by;
@@ -14852,7 +15007,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.cross = cross;
-                    ;
                     function lerp(out, a, b, t) {
                         var ax = a[0], ay = a[1], az = a[2];
                         out[0] = ax + t * (b[0] - ax);
@@ -14861,7 +15015,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.lerp = lerp;
-                    ;
                     function transformMat4(out, a, m) {
                         var x = a[0], y = a[1], z = a[2], w = m[3] * x + m[7] * y + m[11] * z + m[15];
                         w = w || 1.0;
@@ -14871,7 +15024,6 @@ var LiteMol;
                         return out;
                     }
                     Vector3.transformMat4 = transformMat4;
-                    ;
                     var angleTempA = zero(), angleTempB = zero();
                     function angle(a, b) {
                         copy(angleTempA, a);
@@ -14890,9 +15042,20 @@ var LiteMol;
                         }
                     }
                     Vector3.angle = angle;
-                    ;
+                    var rotTemp = zero();
+                    function makeRotation(mat, a, b) {
+                        var by = angle(a, b);
+                        if (Math.abs(by) < 0.0001)
+                            return Matrix4.fromIdentity(mat);
+                        var axis = cross(rotTemp, a, b);
+                        return Matrix4.fromRotation(mat, by, axis);
+                    }
+                    Vector3.makeRotation = makeRotation;
                 })(Vector3 = LinearAlgebra.Vector3 || (LinearAlgebra.Vector3 = {}));
-                var Vector4;
+                function Vector4(x, y, z, w) {
+                    return Vector4.fromValues(x || 0, y || 0, z || 0, w || 0);
+                }
+                LinearAlgebra.Vector4 = Vector4;
                 (function (Vector4) {
                     function zero() {
                         // force double backing array by 0.1.
@@ -15396,7 +15559,7 @@ var LiteMol;
                 function createSubdivisionTree(data, leafSize) {
                     if (leafSize === void 0) { leafSize = 32; }
                     var tree = SubdivisionTree3DBuilder.build(data, leafSize);
-                    return function (radiusEstimate) {
+                    return function () {
                         var ctx = Query3D.QueryContext.create(tree, data.elements);
                         return function (x, y, z, radius) {
                             Query3D.QueryContext.update(ctx, x, y, z, radius);
@@ -15527,7 +15690,7 @@ var LiteMol;
                 }
                 function createSpatialHash(data) {
                     var tree = build(data);
-                    return function (radiusEstimate) {
+                    return function () {
                         var ctx = Query3D.QueryContext.create(tree, data.elements);
                         return function (x, y, z, radius) {
                             Query3D.QueryContext.update(ctx, x, y, z, radius);
@@ -16796,6 +16959,13 @@ var LiteMol;
                     atomBIndex: int32,
                     type: DataTable.typedColumn(Int8Array)
                 };
+                Tables.ModifiedResidues = {
+                    asymId: str,
+                    seqNumber: int32,
+                    insCode: nullStr,
+                    parent: str,
+                    details: nullStr
+                };
             })(Tables = Structure.Tables || (Structure.Tables = {}));
             var Operator = (function () {
                 function Operator(matrix, id, isIdentity) {
@@ -16840,7 +17010,6 @@ var LiteMol;
                                 queryContext = Structure.Query.Context.ofStructure(ret);
                                 return queryContext;
                             } });
-                        Structure.computeBonds(ret, ret.data.atoms.indices);
                         return ret;
                     }
                     Model.create = create;
@@ -16886,11 +17055,14 @@ var LiteMol;
         var Structure;
         (function (Structure) {
             'use strict';
+            function isBondTypeCovalent(t) {
+                return t >= 0 /* Unknown */ && t <= 5 /* DisulfideBridge */;
+            }
+            Structure.isBondTypeCovalent = isBondTypeCovalent;
             // H,D,T are all mapped to H
             var __ElementIndex = { 'H': 0, 'h': 0, 'D': 0, 'd': 0, 'T': 0, 't': 0, 'He': 2, 'HE': 2, 'he': 2, 'Li': 3, 'LI': 3, 'li': 3, 'Be': 4, 'BE': 4, 'be': 4, 'B': 5, 'b': 5, 'C': 6, 'c': 6, 'N': 7, 'n': 7, 'O': 8, 'o': 8, 'F': 9, 'f': 9, 'Ne': 10, 'NE': 10, 'ne': 10, 'Na': 11, 'NA': 11, 'na': 11, 'Mg': 12, 'MG': 12, 'mg': 12, 'Al': 13, 'AL': 13, 'al': 13, 'Si': 14, 'SI': 14, 'si': 14, 'P': 15, 'p': 15, 'S': 16, 's': 16, 'Cl': 17, 'CL': 17, 'cl': 17, 'Ar': 18, 'AR': 18, 'ar': 18, 'K': 19, 'k': 19, 'Ca': 20, 'CA': 20, 'ca': 20, 'Sc': 21, 'SC': 21, 'sc': 21, 'Ti': 22, 'TI': 22, 'ti': 22, 'V': 23, 'v': 23, 'Cr': 24, 'CR': 24, 'cr': 24, 'Mn': 25, 'MN': 25, 'mn': 25, 'Fe': 26, 'FE': 26, 'fe': 26, 'Co': 27, 'CO': 27, 'co': 27, 'Ni': 28, 'NI': 28, 'ni': 28, 'Cu': 29, 'CU': 29, 'cu': 29, 'Zn': 30, 'ZN': 30, 'zn': 30, 'Ga': 31, 'GA': 31, 'ga': 31, 'Ge': 32, 'GE': 32, 'ge': 32, 'As': 33, 'AS': 33, 'as': 33, 'Se': 34, 'SE': 34, 'se': 34, 'Br': 35, 'BR': 35, 'br': 35, 'Kr': 36, 'KR': 36, 'kr': 36, 'Rb': 37, 'RB': 37, 'rb': 37, 'Sr': 38, 'SR': 38, 'sr': 38, 'Y': 39, 'y': 39, 'Zr': 40, 'ZR': 40, 'zr': 40, 'Nb': 41, 'NB': 41, 'nb': 41, 'Mo': 42, 'MO': 42, 'mo': 42, 'Tc': 43, 'TC': 43, 'tc': 43, 'Ru': 44, 'RU': 44, 'ru': 44, 'Rh': 45, 'RH': 45, 'rh': 45, 'Pd': 46, 'PD': 46, 'pd': 46, 'Ag': 47, 'AG': 47, 'ag': 47, 'Cd': 48, 'CD': 48, 'cd': 48, 'In': 49, 'IN': 49, 'in': 49, 'Sn': 50, 'SN': 50, 'sn': 50, 'Sb': 51, 'SB': 51, 'sb': 51, 'Te': 52, 'TE': 52, 'te': 52, 'I': 53, 'i': 53, 'Xe': 54, 'XE': 54, 'xe': 54, 'Cs': 55, 'CS': 55, 'cs': 55, 'Ba': 56, 'BA': 56, 'ba': 56, 'La': 57, 'LA': 57, 'la': 57, 'Ce': 58, 'CE': 58, 'ce': 58, 'Pr': 59, 'PR': 59, 'pr': 59, 'Nd': 60, 'ND': 60, 'nd': 60, 'Pm': 61, 'PM': 61, 'pm': 61, 'Sm': 62, 'SM': 62, 'sm': 62, 'Eu': 63, 'EU': 63, 'eu': 63, 'Gd': 64, 'GD': 64, 'gd': 64, 'Tb': 65, 'TB': 65, 'tb': 65, 'Dy': 66, 'DY': 66, 'dy': 66, 'Ho': 67, 'HO': 67, 'ho': 67, 'Er': 68, 'ER': 68, 'er': 68, 'Tm': 69, 'TM': 69, 'tm': 69, 'Yb': 70, 'YB': 70, 'yb': 70, 'Lu': 71, 'LU': 71, 'lu': 71, 'Hf': 72, 'HF': 72, 'hf': 72, 'Ta': 73, 'TA': 73, 'ta': 73, 'W': 74, 'w': 74, 'Re': 75, 'RE': 75, 're': 75, 'Os': 76, 'OS': 76, 'os': 76, 'Ir': 77, 'IR': 77, 'ir': 77, 'Pt': 78, 'PT': 78, 'pt': 78, 'Au': 79, 'AU': 79, 'au': 79, 'Hg': 80, 'HG': 80, 'hg': 80, 'Tl': 81, 'TL': 81, 'tl': 81, 'Pb': 82, 'PB': 82, 'pb': 82, 'Bi': 83, 'BI': 83, 'bi': 83, 'Po': 84, 'PO': 84, 'po': 84, 'At': 85, 'AT': 85, 'at': 85, 'Rn': 86, 'RN': 86, 'rn': 86, 'Fr': 87, 'FR': 87, 'fr': 87, 'Ra': 88, 'RA': 88, 'ra': 88, 'Ac': 89, 'AC': 89, 'ac': 89, 'Th': 90, 'TH': 90, 'th': 90, 'Pa': 91, 'PA': 91, 'pa': 91, 'U': 92, 'u': 92, 'Np': 93, 'NP': 93, 'np': 93, 'Pu': 94, 'PU': 94, 'pu': 94, 'Am': 95, 'AM': 95, 'am': 95, 'Cm': 96, 'CM': 96, 'cm': 96, 'Bk': 97, 'BK': 97, 'bk': 97, 'Cf': 98, 'CF': 98, 'cf': 98, 'Es': 99, 'ES': 99, 'es': 99, 'Fm': 100, 'FM': 100, 'fm': 100, 'Md': 101, 'MD': 101, 'md': 101, 'No': 102, 'NO': 102, 'no': 102, 'Lr': 103, 'LR': 103, 'lr': 103, 'Rf': 104, 'RF': 104, 'rf': 104, 'Db': 105, 'DB': 105, 'db': 105, 'Sg': 106, 'SG': 106, 'sg': 106, 'Bh': 107, 'BH': 107, 'bh': 107, 'Hs': 108, 'HS': 108, 'hs': 108, 'Mt': 109, 'MT': 109, 'mt': 109 };
-            var __ElementBondingRadii = { 0: 1.42, 1: 1.42, 2: 1.75, 3: 2, 4: 1.76, 5: 2, 6: 1.9, 7: 1.9, 8: 1.9, 9: 1.75, 10: 1.75, 11: 2, 12: 2.4, 13: 2.8, 14: 2.11, 15: 2.3, 16: 2.3, 17: 1.75, 18: 1.75, 19: 1, 20: 2.65, 21: 2.8, 22: 2.8, 23: 2.8, 24: 2.8, 25: 2.81, 26: 2.8, 27: 2.8, 28: 2.8, 29: 2.8, 30: 2.8, 31: 2.8, 32: 1.75, 33: 2.68, 34: 2.34, 35: 2.68, 36: 1.75, 37: 2.8, 38: 2.82, 39: 2.8, 40: 2.8, 41: 2.8, 42: 2.8, 43: 2.8, 44: 2.5, 45: 2.77, 46: 2.8, 47: 2.8, 48: 2.8, 49: 2.8, 50: 2.8, 51: 1.75, 52: 2.2, 53: 2.81, 54: 1.75, 55: 2.8, 56: 2.8, 57: 2.8, 58: 2.8, 59: 2.8, 60: 2.8, 61: 2.8, 62: 2.8, 63: 2.8, 64: 2.8, 65: 2.8, 66: 2.8, 67: 2.8, 68: 2.8, 69: 2.8, 70: 2.8, 71: 2.8, 72: 2.8, 73: 2.8, 74: 2.66, 75: 2.8, 76: 2.8, 77: 2.51, 78: 3.24, 79: 2.8, 80: 3, 81: 2.8, 82: 2.8, 83: 2.8, 84: 1.75, 85: 1.75, 86: 1.75, 87: 2.8, 88: 2.8, 89: 2.8, 90: 2.8, 91: 2.8, 92: 2.8, 93: 2.8, 94: 2.8, 95: 2.8, 96: 2.8, 97: 2.8, 98: 2.8, 99: 2.8, 100: 2.8, 101: 2.8, 102: 2.8, 103: 2.8, 104: 2.8, 105: 2.8, 106: 2.8, 107: 2.8, 108: 2.8, 109: 2.8 };
-            var __ElementBondThresholds = { 0: [[1.42, 1 /* Single */]], 1: [[1.42, 1 /* Single */]], 3: [[2.8, 5 /* Metallic */]], 4: [[2.8, 5 /* Metallic */]], 6: [[1.75, 1 /* Single */]], 7: [[1.6, 1 /* Single */]], 8: [[1.52, 1 /* Single */]], 11: [[2.8, 5 /* Metallic */]], 12: [[2.8, 5 /* Metallic */]], 13: [[2.8, 5 /* Metallic */]], 14: [[1.9, 1 /* Single */]], 15: [[1.9, 1 /* Single */]], 16: [[1.9, 1 /* Single */]], 17: [[1.8, 1 /* Single */]], 19: [[2.8, 5 /* Metallic */]], 20: [[2.8, 5 /* Metallic */]], 21: [[2.8, 5 /* Metallic */]], 22: [[2.8, 5 /* Metallic */]], 23: [[2.8, 5 /* Metallic */]], 24: [[2.8, 5 /* Metallic */]], 25: [[2.8, 5 /* Metallic */]], 26: [[2.8, 5 /* Metallic */]], 27: [[2.8, 5 /* Metallic */]], 28: [[2.8, 5 /* Metallic */]], 29: [[2.8, 5 /* Metallic */]], 30: [[2.8, 5 /* Metallic */]], 31: [[2.8, 5 /* Metallic */]], 33: [[2.68, 1 /* Single */]], 37: [[2.8, 5 /* Metallic */]], 38: [[2.8, 5 /* Metallic */]], 39: [[2.8, 5 /* Metallic */]], 40: [[2.8, 5 /* Metallic */]], 41: [[2.8, 5 /* Metallic */]], 42: [[2.8, 5 /* Metallic */]], 43: [[2.8, 5 /* Metallic */]], 44: [[2.8, 5 /* Metallic */]], 45: [[2.8, 5 /* Metallic */]], 46: [[2.8, 5 /* Metallic */]], 47: [[2.8, 5 /* Metallic */]], 48: [[2.8, 5 /* Metallic */]], 49: [[2.8, 5 /* Metallic */]], 50: [[2.8, 5 /* Metallic */]], 55: [[2.8, 5 /* Metallic */]], 56: [[2.8, 5 /* Metallic */]], 57: [[2.8, 5 /* Metallic */]], 58: [[2.8, 5 /* Metallic */]], 59: [[2.8, 5 /* Metallic */]], 60: [[2.8, 5 /* Metallic */]], 61: [[2.8, 5 /* Metallic */]], 62: [[2.8, 5 /* Metallic */]], 63: [[2.8, 5 /* Metallic */]], 64: [[2.8, 5 /* Metallic */]], 65: [[2.8, 5 /* Metallic */]], 66: [[2.8, 5 /* Metallic */]], 67: [[2.8, 5 /* Metallic */]], 68: [[2.8, 5 /* Metallic */]], 69: [[2.8, 5 /* Metallic */]], 70: [[2.8, 5 /* Metallic */]], 71: [[2.8, 5 /* Metallic */]], 72: [[2.8, 5 /* Metallic */]], 73: [[2.8, 5 /* Metallic */]], 74: [[2.8, 5 /* Metallic */]], 75: [[2.8, 5 /* Metallic */]], 76: [[2.8, 5 /* Metallic */]], 77: [[2.8, 5 /* Metallic */]], 78: [[2.8, 5 /* Metallic */]], 79: [[2.8, 5 /* Metallic */]], 80: [[2.8, 5 /* Metallic */]], 81: [[2.8, 5 /* Metallic */]], 82: [[2.8, 5 /* Metallic */]], 83: [[2.8, 5 /* Metallic */]], 87: [[2.8, 5 /* Metallic */]], 88: [[2.8, 5 /* Metallic */]], 89: [[2.8, 5 /* Metallic */]], 90: [[2.8, 5 /* Metallic */]], 91: [[2.8, 5 /* Metallic */]], 92: [[2.8, 5 /* Metallic */]], 93: [[2.8, 5 /* Metallic */]], 94: [[2.8, 5 /* Metallic */]], 95: [[2.8, 5 /* Metallic */]], 96: [[2.8, 5 /* Metallic */]], 97: [[2.8, 5 /* Metallic */]], 98: [[2.8, 5 /* Metallic */]], 99: [[2.8, 5 /* Metallic */]], 100: [[2.8, 5 /* Metallic */]], 101: [[2.8, 5 /* Metallic */]], 102: [[2.8, 5 /* Metallic */]], 103: [[2.8, 5 /* Metallic */]], 104: [[2.8, 5 /* Metallic */]], 105: [[2.8, 5 /* Metallic */]], 106: [[2.8, 5 /* Metallic */]], 107: [[2.8, 5 /* Metallic */]], 108: [[2.8, 5 /* Metallic */]], 109: [[2.8, 5 /* Metallic */]] };
-            var __ElementPairThresholds = { 0: [[0.8, 1 /* Single */]], 15: [[1.31, 1 /* Single */]], 21: [[1.3, 1 /* Single */]], 28: [[1.3, 1 /* Single */]], 36: [[1.05, 1 /* Single */]], 45: [[1, 1 /* Single */]], 60: [[1.84, 1 /* Single */]], 71: [[1.88, 1 /* Single */]], 82: [[1.76, 1 /* Single */]], 83: [[1.56, 1 /* Single */]], 84: [[1.25, 3 /* Triple */], [1.4, 2 /* Double */], [1.75, 1 /* Single */]], 95: [[1.63, 1 /* Single */]], 96: [[1.68, 1 /* Single */]], 97: [[1.27, 2 /* Double */], [1.6, 1 /* Single */]], 110: [[1.36, 1 /* Single */]], 111: [[1.26, 2 /* Double */], [1.59, 1 /* Single */]], 112: [[1.55, 1 /* Single */]], 126: [[1.45, 1 /* Single */]], 144: [[1.6, 1 /* Single */]], 153: [[1.4, 1 /* Single */]], 180: [[1.55, 1 /* Single */]], 197: [[2.4, 5 /* Metallic */]], 215: [[1.49, 2 /* Double */], [1.98, 1 /* Single */]], 216: [[1.91, 1 /* Single */]], 218: [[2.24, 5 /* Metallic */]], 240: [[2.02, 5 /* Metallic */]], 259: [[2, 1 /* Single */]], 282: [[1.9, 1 /* Single */]], 480: [[2.3, 1 /* Single */]], 511: [[2.3, 1 /* Single */]], 544: [[2.3, 1 /* Single */]], 595: [[1.54, 1 /* Single */]], 612: [[2.1, 1 /* Single */]], 630: [[1, 1 /* Single */]], 786: [[2.6, 1 /* Single */]], 826: [[1.82, 2 /* Double */], [2.27, 1 /* Single */]], 867: [[2.1, 1 /* Single */]], 869: [[1.7, 1 /* Single */], [1.93, 1 /* Single */]], 910: [[2.06, 1 /* Single */]], 911: [[1.8, 2 /* Double */], [2.05, 1 /* Single */]], 954: [[1.53, 2 /* Double */], [1.62, 1 /* Single */]], 1241: [[2.68, 1 /* Single */]], 1291: [[2.33, 1 /* Single */]], 1431: [[1, 1 /* Single */]], 1717: [[2.14, 1 /* Single */]], 1776: [[2.48, 1 /* Single */]], 1838: [[2.1, 1 /* Single */]], 1899: [[1.68, 2 /* Double */], [1.72, 1 /* Single */]], 2380: [[2.34, 1 /* Single */]], 3356: [[2.44, 1 /* Single */]], 3662: [[2.11, 1 /* Single */]], 3747: [[2.36, 1 /* Single */]], 3749: [[2.6, 1 /* Single */]], 4672: [[2.75, 1 /* Single */]], 5724: [[2.73, 1 /* Single */]], 5921: [[2.63, 1 /* Single */]], 6476: [[2.84, 1 /* Single */]], 6705: [[2.87, 1 /* Single */]], 8964: [[2.81, 1 /* Single */]] };
+            var __ElementBondThresholds = { 0: 1.42, 1: 1.42, 3: 2.7, 4: 2.7, 6: 1.75, 7: 1.6, 8: 1.52, 11: 2.7, 12: 2.7, 13: 2.7, 14: 1.9, 15: 1.9, 16: 1.9, 17: 1.8, 19: 2.7, 20: 2.7, 21: 2.7, 22: 2.7, 23: 2.7, 24: 2.7, 25: 2.7, 26: 2.7, 27: 2.7, 28: 2.7, 29: 2.7, 30: 2.7, 31: 2.7, 33: 2.68, 37: 2.7, 38: 2.7, 39: 2.7, 40: 2.7, 41: 2.7, 42: 2.7, 43: 2.7, 44: 2.7, 45: 2.7, 46: 2.7, 47: 2.7, 48: 2.7, 49: 2.7, 50: 2.7, 55: 2.7, 56: 2.7, 57: 2.7, 58: 2.7, 59: 2.7, 60: 2.7, 61: 2.7, 62: 2.7, 63: 2.7, 64: 2.7, 65: 2.7, 66: 2.7, 67: 2.7, 68: 2.7, 69: 2.7, 70: 2.7, 71: 2.7, 72: 2.7, 73: 2.7, 74: 2.7, 75: 2.7, 76: 2.7, 77: 2.7, 78: 2.7, 79: 2.7, 80: 2.7, 81: 2.7, 82: 2.7, 83: 2.7, 87: 2.7, 88: 2.7, 89: 2.7, 90: 2.7, 91: 2.7, 92: 2.7, 93: 2.7, 94: 2.7, 95: 2.7, 96: 2.7, 97: 2.7, 98: 2.7, 99: 2.7, 100: 2.7, 101: 2.7, 102: 2.7, 103: 2.7, 104: 2.7, 105: 2.7, 106: 2.7, 107: 2.7, 108: 2.7, 109: 2.88 };
+            var __ElementPairThresholds = { 0: 0.8, 20: 1.31, 27: 1.3, 35: 1.3, 44: 1.05, 54: 1, 60: 1.84, 72: 1.88, 84: 1.75, 85: 1.56, 86: 1.76, 98: 1.6, 99: 1.68, 100: 1.63, 112: 1.55, 113: 1.59, 114: 1.36, 129: 1.45, 144: 1.6, 170: 1.4, 180: 1.55, 202: 2.4, 222: 2.24, 224: 1.91, 225: 1.98, 243: 2.02, 269: 2, 293: 1.9, 480: 2.3, 512: 2.3, 544: 2.3, 612: 2.1, 629: 1.54, 665: 1, 813: 2.6, 854: 2.27, 894: 1.93, 896: 2.1, 937: 2.05, 938: 2.06, 981: 1.62, 1258: 2.68, 1309: 2.33, 1484: 1, 1763: 2.14, 1823: 2.48, 1882: 2.1, 1944: 1.72, 2380: 2.34, 3367: 2.44, 3733: 2.11, 3819: 2.6, 3821: 2.36, 4736: 2.75, 5724: 2.73, 5959: 2.63, 6519: 2.84, 6750: 2.87, 8991: 2.81 };
             var DefaultBondingRadius = 2.001;
             var MetalsSet = (function () {
                 var metals = ['LI', 'NA', 'K', 'RB', 'CS', 'FR', 'BE', 'MG', 'CA', 'SR', 'BA', 'RA', 'AL', 'GA', 'IN', 'SN', 'TL', 'PB', 'BI', 'SC', 'TI', 'V', 'CR', 'MN', 'FE', 'CO', 'NI', 'CU', 'ZN', 'Y', 'ZR', 'NB', 'MO', 'TC', 'RU', 'RH', 'PD', 'AG', 'CD', 'LA', 'HF', 'TA', 'W', 'RE', 'OS', 'IR', 'PT', 'AU', 'HG', 'AC', 'RF', 'DB', 'SG', 'BH', 'HS', 'MT', 'CE', 'PR', 'ND', 'PM', 'SM', 'EU', 'GD', 'TB', 'DY', 'HO', 'ER', 'TM', 'YB', 'LU', 'TH', 'PA', 'U', 'NP', 'PU', 'AM', 'CM', 'BK', 'CF', 'ES', 'FM', 'MD', 'NO', 'LR'];
@@ -16913,25 +17085,20 @@ var LiteMol;
                     return -1;
                 return i;
             }
-            function bondingRadius(i) {
-                return __ElementBondingRadii[i] || DefaultBondingRadius;
-            }
-            var __empty = [];
-            function pairThresholds(i, j) {
+            function pairThreshold(i, j) {
                 if (i < 0 || j < 0)
-                    return __empty;
+                    return -1;
                 var r = __ElementPairThresholds[pair(i, j)];
                 if (r === void 0)
-                    return __empty;
+                    return -1;
                 return r;
             }
-            var __defaultThresholds = [[DefaultBondingRadius, 1 /* Single */]];
-            function thresholds(i) {
+            function threshold(i) {
                 if (i < 0)
-                    return __defaultThresholds;
+                    return DefaultBondingRadius;
                 var r = __ElementBondThresholds[i];
                 if (r === void 0)
-                    return __defaultThresholds;
+                    return DefaultBondingRadius;
                 return r;
             }
             var H_ID = __ElementIndex['H'];
@@ -16948,7 +17115,7 @@ var LiteMol;
                 var bonds = model.data.bonds.input;
                 if (atomIndices.length === model.data.atoms.count)
                     return bonds;
-                var mask = Structure.Query.Context.Mask.ofIndices(model, atomIndices);
+                var mask = Core.Utils.Mask.ofIndices(model.data.atoms.count, atomIndices);
                 var a = bonds.atomAIndex, b = bonds.atomBIndex, t = bonds.type;
                 var count = 0;
                 for (var i = 0, __i = bonds.count; i < __i; i++) {
@@ -16967,7 +17134,7 @@ var LiteMol;
                     atomAIndex[offset] = u;
                     atomBIndex[offset] = v;
                     var metal = isMetal(elementSymbol[u]) || isMetal(elementSymbol[v]);
-                    type[offset] = metal ? 5 /* Metallic */ : t[i];
+                    type[offset] = metal ? 6 /* Metallic */ : t[i];
                     offset++;
                 }
                 return ret;
@@ -16986,6 +17153,7 @@ var LiteMol;
                     if (!pairs)
                         continue;
                     var altA = altLoc[i];
+                    var isMetalA = isMetal(elementSymbol[i]);
                     for (var j = i + 1; j < end; j++) {
                         if (!mask.has(j))
                             continue;
@@ -16995,44 +17163,44 @@ var LiteMol;
                         var order = pairs.get(atomName[j]);
                         if (order === void 0)
                             continue;
-                        var metal = isMetal(elementSymbol[i]) || isMetal(elementSymbol[j]);
+                        var metal = isMetalA || isMetal(elementSymbol[j]);
                         ChunkedAdd(atomA, i);
                         ChunkedAdd(atomB, j);
-                        ChunkedAdd(type, metal ? 5 /* Metallic */ : order);
+                        ChunkedAdd(type, metal ? 6 /* Metallic */ : order);
                     }
                 }
             }
             function _computeBonds(model, atomIndices, params) {
                 var MAX_RADIUS = 3;
-                var /*structConn,*/ component = model.data.bonds.component;
-                var _a = model.positions, x = _a.x, y = _a.y, z = _a.z;
-                var _b = model.data.atoms, elementSymbol = _b.elementSymbol, residueIndex = _b.residueIndex, altLoc = _b.altLoc;
+                var _a = model.data.bonds, structConn = _a.structConn, component = _a.component;
+                var _b = model.positions, x = _b.x, y = _b.y, z = _b.z;
+                var _c = model.data.atoms, elementSymbol = _c.elementSymbol, residueIndex = _c.residueIndex, altLoc = _c.altLoc;
                 var residueName = model.data.residues.name;
-                var query3d = model.queryContext.lookup3d(MAX_RADIUS);
+                var query3d = model.queryContext.lookup3d();
                 var atomA = Core.Utils.ChunkedArray.create(function (size) { return new Int32Array(size); }, (atomIndices.length * 1.33) | 0, 1);
                 var atomB = Core.Utils.ChunkedArray.create(function (size) { return new Int32Array(size); }, (atomIndices.length * 1.33) | 0, 1);
                 var type = Core.Utils.ChunkedArray.create(function (size) { return new Uint8Array(size); }, (atomIndices.length * 1.33) | 0, 1);
-                var mask = Structure.Query.Context.Mask.ofIndices(model, atomIndices);
+                var mask = Core.Utils.Mask.ofIndices(model.data.atoms.count, atomIndices);
                 var state = { model: model, mask: mask, atomA: atomA, atomB: atomB, type: type };
                 var lastResidue = -1;
                 var hasComponent = false;
                 for (var _i = 0, atomIndices_1 = atomIndices; _i < atomIndices_1.length; _i++) {
                     var aI = atomIndices_1[_i];
                     var raI = residueIndex[aI];
-                    if (raI !== lastResidue) {
+                    if (!params.forceCompute && raI !== lastResidue) {
                         hasComponent = !!component && component.entries.has(residueName[raI]);
-                        hasComponent = false; // FIX!
                         if (hasComponent) {
                             addComponentBonds(state, raI);
                         }
                     }
                     lastResidue = raI;
                     var aeI = idx(elementSymbol[aI]);
-                    var bondingRadiusA = bondingRadius(aeI);
-                    var _c = query3d(x[aI], y[aI], z[aI], MAX_RADIUS), elements = _c.elements, count = _c.count, squaredDistances = _c.squaredDistances;
+                    var _d = query3d(x[aI], y[aI], z[aI], MAX_RADIUS), elements = _d.elements, count = _d.count, squaredDistances = _d.squaredDistances;
                     var isHa = isHydrogen(aeI);
-                    var thresholdsA = thresholds(aeI);
+                    var thresholdA = threshold(aeI);
                     var altA = altLoc[aI];
+                    var metalA = MetalsSet.has(aeI);
+                    var structConnEntries = params.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
                     for (var ni = 0; ni < count; ni++) {
                         var bI = elements[ni];
                         if (bI <= aI || !mask.has(bI))
@@ -17040,16 +17208,36 @@ var LiteMol;
                         var altB = altLoc[bI];
                         if (altA && altB && altA !== altB)
                             continue;
-                        var beI = idx(elementSymbol[bI]);
                         var rbI = residueIndex[bI];
                         if (raI === rbI && hasComponent)
                             continue;
+                        var beI = idx(elementSymbol[bI]);
                         var isHb = isHydrogen(beI);
                         if (isHa && isHb)
                             continue;
                         var dist = Math.sqrt(squaredDistances[ni]);
                         if (dist === 0)
                             continue;
+                        if (structConnEntries) {
+                            var added = false;
+                            for (var _e = 0, structConnEntries_1 = structConnEntries; _e < structConnEntries_1.length; _e++) {
+                                var se = structConnEntries_1[_e];
+                                for (var _f = 0, _g = se.partners; _f < _g.length; _f++) {
+                                    var p = _g[_f];
+                                    if (p.atomIndex === bI) {
+                                        ChunkedAdd(atomA, aI);
+                                        ChunkedAdd(atomB, bI);
+                                        ChunkedAdd(type, se.bondType);
+                                        added = true;
+                                        break;
+                                    }
+                                }
+                                if (added)
+                                    break;
+                            }
+                            if (added)
+                                continue;
+                        }
                         if (isHa || isHb) {
                             if (dist < params.maxHbondLength) {
                                 ChunkedAdd(atomA, aI);
@@ -17058,18 +17246,15 @@ var LiteMol;
                             }
                             continue;
                         }
-                        var pairedThresholds = pairThresholds(aeI, beI);
-                        var elemThresholds = pairedThresholds.length > 0
-                            ? pairedThresholds
-                            : beI < 0 || bondingRadiusA > bondingRadius(beI) ? thresholdsA : thresholds(beI);
-                        for (var _d = 0, elemThresholds_1 = elemThresholds; _d < elemThresholds_1.length; _d++) {
-                            var t = elemThresholds_1[_d];
-                            if (t[0] >= dist) {
-                                ChunkedAdd(atomA, aI);
-                                ChunkedAdd(atomB, bI);
-                                ChunkedAdd(type, t[1]);
-                                break;
-                            }
+                        var thresholdAB = pairThreshold(aeI, beI);
+                        var pairingThreshold = thresholdAB > 0
+                            ? thresholdAB
+                            : beI < 0 ? thresholdA : Math.max(thresholdA, threshold(beI));
+                        var metalB = MetalsSet.has(beI);
+                        if (dist <= pairingThreshold) {
+                            ChunkedAdd(atomA, aI);
+                            ChunkedAdd(atomB, bI);
+                            ChunkedAdd(type, metalA || metalB ? 6 /* Metallic */ : 1 /* Single */);
                         }
                     }
                 }
@@ -17083,7 +17268,10 @@ var LiteMol;
             function computeBonds(model, atomIndices, params) {
                 if (model.data.bonds.input)
                     return bondsFromInput(model, atomIndices);
-                return _computeBonds(model, atomIndices, { maxHbondLength: (params && params.maxHbondLength) || 1.15 });
+                return _computeBonds(model, atomIndices, {
+                    maxHbondLength: (params && params.maxHbondLength) || 1.15,
+                    forceCompute: !!(params && params.forceCompute),
+                });
             }
             Structure.computeBonds = computeBonds;
         })(Structure = Core.Structure || (Core.Structure = {}));
@@ -18498,8 +18686,8 @@ var LiteMol;
                 function getBoudingSphere(arrays, indices) {
                     var x = arrays.x, y = arrays.y, z = arrays.z;
                     var center = Vec3.zero();
-                    for (var _i = 0, indices_1 = indices; _i < indices_1.length; _i++) {
-                        var aI = indices_1[_i];
+                    for (var _i = 0, indices_3 = indices; _i < indices_3.length; _i++) {
+                        var aI = indices_3[_i];
                         center[0] += x[aI];
                         center[1] += y[aI];
                         center[2] += z[aI];
@@ -18509,8 +18697,8 @@ var LiteMol;
                     center[1] /= count;
                     center[2] /= count;
                     var r = 0;
-                    for (var _a = 0, indices_2 = indices; _a < indices_2.length; _a++) {
-                        var aI = indices_2[_a];
+                    for (var _a = 0, indices_4 = indices; _a < indices_4.length; _a++) {
+                        var aI = indices_4[_a];
                         r = Math.max(indexedVectorDistSq(aI, center, arrays), r);
                     }
                     return { center: center, radius: Math.sqrt(r) };
@@ -18943,9 +19131,8 @@ var LiteMol;
                                 if (!allMapped)
                                     return "continue";
                                 ret.push({
+                                    bondType: e.bondType,
                                     distance: e.distance,
-                                    order: e.order,
-                                    type: e.type,
                                     partners: e.partners.map(function (p) {
                                         var rI = transformMap.get(p.residueIndex).get(opIndex);
                                         return {
@@ -18979,9 +19166,8 @@ var LiteMol;
                             }
                             if (partners.length === e.partners.length) {
                                 ret.push({
+                                    bondType: e.bondType,
                                     distance: e.distance,
-                                    order: e.order,
-                                    type: e.type,
                                     partners: partners
                                 });
                             }
@@ -19233,8 +19419,8 @@ var LiteMol;
                  */
                 var Context = (function () {
                     function Context(structure, mask) {
-                        this.structure = structure;
                         this.mask = mask;
+                        this.structure = structure;
                     }
                     Object.defineProperty(Context.prototype, "atomCount", {
                         /**
@@ -19288,19 +19474,19 @@ var LiteMol;
                      * Create a new context based on the provide structure.
                      */
                     Context.ofStructure = function (structure) {
-                        return new Context(structure, Context.Mask.ofStructure(structure));
+                        return new Context(structure, Core.Utils.Mask.ofStructure(structure));
                     };
                     /**
                      * Create a new context from a sequence of fragments.
                      */
                     Context.ofFragments = function (seq) {
-                        return new Context(seq.context.structure, Context.Mask.ofFragments(seq));
+                        return new Context(seq.context.structure, Core.Utils.Mask.ofFragments(seq));
                     };
                     /**
                      * Create a new context from a sequence of fragments.
                      */
                     Context.ofAtomIndices = function (structure, atomIndices) {
-                        return new Context(structure, Context.Mask.ofIndices(structure, atomIndices));
+                        return new Context(structure, Core.Utils.Mask.ofIndices(structure.data.atoms.count, atomIndices));
                     };
                     Context.prototype.makeLookup3d = function () {
                         var data = new Int32Array(this.mask.size), dataCount = 0, _a = this.structure.positions, x = _a.x, y = _a.y, z = _a.z;
@@ -19314,85 +19500,6 @@ var LiteMol;
                     return Context;
                 }());
                 Query.Context = Context;
-                (function (Context) {
-                    var Mask;
-                    (function (Mask) {
-                        var BitMask = (function () {
-                            function BitMask(mask, size) {
-                                this.mask = mask;
-                                this.size = size;
-                            }
-                            BitMask.prototype.has = function (i) { return this.mask[i]; };
-                            return BitMask;
-                        }());
-                        var AllMask = (function () {
-                            function AllMask(size) {
-                                this.size = size;
-                            }
-                            AllMask.prototype.has = function (i) { return true; };
-                            return AllMask;
-                        }());
-                        function ofStructure(structure) {
-                            return new AllMask(structure.data.atoms.count);
-                        }
-                        Mask.ofStructure = ofStructure;
-                        function ofIndices(structure, atomIndices) {
-                            var f = atomIndices.length / structure.data.atoms.count;
-                            if (f < 0.25) {
-                                var set = Core.Utils.FastSet.create();
-                                for (var _i = 0, atomIndices_2 = atomIndices; _i < atomIndices_2.length; _i++) {
-                                    var i = atomIndices_2[_i];
-                                    set.add(i);
-                                }
-                                return set;
-                            }
-                            var mask = new Int8Array(structure.data.atoms.count);
-                            for (var _a = 0, atomIndices_3 = atomIndices; _a < atomIndices_3.length; _a++) {
-                                var i = atomIndices_3[_a];
-                                mask[i] = 1;
-                            }
-                            return new BitMask(mask, atomIndices.length);
-                        }
-                        Mask.ofIndices = ofIndices;
-                        function ofFragments(seq) {
-                            var sizeEstimate = 0;
-                            for (var _i = 0, _a = seq.fragments; _i < _a.length; _i++) {
-                                var f = _a[_i];
-                                sizeEstimate += f.atomCount;
-                            }
-                            var count = seq.context.structure.data.atoms.count;
-                            if (sizeEstimate / count < 0.25) {
-                                // create set;
-                                var mask = Core.Utils.FastSet.create();
-                                for (var _c = 0, _d = seq.fragments; _c < _d.length; _c++) {
-                                    var f = _d[_c];
-                                    for (var _e = 0, _f = f.atomIndices; _e < _f.length; _e++) {
-                                        var i = _f[_e];
-                                        mask.add(i);
-                                    }
-                                }
-                                return mask;
-                            }
-                            else {
-                                var mask = new Int8Array(count);
-                                for (var _g = 0, _h = seq.fragments; _g < _h.length; _g++) {
-                                    var f = _h[_g];
-                                    for (var _j = 0, _k = f.atomIndices; _j < _k.length; _j++) {
-                                        var i = _k[_j];
-                                        mask[i] = 1;
-                                    }
-                                }
-                                var size = 0;
-                                for (var i = 0; i < count; i++) {
-                                    if (mask[i] !== 0)
-                                        size++;
-                                }
-                                return new BitMask(mask, size);
-                            }
-                        }
-                        Mask.ofFragments = ofFragments;
-                    })(Mask = Context.Mask || (Context.Mask = {}));
-                })(Context = Query.Context || (Query.Context = {}));
                 /**
                  * The basic element of the query language.
                  * Everything is represented as a fragment.
@@ -19899,6 +20006,9 @@ var LiteMol;
                 Builder.registerModifier('flatten', flatten);
                 function flatten(what, selector) { return Builder.build(function () { return Compiler.compileFlatten(what, selector); }); }
                 Query.flatten = flatten;
+                Builder.registerModifier('except', except);
+                function except(what, toRemove) { return Builder.build(function () { return Compiler.compileExcept(what, toRemove); }); }
+                Query.except = except;
                 /**
                  * Shortcuts
                  */
@@ -19993,17 +20103,19 @@ var LiteMol;
                     function compileAtomIndices(indices) {
                         return function (ctx) {
                             var count = 0;
-                            for (var _i = 0, indices_3 = indices; _i < indices_3.length; _i++) {
-                                var aI = indices_3[_i];
+                            for (var _i = 0, indices_5 = indices; _i < indices_5.length; _i++) {
+                                var aI = indices_5[_i];
                                 if (ctx.hasAtom(aI))
                                     count++;
                             }
                             if (!count)
                                 return Query.FragmentSeq.empty(ctx);
+                            if (count === indices.length)
+                                return new Query.FragmentSeq(ctx, [Query.Fragment.ofArray(ctx, indices[0], indices)]);
                             var offset = 0;
                             var f = new Int32Array(count);
-                            for (var _a = 0, indices_4 = indices; _a < indices_4.length; _a++) {
-                                var aI = indices_4[_a];
+                            for (var _a = 0, indices_6 = indices; _a < indices_6.length; _a++) {
+                                var aI = indices_6[_a];
                                 if (ctx.hasAtom(aI))
                                     f[offset++] = aI;
                             }
@@ -20026,8 +20138,8 @@ var LiteMol;
                                 }
                             }
                             else {
-                                for (var _i = 0, indices_5 = indices; _i < indices_5.length; _i++) {
-                                    var i = indices_5[_i];
+                                for (var _i = 0, indices_7 = indices; _i < indices_7.length; _i++) {
+                                    var i = indices_7[_i];
                                     if (!ctx.hasRange(atomStartIndex[i], atomEndIndex[i]))
                                         continue;
                                     fragments.add(Query.Fragment.ofIndexRange(ctx, atomStartIndex[i], atomEndIndex[i]));
@@ -20194,7 +20306,7 @@ var LiteMol;
                         var _where = Builder.toQuery(where);
                         return function (ctx) {
                             var fs = _what(ctx);
-                            var map = Query.Context.Mask.ofFragments(_where(ctx));
+                            var map = Core.Utils.Mask.ofFragments(_where(ctx));
                             var ret = new Query.FragmentSeqBuilder(ctx);
                             for (var _i = 0, _a = fs.fragments; _i < _a.length; _i++) {
                                 var f = _a[_i];
@@ -20222,7 +20334,7 @@ var LiteMol;
                     function compileComplement(what) {
                         var _what = Builder.toQuery(what);
                         return function (ctx) {
-                            var mask = Query.Context.Mask.ofFragments(_what(ctx)), count = 0, offset = 0;
+                            var mask = Core.Utils.Mask.ofFragments(_what(ctx)), count = 0, offset = 0;
                             for (var i = 0, _b = ctx.structure.data.atoms.count; i < _b; i++) {
                                 if (ctx.hasAtom(i) && !mask.has(i))
                                     count++;
@@ -20304,7 +20416,7 @@ var LiteMol;
                     function compileAmbientResidues(where, radius) {
                         var _where = Builder.toQuery(where);
                         return function (ctx) {
-                            var src = _where(ctx), nearest = ctx.lookup3d(radius), ret = new Query.HashFragmentSeqBuilder(ctx), _a = ctx.structure.positions, x = _a.x, y = _a.y, z = _a.z, residueIndex = ctx.structure.data.atoms.residueIndex, atomStart = ctx.structure.data.residues.atomStartIndex, atomEnd = ctx.structure.data.residues.atomEndIndex;
+                            var src = _where(ctx), nearest = ctx.lookup3d(), ret = new Query.HashFragmentSeqBuilder(ctx), _a = ctx.structure.positions, x = _a.x, y = _a.y, z = _a.z, residueIndex = ctx.structure.data.atoms.residueIndex, atomStart = ctx.structure.data.residues.atomStartIndex, atomEnd = ctx.structure.data.residues.atomEndIndex;
                             for (var _i = 0, _c = src.fragments; _i < _c.length; _i++) {
                                 var f = _c[_i];
                                 var residues_1 = Core.Utils.FastSet.create();
@@ -20374,6 +20486,36 @@ var LiteMol;
                         };
                     }
                     Compiler.compileFlatten = compileFlatten;
+                    function compileExcept(what, toRemove) {
+                        var _what = Builder.toQuery(what);
+                        var _toRemove = Builder.toQuery(toRemove);
+                        return function (ctx) {
+                            var fs = _what(ctx);
+                            var mask = Core.Utils.Mask.ofFragments(_toRemove(ctx));
+                            var ret = new Query.HashFragmentSeqBuilder(ctx);
+                            for (var _i = 0, _a = fs.fragments; _i < _a.length; _i++) {
+                                var f = _a[_i];
+                                var size = 0;
+                                for (var _c = 0, _d = f.atomIndices; _c < _d.length; _c++) {
+                                    var i = _d[_c];
+                                    if (!mask.has(i))
+                                        size++;
+                                }
+                                if (!size)
+                                    continue;
+                                var indices = new Int32Array(size);
+                                var offset = 0;
+                                for (var _e = 0, _f = f.atomIndices; _e < _f.length; _e++) {
+                                    var i = _f[_e];
+                                    if (!mask.has(i))
+                                        indices[offset++] = i;
+                                }
+                                ret.add(Query.Fragment.ofArray(ctx, indices[0], indices));
+                            }
+                            return ret.getSeq();
+                        };
+                    }
+                    Compiler.compileExcept = compileExcept;
                 })(Compiler = Query.Compiler || (Query.Compiler = {}));
             })(Query = Structure.Query || (Structure.Query = {}));
         })(Structure = Core.Structure || (Core.Structure = {}));

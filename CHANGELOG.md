@@ -1,4 +1,7 @@
-﻿# 1.4.5
+﻿# 1.4.6
+* Fixed a bug in _struct_sheet_range.id. 
+
+# 1.4.5
 * Fixed a BinaryCIF encoding bug in CIFTools.
 * Using spatial hash instead of "subdivisions tree" for 3D neighborhood search.
 
