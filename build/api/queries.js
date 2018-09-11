@@ -69,7 +69,7 @@ var CommonParameters = {
     authSeqNumber: { name: "authSeqNumber", type: QueryParamType.Integer, exampleValue: '200', description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
 };
 var QueryMap = {
-    "full": { niceName: 'Full Structure', query: function () { return Queries.everything(); }, description: "The full structure." },
+    "full": { niceName: 'Full Structure', query: function () { return Queries.everything(); }, description: "The full structure.", includedCategories: exports.DefaultCategories.concat(['_pdbx_nonpoly_scheme']) },
     "het": { niceName: 'HET Atoms', query: function () { return Queries.hetGroups(); }, description: "All non-water 'HETATM' records." },
     "cartoon": { niceName: 'Cartoon Representation', query: function () { return Queries.cartoons(); }, description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET atoms + water." },
     "backbone": { niceName: 'Backbone Atoms', query: function () { return Queries.backbone(); }, description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
@@ -237,7 +237,7 @@ var QueryMap = {
         queryParams: [
             { name: "id", type: QueryParamType.String, defaultValue: '1', exampleValue: '1', description: "Corresponds to the '_pdbx_struct_assembly.id' field." }
         ],
-        includedCategories: SymmetryCategories
+        includedCategories: SymmetryCategories.concat(['_pdbx_nonpoly_scheme'])
     }
 };
 function getQueryByName(name) {

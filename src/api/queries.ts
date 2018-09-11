@@ -129,7 +129,7 @@ const CommonParameters = {
 };
 
 const QueryMap: { [id: string]: ApiQueryDefinition } = {
-    "full": { niceName: 'Full Structure', query: () => Queries.everything(), description: "The full structure." },
+    "full": { niceName: 'Full Structure', query: () => Queries.everything(), description: "The full structure.", includedCategories: [...DefaultCategories, '_pdbx_nonpoly_scheme'] },
     "het": { niceName: 'HET Atoms', query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
     "cartoon": { niceName: 'Cartoon Representation', query: () => Queries.cartoons(), description: "Atoms necessary to construct cartoons representation of the molecule (atoms named CA, O, O5', C3', N3 from polymer entities) + HET atoms + water." },
     "backbone": { niceName: 'Backbone Atoms', query: () => Queries.backbone(), description: "Atoms named N, CA, C, O, P, OP1, OP2, O3', O5', C3', C4, C5' from polymer entities." },
@@ -297,7 +297,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         queryParams: [
             { name: "id", type: QueryParamType.String, defaultValue: '1', exampleValue: '1', description: "Corresponds to the '_pdbx_struct_assembly.id' field." }
         ],
-        includedCategories: SymmetryCategories
+        includedCategories: [...SymmetryCategories, '_pdbx_nonpoly_scheme']
     }
 };
 

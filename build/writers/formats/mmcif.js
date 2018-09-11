@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Core = require("../../lib/LiteMol-core");
 var context_1 = require("../context");
 var direct_category_mapper_1 = require("../direct-category-mapper");
-var CIF = Core.Formats.CIF;
 var mmCifContext;
 (function (mmCifContext) {
     function isComplete(mmCtx) {
@@ -82,7 +81,7 @@ var mmCifContext;
     }
     mmCifContext.create = create;
 })(mmCifContext = exports.mmCifContext || (exports.mmCifContext = {}));
-var SourceCategoryMap = (function () {
+var SourceCategoryMap = /** @class */ (function () {
     function SourceCategoryMap(context, name, keyColumnName) {
         this.byKey = Core.Utils.FastMap.create();
         this.category = void 0;
@@ -704,6 +703,48 @@ function _entity_poly(context) {
         }
     };
 }
+function _pdbx_nonpoly_scheme(context) {
+    var cat = context.data.getCategory('_pdbx_nonpoly_scheme');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[i] = i;
+    }
+    var data = {
+        rows: rows,
+        asym_id: cat.getColumn('asym_id'),
+        entity_id: cat.getColumn('entity_id'),
+        mon_id: cat.getColumn('mon_id'),
+        ndb_seq_num: cat.getColumn('ndb_seq_num'),
+        pdb_seq_num: cat.getColumn('pdb_seq_num'),
+        auth_seq_num: cat.getColumn('auth_seq_num'),
+        pdb_mon_id: cat.getColumn('pdb_mon_id'),
+        auth_mon_id: cat.getColumn('auth_mon_id'),
+        pdb_strand_id: cat.getColumn('pdb_strand_id'),
+        pdb_ins_code: cat.getColumn('pdb_ins_code'),
+    };
+    var fields = [
+        stringColumn('asym_id', data.asym_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('entity_id', data.entity_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('mon_id', data.mon_id, function (data, i) { return data.rows[i]; }),
+        int32column('ndb_seq_num', data.ndb_seq_num, function (data, i) { return data.rows[i]; }, context_1.Encoders.ids),
+        int32column('pdb_seq_num', data.pdb_seq_num, function (data, i) { return data.rows[i]; }, context_1.Encoders.ids),
+        int32column('auth_seq_num', data.auth_seq_num, function (data, i) { return data.rows[i]; }, context_1.Encoders.ids),
+        stringColumn('pdb_mon_id', data.pdb_mon_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('auth_mon_id', data.auth_mon_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('pdb_strand_id', data.pdb_strand_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('pdb_ins_code', data.pdb_ins_code, function (data, i) { return data.rows[i]; })
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_pdbx_nonpoly_scheme',
+            fields: fields
+        }
+    };
+}
 function _pdbx_struct_mod_residue(context) {
     var cat = context.data.getCategory('_pdbx_struct_mod_residue');
     if (!cat)
@@ -883,6 +924,7 @@ var Categories = {
     _pdbx_struct_oper_list: _pdbx_struct_oper_list,
     _struct_asym: _struct_asym,
     _entity_poly: _entity_poly,
+    _pdbx_nonpoly_scheme: _pdbx_nonpoly_scheme,
     _pdbx_struct_mod_residue: _pdbx_struct_mod_residue,
     _atom_sites: _atom_sites
 };

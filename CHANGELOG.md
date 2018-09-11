@@ -1,4 +1,7 @@
-﻿# 1.4.6
+﻿# 1.4.7
+* Added _pdbx_nonpoly_scheme to /full and /assembly
+
+# 1.4.6
 * Fixed a bug in _struct_sheet_range.id. 
 
 # 1.4.5

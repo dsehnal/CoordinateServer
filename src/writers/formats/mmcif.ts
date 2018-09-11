@@ -805,6 +805,56 @@ function _entity_poly(context: mmCifContext) {
     };
 }
 
+
+function _pdbx_nonpoly_scheme(context: mmCifContext) {
+    let cat = context.data.getCategory('_pdbx_nonpoly_scheme');
+    if (!cat || !cat.rowCount) return;
+
+    let rows: number[] = [];
+    for (let i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[i] = i;
+    }
+
+    let data = {
+        rows,
+        asym_id: cat.getColumn('asym_id'),
+        entity_id: cat.getColumn('entity_id'),
+        mon_id: cat.getColumn('mon_id'),
+        ndb_seq_num: cat.getColumn('ndb_seq_num'),
+        pdb_seq_num: cat.getColumn('pdb_seq_num'),
+        auth_seq_num: cat.getColumn('auth_seq_num'),
+        pdb_mon_id: cat.getColumn('pdb_mon_id'),
+        auth_mon_id: cat.getColumn('auth_mon_id'),
+        pdb_strand_id: cat.getColumn('pdb_strand_id'),
+        pdb_ins_code: cat.getColumn('pdb_ins_code'),
+    };
+
+    type T = typeof data;
+    let fields: FieldDesc<T>[] = [
+        stringColumn<T>('asym_id', data.asym_id, (data, i) => data.rows[i]),
+        stringColumn<T>('entity_id', data.entity_id, (data, i) => data.rows[i]),
+        stringColumn<T>('mon_id', data.mon_id, (data, i) => data.rows[i]),
+
+        int32column<T>('ndb_seq_num', data.ndb_seq_num, (data, i) => data.rows[i], Encoders.ids),
+        int32column<T>('pdb_seq_num', data.pdb_seq_num, (data, i) => data.rows[i], Encoders.ids),
+        int32column<T>('auth_seq_num', data.auth_seq_num, (data, i) => data.rows[i], Encoders.ids),
+
+        stringColumn<T>('pdb_mon_id', data.pdb_mon_id, (data, i) => data.rows[i]),
+        stringColumn<T>('auth_mon_id', data.auth_mon_id, (data, i) => data.rows[i]),
+        stringColumn<T>('pdb_strand_id', data.pdb_strand_id, (data, i) => data.rows[i]),
+        stringColumn<T>('pdb_ins_code', data.pdb_ins_code, (data, i) => data.rows[i])
+    ];
+
+    return <CategoryInstance<T>>{
+        data,
+        count: rows.length,
+        desc: {
+            name: '_pdbx_nonpoly_scheme',
+            fields
+        }
+    };
+}
+
 function _pdbx_struct_mod_residue(context: mmCifContext) {
     let cat = context.data.getCategory('_pdbx_struct_mod_residue');
     if (!cat) return;
@@ -1027,6 +1077,7 @@ const Categories = {
     _pdbx_struct_oper_list,
     _struct_asym,
     _entity_poly,
+    _pdbx_nonpoly_scheme,
     _pdbx_struct_mod_residue,
     _atom_sites
 }

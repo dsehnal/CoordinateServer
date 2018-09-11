@@ -15,7 +15,7 @@ var MoleculeSource;
     MoleculeSource[MoleculeSource["File"] = 0] = "File";
     MoleculeSource[MoleculeSource["Cache"] = 1] = "Cache";
 })(MoleculeSource = exports.MoleculeSource || (exports.MoleculeSource = {}));
-var MoleculeWrapper = (function () {
+var MoleculeWrapper = /** @class */ (function () {
     function MoleculeWrapper(molecule, source, ioTime, parseTime) {
         this.molecule = molecule;
         this.source = source;

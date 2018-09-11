@@ -3,14 +3,14 @@
  * Copyright (c) 2016 - now, David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-var Model = (function () {
+var Model = /** @class */ (function () {
     function Model(model) {
         this.model = model;
     }
     return Model;
 }());
 exports.Model = Model;
-var Molecule = (function () {
+var Molecule = /** @class */ (function () {
     function Molecule(key, cif, molecule, dataSize) {
         this.key = key;
         this.cif = cif;

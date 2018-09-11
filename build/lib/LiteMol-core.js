@@ -12860,7 +12860,7 @@ var __LiteMol_Core = function () {
                                 while (tokenizer.position < length) {
                                     var cont = true;
                                     switch (data.charCodeAt(tokenizer.position)) {
-                                        case 65:// A 
+                                        case 65: // A 
                                             if (tokenizer.startsWith(tokenizer.position, "ATOM")) {
                                                 if (!modelAtomTokens) {
                                                     modelAtomTokens = Formats.TokenIndexBuilder.create(4096);
@@ -12871,14 +12871,14 @@ var __LiteMol_Core = function () {
                                                     return err;
                                             }
                                             break;
-                                        case 67:// C
+                                        case 67: // C
                                             if (tokenizer.startsWith(tokenizer.position, "CRYST1")) {
                                                 var start = tokenizer.position;
                                                 var end = tokenizer.moveToEndOfLine();
                                                 cryst = new PDB.CrystStructureInfo(data.substring(start, end));
                                             }
                                             break;
-                                        case 69:// E 
+                                        case 69: // E 
                                             if (tokenizer.startsWith(tokenizer.position, "ENDMDL") && atomCount > 0) {
                                                 if (models.length === 0) {
                                                     modelIdToken = { start: data.length + 3, end: data.length + 4 };
@@ -12898,7 +12898,7 @@ var __LiteMol_Core = function () {
                                                 }
                                             }
                                             break;
-                                        case 72:// H 
+                                        case 72: // H 
                                             if (tokenizer.startsWith(tokenizer.position, "HETATM")) {
                                                 if (!modelAtomTokens) {
                                                     modelAtomTokens = Formats.TokenIndexBuilder.create(4096);
@@ -12909,7 +12909,7 @@ var __LiteMol_Core = function () {
                                                     return err;
                                             }
                                             break;
-                                        case 77://M
+                                        case 77: //M
                                             if (tokenizer.startsWith(tokenizer.position, "MODEL")) {
                                                 if (atomCount > 0) {
                                                     if (models.length === 0) {

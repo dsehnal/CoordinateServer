@@ -45,7 +45,7 @@ function startServer() {
     let app = express();
     app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
     
-    app.get(ServerConfig.appPrefix + '/documentation', (req, res) => {
+    app.get(ServerConfig.appPrefix + '/documentation', (req: any, res: any) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.write(Documentation.getHTMLDocs(ServerConfig.appPrefix));
         res.end();
@@ -53,7 +53,7 @@ function startServer() {
 
     WebApi.init(app);
     
-    app.get('*', (req, res) => {
+    app.get('*', (req: any, res: any) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.write(Documentation.getHTMLDocs(ServerConfig.appPrefix));
         res.end();

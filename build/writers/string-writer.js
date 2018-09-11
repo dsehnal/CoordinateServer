@@ -11,7 +11,7 @@ var __paddingSpaces = [];
         s = s + ' ';
     }
 })();
-var StringWriter = (function () {
+var StringWriter = /** @class */ (function () {
     function StringWriter(chunkCapacity) {
         if (chunkCapacity === void 0) { chunkCapacity = 512; }
         this.chunkCapacity = chunkCapacity;

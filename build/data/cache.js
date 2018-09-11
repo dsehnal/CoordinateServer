@@ -5,7 +5,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Provider = require("./provider");
 var logger_1 = require("../utils/logger");
-var CacheEntry = (function () {
+var CacheEntry = /** @class */ (function () {
     function CacheEntry(molecule) {
         this.molecule = molecule;
         this.previous = null;
@@ -15,7 +15,7 @@ var CacheEntry = (function () {
     }
     return CacheEntry;
 }());
-var Cache = (function () {
+var Cache = /** @class */ (function () {
     function Cache(params) {
         this.params = params;
         this.entries = LinkedList.create();
@@ -110,13 +110,13 @@ var LinkedList;
         if (item.previous !== null) {
             item.previous.next = item.next;
         }
-        else if (item.previous === null) {
+        else if ( /*first == item*/item.previous === null) {
             list.first = item.next;
         }
         if (item.next !== null) {
             item.next.previous = item.previous;
         }
-        else if (item.next === null) {
+        else if ( /*last == item*/item.next === null) {
             list.last = item.previous;
         }
         item.next = null;
