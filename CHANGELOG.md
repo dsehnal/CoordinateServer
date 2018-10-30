@@ -1,4 +1,7 @@
-﻿# 1.4.7
+﻿# 1.4.8
+* Tweak in CIF writer (correctly escape values starting with $[])
+
+# 1.4.7
 * Added _pdbx_nonpoly_scheme to /full and /assembly
 
 # 1.4.6
