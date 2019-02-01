@@ -92,6 +92,25 @@ const SymmetryCategories = [
     '_atom_sites'
 ];
 
+const AssemblyCategories = [
+    '_entry',
+    '_entity',
+    '_exptl',
+    '_cell',
+    '_symmetry',
+    '_struct_conf',
+    '_struct_sheet_range',
+    '_entity_poly',
+    '_entity_poly_seq',
+    '_pdbx_nonpoly_scheme',
+    '_struct_asym',
+    '_struct_conn',
+    '_struct_conn_type',
+    '_pdbx_struct_mod_residue',
+    '_chem_comp_bond',
+    '_atom_sites'
+];
+
 export interface CommonQueryParams {
     atomSitesOnly: boolean;
     modelId: string;
@@ -332,7 +351,7 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
         queryParams: [
             { name: "id", type: QueryParamType.String, defaultValue: '1', exampleValue: '1', description: "Corresponds to the '_pdbx_struct_assembly.id' field." }
         ],
-        includedCategories: [...SymmetryCategories, '_pdbx_nonpoly_scheme']
+        includedCategories: AssemblyCategories
     }
 };
 

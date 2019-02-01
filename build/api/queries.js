@@ -47,6 +47,24 @@ var SymmetryCategories = [
     '_chem_comp_bond',
     '_atom_sites'
 ];
+var AssemblyCategories = [
+    '_entry',
+    '_entity',
+    '_exptl',
+    '_cell',
+    '_symmetry',
+    '_struct_conf',
+    '_struct_sheet_range',
+    '_entity_poly',
+    '_entity_poly_seq',
+    '_pdbx_nonpoly_scheme',
+    '_struct_asym',
+    '_struct_conn',
+    '_struct_conn_type',
+    '_pdbx_struct_mod_residue',
+    '_chem_comp_bond',
+    '_atom_sites'
+];
 exports.CommonQueryParamsInfo = [
     { name: "modelId", type: QueryParamType.String, description: "If set, only include atoms with the corresponding '_atom_site.pdbx_PDB_model_num' field." },
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
@@ -270,7 +288,7 @@ var QueryMap = {
         queryParams: [
             { name: "id", type: QueryParamType.String, defaultValue: '1', exampleValue: '1', description: "Corresponds to the '_pdbx_struct_assembly.id' field." }
         ],
-        includedCategories: SymmetryCategories.concat(['_pdbx_nonpoly_scheme'])
+        includedCategories: AssemblyCategories
     }
 };
 function getQueryByName(name) {
