@@ -805,6 +805,42 @@ function _entity_poly(context: mmCifContext) {
     };
 }
 
+function _entity_poly_seq(context: mmCifContext) {
+    let cat = context.data.getCategory('_entity_poly_seq');
+    if (!cat || !cat.rowCount) return;
+
+    let rows: number[] = [];
+    for (let i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[i] = i;
+    }
+
+    let data = {
+        rows,
+        entity_id: cat.getColumn('entity_id'),
+        num: cat.getColumn('num'),
+        mon_id: cat.getColumn('mon_id'),
+        hetero: cat.getColumn('hetero')
+    };
+
+    type T = typeof data;
+    let fields: FieldDesc<T>[] = [
+        stringColumn<T>('entity_id', data.entity_id, (data, i) => data.rows[i]),
+        int32column<T>('num', data.num, (data, i) => data.rows[i], Encoders.ids),
+        stringColumn<T>('mon_id', data.mon_id, (data, i) => data.rows[i]),
+        stringColumn<T>('hetero', data.hetero, (data, i) => data.rows[i])
+    ];
+
+    return <CategoryInstance<T>>{
+        data,
+        count: rows.length,
+        desc: {
+            name: '_entity_poly_seq',
+            fields
+        }
+    };
+}
+
+
 
 function _pdbx_nonpoly_scheme(context: mmCifContext) {
     let cat = context.data.getCategory('_pdbx_nonpoly_scheme');
@@ -1077,6 +1113,7 @@ const Categories = {
     _pdbx_struct_oper_list,
     _struct_asym,
     _entity_poly,
+    _entity_poly_seq,
     _pdbx_nonpoly_scheme,
     _pdbx_struct_mod_residue,
     _atom_sites

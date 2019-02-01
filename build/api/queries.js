@@ -23,6 +23,7 @@ exports.DefaultCategories = [
     '_cell',
     '_symmetry',
     '_entity_poly',
+    '_entity_poly_seq',
     '_struct_asym',
     '_struct_conn',
     '_struct_conn_type',

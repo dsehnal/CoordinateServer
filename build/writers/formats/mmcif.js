@@ -703,6 +703,36 @@ function _entity_poly(context) {
         }
     };
 }
+function _entity_poly_seq(context) {
+    var cat = context.data.getCategory('_entity_poly_seq');
+    if (!cat || !cat.rowCount)
+        return;
+    var rows = [];
+    for (var i = 0, _l = cat.rowCount; i < _l; i++) {
+        rows[i] = i;
+    }
+    var data = {
+        rows: rows,
+        entity_id: cat.getColumn('entity_id'),
+        num: cat.getColumn('num'),
+        mon_id: cat.getColumn('mon_id'),
+        hetero: cat.getColumn('hetero')
+    };
+    var fields = [
+        stringColumn('entity_id', data.entity_id, function (data, i) { return data.rows[i]; }),
+        int32column('num', data.num, function (data, i) { return data.rows[i]; }, context_1.Encoders.ids),
+        stringColumn('mon_id', data.mon_id, function (data, i) { return data.rows[i]; }),
+        stringColumn('hetero', data.hetero, function (data, i) { return data.rows[i]; })
+    ];
+    return {
+        data: data,
+        count: rows.length,
+        desc: {
+            name: '_entity_poly_seq',
+            fields: fields
+        }
+    };
+}
 function _pdbx_nonpoly_scheme(context) {
     var cat = context.data.getCategory('_pdbx_nonpoly_scheme');
     if (!cat || !cat.rowCount)
@@ -924,6 +954,7 @@ var Categories = {
     _pdbx_struct_oper_list: _pdbx_struct_oper_list,
     _struct_asym: _struct_asym,
     _entity_poly: _entity_poly,
+    _entity_poly_seq: _entity_poly_seq,
     _pdbx_nonpoly_scheme: _pdbx_nonpoly_scheme,
     _pdbx_struct_mod_residue: _pdbx_struct_mod_residue,
     _atom_sites: _atom_sites
