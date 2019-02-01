@@ -89,7 +89,7 @@ if (ServerConfig.useCluster) {
 } else {
     startServer();
     console.log(`LiteMol Coordinate Server (API ${ApiVersion}, core ${Core.VERSION.number} - ${Core.VERSION.date})`);
-    console.log(`(c) 2016 David Sehnal`);
+    console.log(`(c) 2016 - now David Sehnal`);
     console.log(``);
     console.log(`The server is running on port ${port}.`);
     console.log(``);

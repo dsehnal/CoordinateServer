@@ -1451,6 +1451,11 @@ declare namespace LiteMol.Core {
         date: string;
     };
 }
+declare namespace LiteMol.Core.Scheduler {
+    const immediate: any;
+    const clearImmediate: any;
+    function immediatePromise(): Promise<void>;
+}
 declare namespace LiteMol.Core {
     function computation<A>(c: (ctx: Computation.Context) => Promise<A>): Computation<A>;
     class Computation<A> {
@@ -1689,7 +1694,7 @@ declare namespace LiteMol.Core.Utils {
     }
     function UniqueArray<T extends number | string>(): UniqueArray<T>;
     namespace UniqueArray {
-        function add<T extends number | string>({_set, array}: UniqueArray<T>, e: T): void;
+        function add<T extends number | string>({ _set, array }: UniqueArray<T>, e: T): void;
     }
 }
 declare namespace LiteMol.Core.Utils {
@@ -1785,7 +1790,7 @@ declare namespace LiteMol.Core.Formats.Molecule.PDB {
         crystInfo: CrystStructureInfo | undefined;
         models: ModelsData;
         data: string;
-        private makeEntities();
+        private makeEntities;
         toCifFile(): CIF.File;
         constructor(header: Header, crystInfo: CrystStructureInfo | undefined, models: ModelsData, data: string);
     }
@@ -1795,7 +1800,7 @@ declare namespace LiteMol.Core.Formats.Molecule.PDB {
     }
     class CrystStructureInfo {
         record: string;
-        private getValue(start, len);
+        private getValue;
         toCifCategory(id: string): {
             cell: CIF.Category | undefined;
             symm: CIF.Category | undefined;
@@ -1816,11 +1821,11 @@ declare namespace LiteMol.Core.Formats.Molecule.PDB {
         atomTokens: number[];
         atomCount: number;
         static COLUMNS: string[];
-        private writeToken(index, cifTokens);
-        private writeTokenCond(index, cifTokens, dot);
-        private writeRange(range, cifTokens);
-        private tokenEquals(start, end, value, data);
-        private getEntityType(row, data);
+        private writeToken;
+        private writeTokenCond;
+        private writeRange;
+        private tokenEquals;
+        private getEntityType;
         writeCifTokens(modelToken: TokenRange, cifTokens: Utils.ArrayBuilder<number>, helpers: HelperData): void;
         constructor(idToken: TokenRange, atomTokens: number[], atomCount: number);
     }
@@ -1832,8 +1837,8 @@ declare namespace LiteMol.Core.Formats.Molecule.PDB {
 }
 declare namespace LiteMol.Core.Formats.Molecule.PDB {
     class Parser {
-        private static tokenizeAtom(tokens, tokenizer);
-        private static tokenize(id, data);
+        private static tokenizeAtom;
+        private static tokenize;
         static getDotRange(length: number): TokenRange;
         static getNumberRanges(length: number): Utils.FastMap<number, TokenRange>;
         static getQuestionmarkRange(length: number): TokenRange;
@@ -2285,7 +2290,7 @@ declare namespace LiteMol.Core.Structure {
         Turn = 2,
         Sheet = 3,
         AminoSeq = 4,
-        Strand = 5,
+        Strand = 5
     }
     class SecondaryStructureElement {
         type: SecondaryStructureType;
@@ -2312,9 +2317,9 @@ declare namespace LiteMol.Core.Structure {
         entries: StructConn.Entry[];
         private _residuePairIndex;
         private _atomIndex;
-        private static _resKey(rA, rB);
-        private getResiduePairIndex();
-        private getAtomIndex();
+        private static _resKey;
+        private getResiduePairIndex;
+        private getAtomIndex;
         private static _emptyEntry;
         getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>;
         getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry>;
@@ -2403,7 +2408,7 @@ declare namespace LiteMol.Core.Structure {
     namespace Molecule {
         function create(id: string, models: Model[], properties?: Properties): Molecule;
         interface Properties {
-            experimentMethod?: string;
+            experimentMethods?: string[];
         }
         interface Bonds {
             readonly structConn?: StructConn;
@@ -2417,7 +2422,7 @@ declare namespace LiteMol.Core.Structure {
             function create(model: Base): Model;
             enum Source {
                 File = 0,
-                Computed = 1,
+                Computed = 1
             }
             interface Base {
                 readonly id: string;
@@ -2453,7 +2458,7 @@ declare namespace LiteMol.Core.Structure {
         DisulfideBridge = 5,
         Metallic = 6,
         Ion = 7,
-        Hydrogen = 8,
+        Hydrogen = 8
     }
     function isBondTypeCovalent(t: BondType): boolean;
     interface BondComputationParameters {
@@ -2471,9 +2476,9 @@ declare namespace LiteMol.Core.Structure {
         private operators;
         readonly operatorCount: number;
         getOperatorMatrix(index: number, i: number, j: number, k: number, target: number[]): number[];
-        private getSpace();
-        private static getOperator(ids);
-        private getOperators();
+        private getSpace;
+        private static getOperator;
+        private getOperators;
         constructor(info: Structure.SymmetryInfo);
     }
     namespace SpacegroupTables {
@@ -2547,7 +2552,7 @@ declare namespace LiteMol.Core.Structure {
              */
             static ofAtomIndices(structure: Molecule.Model, atomIndices: number[]): Context;
             constructor(structure: Molecule.Model, mask: Utils.Mask);
-            private makeLookup3d();
+            private makeLookup3d;
         }
         /**
          * The basic element of the query language.
@@ -2601,7 +2606,7 @@ declare namespace LiteMol.Core.Structure {
             private _residueIndices;
             private _chainIndices;
             private _entityIndices;
-            private computeIndices();
+            private computeIndices;
             /**
              * A sorted list of residue indices.
              */
@@ -2729,7 +2734,7 @@ declare namespace LiteMol.Core.Structure.Query {
     function chainsFromIndices(indices: number[]): Builder;
     function residuesFromIndices(indices: number[]): Builder;
     function atomsFromIndices(indices: number[]): Builder;
-    function sequence(entityId: string, asymId: string | AsymIdSchema, startId: ResidueIdSchema, endId: ResidueIdSchema): Builder;
+    function sequence(entityId: string | undefined, asymId: string | AsymIdSchema, startId: ResidueIdSchema, endId: ResidueIdSchema): Builder;
     function hetGroups(): Builder;
     function nonHetPolymer(): Builder;
     function polymerTrace(...atomNames: string[]): Builder;
@@ -2776,7 +2781,7 @@ declare namespace LiteMol.Core.Structure.Query {
             atomStartIndex: number[];
             atomEndIndex: number[];
         } & Utils.DataTable<any>): Query;
-        function compileSequence(seqEntityId: string, seqAsymId: string | AsymIdSchema, start: ResidueIdSchema, end: ResidueIdSchema): Query;
+        function compileSequence(seqEntityId: string | undefined, seqAsymId: string | AsymIdSchema, start: ResidueIdSchema, end: ResidueIdSchema): Query;
         function compileHetGroups(): Query;
         function compileNonHetPolymer(): Query;
         function compileAtomsInBox(min: {
@@ -2792,7 +2797,7 @@ declare namespace LiteMol.Core.Structure.Query {
         function compileIntersectWith(what: Source, where: Source): Query;
         function compileFilter(what: Source, filter: (f: Fragment) => boolean): Query;
         function compileComplement(what: Source): Query;
-        function compileOr(queries: Source[]): (ctx: Context) => FragmentSeq;
+        function compileOr(queries: Source[]): Query;
         function compileUnion(what: Source): Query;
         function compilePolymerNames(names: string[], complement: boolean): Query;
         function compileAmbientResidues(where: Source, radius: number): (ctx: Context) => FragmentSeq;

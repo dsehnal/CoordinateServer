@@ -129,6 +129,27 @@ const CommonParameters = {
     authSeqNumber: <QueryParamInfo>{ name: "authSeqNumber", type: QueryParamType.Integer, exampleValue: '200', description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
 };
 
+function parseSeq(s: string, isAuth: boolean): Queries.ResidueIdSchema {
+    if (!s) return { seqNumber: void 0, authSeqNumber: void 0 };
+    const xs = s.split(/\s+/g);
+
+    if (xs[1] === '.' || typeof xs[1] === 'undefined') {
+        return isAuth ? { authSeqNumber: +xs[0] } : { seqNumber: +xs[0] };
+    }
+    return isAuth ? { authSeqNumber: +xs[0], insCode: xs[1] } : { seqNumber: +xs[0], insCode: xs[1] };
+}
+
+function parseRange(range: string, isAuth: boolean) {
+    if (!range || !range.trim()) return [];
+    return range
+        .split(/\s*[:]\s*/g)
+        .filter(e => !!e)
+        .map(e => {
+            const r = e.split(/\s*[-]\s*/g);
+            return { start: parseSeq(r[0], isAuth), end: parseSeq(r[1], isAuth) };
+        });    
+}
+
 const QueryMap: { [id: string]: ApiQueryDefinition } = {
     "full": { niceName: 'Full Structure', query: () => Queries.everything(), description: "The full structure.", includedCategories: [...DefaultCategories, '_pdbx_nonpoly_scheme'] },
     "het": { niceName: 'HET Atoms', query: () => Queries.hetGroups(), description: "All non-water 'HETATM' records." },
@@ -168,6 +189,19 @@ const QueryMap: { [id: string]: ApiQueryDefinition } = {
             CommonParameters.insCode,
             CommonParameters.seqNumber,
             CommonParameters.authSeqNumber
+        ]
+    },
+    "residueRange": {
+        niceName: 'Residue Range',
+        description: "Residues that satisfy the given parameters. Specify either [entityId + asymId + range] or [authAsymId + range]; if authAsymId is specified, entityId and asymId are ignored.",
+        query: p => !!p.authAsymId
+            ? Queries.or(...parseRange(p.range, true).map(r => Queries.sequence('', { authAsymId: p.authAsymId }, r.start, r.end)))
+            : Queries.or(...parseRange(p.range, false).map(r => Queries.sequence(p.entityId, { asymId: p.asymId }, r.start, r.end))),
+        queryParams: [
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,            
+            { name: "range", type: QueryParamType.String, exampleValue: '10-15:20-30', description: "One or more sequence ranges (label_ or auth_ depending on which asymId is used; separated by :). Insertion codes can be included in the sequence number separted by space, i.e., '10 A-19'." },
         ]
     },
     "trace": {

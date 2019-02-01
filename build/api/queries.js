@@ -69,6 +69,26 @@ var CommonParameters = {
     seqNumber: { name: "seqNumber", type: QueryParamType.Integer, description: "Residue seq. number. Corresponds to the '_atom_site.label_seq_id' field." },
     authSeqNumber: { name: "authSeqNumber", type: QueryParamType.Integer, exampleValue: '200', description: "Author residue seq. number. Corresponds to the '_atom_site.auth_seq_id' field." },
 };
+function parseSeq(s, isAuth) {
+    if (!s)
+        return { seqNumber: void 0, authSeqNumber: void 0 };
+    var xs = s.split(/\s+/g);
+    if (xs[1] === '.' || typeof xs[1] === 'undefined') {
+        return isAuth ? { authSeqNumber: +xs[0] } : { seqNumber: +xs[0] };
+    }
+    return isAuth ? { authSeqNumber: +xs[0], insCode: xs[1] } : { seqNumber: +xs[0], insCode: xs[1] };
+}
+function parseRange(range, isAuth) {
+    if (!range || !range.trim())
+        return [];
+    return range
+        .split(/\s*[:]\s*/g)
+        .filter(function (e) { return !!e; })
+        .map(function (e) {
+        var r = e.split(/\s*[-]\s*/g);
+        return { start: parseSeq(r[0], isAuth), end: parseSeq(r[1], isAuth) };
+    });
+}
 var QueryMap = {
     "full": { niceName: 'Full Structure', query: function () { return Queries.everything(); }, description: "The full structure.", includedCategories: exports.DefaultCategories.concat(['_pdbx_nonpoly_scheme']) },
     "het": { niceName: 'HET Atoms', query: function () { return Queries.hetGroups(); }, description: "All non-water 'HETATM' records." },
@@ -108,6 +128,18 @@ var QueryMap = {
             CommonParameters.insCode,
             CommonParameters.seqNumber,
             CommonParameters.authSeqNumber
+        ]
+    },
+    "residueRange": {
+        niceName: 'Residue Range',
+        description: "Residues that satisfy the given parameters. Specify either [entityId + asymId + range] or [authAsymId + range]; if authAsymId is specified, entityId and asymId are ignored.",
+        query: function (p) { return !!p.authAsymId
+            ? Queries.or.apply(Queries, parseRange(p.range, true).map(function (r) { return Queries.sequence('', { authAsymId: p.authAsymId }, r.start, r.end); })) : Queries.or.apply(Queries, parseRange(p.range, false).map(function (r) { return Queries.sequence(p.entityId, { asymId: p.asymId }, r.start, r.end); })); },
+        queryParams: [
+            CommonParameters.entityId,
+            CommonParameters.asymId,
+            CommonParameters.authAsymId,
+            { name: "range", type: QueryParamType.String, exampleValue: '10-15:20-30', description: "One or more sequence ranges (label_ or auth_ depending on which asymId is used; separated by :). Insertion codes can be included in the sequence number separted by space, i.e., '10 A-19'." },
         ]
     },
     "trace": {

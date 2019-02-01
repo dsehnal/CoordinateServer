@@ -1,4 +1,8 @@
-﻿# 1.4.8
+﻿# 1.4.9
+* Added _entity_poly_seq to output.
+* Added residueRange query.
+
+# 1.4.8
 * Tweak in CIF writer (correctly escape values starting with $[])
 
 # 1.4.7

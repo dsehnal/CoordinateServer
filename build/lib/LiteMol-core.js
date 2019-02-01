@@ -10312,7 +10312,211 @@ var __LiteMol_Core = function () {
     (function (LiteMol) {
         var Core;
         (function (Core) {
-            Core.VERSION = { number: "3.2.1", date: "July 5 2017" };
+            Core.VERSION = { number: "3.2.3", date: "Feb 1 2019" };
+        })(Core = LiteMol.Core || (LiteMol.Core = {}));
+    })(LiteMol || (LiteMol = {}));
+    /*
+     * Copyright (c) 2016 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
+     */
+    var LiteMol;
+    (function (LiteMol) {
+        var Core;
+        (function (Core) {
+            var Scheduler;
+            (function (Scheduler) {
+                "use strict";
+                function createImmediateActions() {
+                    var tasksByHandle = {};
+                    var doc = typeof document !== 'undefined' ? document : void 0;
+                    var currentlyRunningATask = false;
+                    var nextHandle = 1; // Spec says greater than zero
+                    var registerImmediate;
+                    function setImmediate(callback) {
+                        var args = [];
+                        for (var _i = 1; _i < arguments.length; _i++) {
+                            args[_i - 1] = arguments[_i];
+                        }
+                        // Callback can either be a function or a string
+                        if (typeof callback !== 'function') {
+                            callback = new Function('' + callback);
+                        }
+                        // Store and register the task
+                        var task = { callback: callback, args: args };
+                        tasksByHandle[nextHandle] = task;
+                        registerImmediate(nextHandle);
+                        return nextHandle++;
+                    }
+                    function clearImmediate(handle) {
+                        delete tasksByHandle[handle];
+                    }
+                    function run(task) {
+                        var callback = task.callback;
+                        var args = task.args;
+                        switch (args.length) {
+                            case 0:
+                                callback();
+                                break;
+                            case 1:
+                                callback(args[0]);
+                                break;
+                            case 2:
+                                callback(args[0], args[1]);
+                                break;
+                            case 3:
+                                callback(args[0], args[1], args[2]);
+                                break;
+                            default:
+                                callback.apply(undefined, args);
+                                break;
+                        }
+                    }
+                    function runIfPresent(handle) {
+                        // From the spec: 'Wait until any invocations of this algorithm started before this one have completed.'
+                        // So if we're currently running a task, we'll need to delay this invocation.
+                        if (currentlyRunningATask) {
+                            // Delay by doing a setTimeout. setImmediate was tried instead, but in Firefox 7 it generated a
+                            // 'too much recursion' error.
+                            setTimeout(runIfPresent, 0, handle);
+                        }
+                        else {
+                            var task = tasksByHandle[handle];
+                            if (task) {
+                                currentlyRunningATask = true;
+                                try {
+                                    run(task);
+                                }
+                                finally {
+                                    clearImmediate(handle);
+                                    currentlyRunningATask = false;
+                                }
+                            }
+                        }
+                    }
+                    function installNextTickImplementation() {
+                        registerImmediate = function (handle) {
+                            process.nextTick(function () { runIfPresent(handle); });
+                        };
+                    }
+                    function canUsePostMessage() {
+                        // The test against `importScripts` prevents this implementation from being installed inside a web worker,
+                        // where `global.postMessage` means something completely different and can't be used for this purpose.
+                        var global = window;
+                        if (global && global.postMessage && !global.importScripts) {
+                            var postMessageIsAsynchronous_1 = true;
+                            var oldOnMessage = global.onmessage;
+                            global.onmessage = function () {
+                                postMessageIsAsynchronous_1 = false;
+                            };
+                            global.postMessage('', '*');
+                            global.onmessage = oldOnMessage;
+                            return postMessageIsAsynchronous_1;
+                        }
+                        return void 0;
+                    }
+                    function installPostMessageImplementation() {
+                        // Installs an event handler on `global` for the `message` event: see
+                        // * https://developer.mozilla.org/en/DOM/window.postMessage
+                        // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
+                        var global = window;
+                        var messagePrefix = 'setImmediate$' + Math.random() + '$';
+                        var onGlobalMessage = function (event) {
+                            if (event.source === global &&
+                                typeof event.data === 'string' &&
+                                event.data.indexOf(messagePrefix) === 0) {
+                                runIfPresent(+event.data.slice(messagePrefix.length));
+                            }
+                        };
+                        if (window.addEventListener) {
+                            window.addEventListener('message', onGlobalMessage, false);
+                        }
+                        else {
+                            window.attachEvent('onmessage', onGlobalMessage);
+                        }
+                        registerImmediate = function (handle) {
+                            window.postMessage(messagePrefix + handle, '*');
+                        };
+                    }
+                    function installMessageChannelImplementation() {
+                        var channel = new MessageChannel();
+                        channel.port1.onmessage = function (event) {
+                            var handle = event.data;
+                            runIfPresent(handle);
+                        };
+                        registerImmediate = function (handle) {
+                            channel.port2.postMessage(handle);
+                        };
+                    }
+                    function installReadyStateChangeImplementation() {
+                        var html = doc.documentElement;
+                        registerImmediate = function (handle) {
+                            // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
+                            // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
+                            var script = doc.createElement('script');
+                            script.onreadystatechange = function () {
+                                runIfPresent(handle);
+                                script.onreadystatechange = null;
+                                html.removeChild(script);
+                                script = null;
+                            };
+                            html.appendChild(script);
+                        };
+                    }
+                    function installSetTimeoutImplementation() {
+                        registerImmediate = function (handle) {
+                            setTimeout(runIfPresent, 0, handle);
+                        };
+                    }
+                    // Don't get fooled by e.g. browserify environments.
+                    if (typeof process !== 'undefined' && {}.toString.call(process) === '[object process]') {
+                        // For Node.js before 0.9
+                        installNextTickImplementation();
+                    }
+                    else if (canUsePostMessage()) {
+                        // For non-IE10 modern browsers
+                        installPostMessageImplementation();
+                    }
+                    else if (typeof MessageChannel !== 'undefined') {
+                        // For web workers, where supported
+                        installMessageChannelImplementation();
+                    }
+                    else if (doc && 'onreadystatechange' in doc.createElement('script')) {
+                        // For IE 6–8
+                        installReadyStateChangeImplementation();
+                    }
+                    else {
+                        // For older browsers
+                        installSetTimeoutImplementation();
+                    }
+                    return {
+                        setImmediate: setImmediate,
+                        clearImmediate: clearImmediate
+                    };
+                }
+                var immediateActions = (function () {
+                    if (typeof setImmediate !== 'undefined') {
+                        if (typeof window !== 'undefined' && typeof window.setImmediate !== 'undefined') {
+                            // this is because of IE
+                            return { setImmediate: function (handler) {
+                                    var args = [];
+                                    for (var _i = 1; _i < arguments.length; _i++) {
+                                        args[_i - 1] = arguments[_i];
+                                    }
+                                    return window.setImmediate.apply(window, [handler].concat(args));
+                                }, clearImmediate: function (handle) { return window.clearImmediate(handle); } };
+                        }
+                        else
+                            return { setImmediate: setImmediate, clearImmediate: Scheduler.clearImmediate };
+                    }
+                    return createImmediateActions();
+                }());
+                function resolveImmediate(res) {
+                    immediateActions.setImmediate(res);
+                }
+                Scheduler.immediate = immediateActions.setImmediate;
+                Scheduler.clearImmediate = immediateActions.clearImmediate;
+                function immediatePromise() { return new Core.Promise(resolveImmediate); }
+                Scheduler.immediatePromise = immediatePromise;
+            })(Scheduler = Core.Scheduler || (Core.Scheduler = {}));
         })(Core = LiteMol.Core || (LiteMol.Core = {}));
     })(LiteMol || (LiteMol = {}));
     /*
@@ -10346,10 +10550,10 @@ var __LiteMol_Core = function () {
                 throw new TypeError("Generator is already executing.");
             while (_)
                 try {
-                    if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done)
+                    if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done)
                         return t;
                     if (y = 0, t)
-                        op = [0, t.value];
+                        op = [op[0] & 2, t.value];
                     switch (op[0]) {
                         case 0:
                         case 1:
@@ -10414,7 +10618,7 @@ var __LiteMol_Core = function () {
                 return new Computation(c);
             }
             Core.computation = computation;
-            var Computation = (function () {
+            var Computation = /** @class */ (function () {
                 function Computation(computation) {
                     this.computation = computation;
                 }
@@ -10475,7 +10679,7 @@ var __LiteMol_Core = function () {
                 Computation.Aborted = 'Aborted';
                 Computation.UpdateProgressDelta = 100;
             })(Computation = Core.Computation || (Core.Computation = {}));
-            var ContextImpl = (function () {
+            var ContextImpl = /** @class */ (function () {
                 function ContextImpl() {
                     var _this = this;
                     this._abortRequested = false;
@@ -10544,7 +10748,8 @@ var __LiteMol_Core = function () {
                         this._progress.max = max;
                     }
                     this.progressTick.onNext(this._progress);
-                    return new Core.Promise(function (res) { return setTimeout(res, 0); });
+                    return Core.Scheduler.immediatePromise();
+                    //return new Promise<void>(res => setTimeout(res, 0));
                 };
                 ContextImpl.prototype.started = function () {
                     this.startEndCounter++;
@@ -10718,14 +10923,14 @@ var __LiteMol_Core = function () {
                 })(FastSet = Utils.FastSet || (Utils.FastSet = {}));
                 var Mask;
                 (function (Mask) {
-                    var EmptyMask = (function () {
+                    var EmptyMask = /** @class */ (function () {
                         function EmptyMask(size) {
                             this.size = size;
                         }
                         EmptyMask.prototype.has = function (i) { return false; };
                         return EmptyMask;
                     }());
-                    var SingletonMask = (function () {
+                    var SingletonMask = /** @class */ (function () {
                         function SingletonMask(idx, size) {
                             this.idx = idx;
                             this.size = size;
@@ -10733,7 +10938,7 @@ var __LiteMol_Core = function () {
                         SingletonMask.prototype.has = function (i) { return i === this.idx; };
                         return SingletonMask;
                     }());
-                    var BitMask = (function () {
+                    var BitMask = /** @class */ (function () {
                         function BitMask(mask, size) {
                             this.mask = mask;
                             this.size = size;
@@ -10741,7 +10946,7 @@ var __LiteMol_Core = function () {
                         BitMask.prototype.has = function (i) { return this.mask[i]; };
                         return BitMask;
                     }());
-                    var AllMask = (function () {
+                    var AllMask = /** @class */ (function () {
                         function AllMask(size) {
                             this.size = size;
                         }
@@ -10984,7 +11189,7 @@ var __LiteMol_Core = function () {
                         }
                         return row;
                     }
-                    var TableImpl = (function () {
+                    var TableImpl = /** @class */ (function () {
                         function TableImpl(count, srcColumns, srcData) {
                             this.__rowIndexer = { index: 0 };
                             this.count = count;
@@ -11022,7 +11227,7 @@ var __LiteMol_Core = function () {
                         };
                         return TableImpl;
                     }());
-                    var BuilderImpl = (function () {
+                    var BuilderImpl = /** @class */ (function () {
                         function BuilderImpl(count) {
                             this.columns = [];
                             this.count = count;
@@ -11351,7 +11556,7 @@ var __LiteMol_Core = function () {
                         }
                     })();
                 })(PerformanceHelper || (PerformanceHelper = {}));
-                var PerformanceMonitor = (function () {
+                var PerformanceMonitor = /** @class */ (function () {
                     function PerformanceMonitor() {
                         this.starts = Utils.FastMap.create();
                         this.ends = Utils.FastMap.create();
@@ -11479,7 +11684,7 @@ var __LiteMol_Core = function () {
                     }
                     ParserResult.success = success;
                 })(ParserResult = Formats.ParserResult || (Formats.ParserResult = {}));
-                var ParserError = (function () {
+                var ParserError = /** @class */ (function () {
                     function ParserError(message, line) {
                         this.message = message;
                         this.line = line;
@@ -11494,7 +11699,7 @@ var __LiteMol_Core = function () {
                     return ParserError;
                 }());
                 Formats.ParserError = ParserError;
-                var ParserSuccess = (function () {
+                var ParserSuccess = /** @class */ (function () {
                     function ParserSuccess(result, warnings) {
                         this.result = result;
                         this.warnings = warnings;
@@ -11570,10 +11775,9 @@ var __LiteMol_Core = function () {
                             Defaults.ModelId = '1';
                         })(Defaults || (Defaults = {}));
                         function getTransform(category, matrixField, translationField, row) {
-                            var ret = Core.Geometry.LinearAlgebra.Matrix4.identity(), i, j, c;
+                            var ret = Core.Geometry.LinearAlgebra.Matrix4.identity(), i, j;
                             for (i = 1; i <= 3; i++) {
                                 for (j = 1; j <= 3; j++) {
-                                    c = matrixField + "[" + i + "][" + j + "]";
                                     Core.Geometry.LinearAlgebra.Matrix4.setValue(ret, i - 1, j - 1, category.getColumn(matrixField + "[" + i + "][" + j + "]").getFloat(row));
                                 }
                                 Core.Geometry.LinearAlgebra.Matrix4.setValue(ret, i - 1, 3, category.getColumn(translationField + "[" + i + "]").getFloat(row));
@@ -12348,12 +12552,18 @@ var __LiteMol_Core = function () {
                                 models.push(model);
                                 startRow = endRow;
                             }
-                            var experimentMethod = void 0;
+                            var experimentMethods = void 0;
                             var _exptl = data.getCategory('_exptl');
                             if (_exptl) {
-                                experimentMethod = _exptl.getColumn('method').getString(0) || void 0;
+                                experimentMethods = [];
+                                var method = _exptl.getColumn('method');
+                                for (var i = 0; i < _exptl.rowCount; i++) {
+                                    if (method.getValuePresence(i) !== 0 /* Present */)
+                                        continue;
+                                    experimentMethods.push(method.getString(i));
+                                }
                             }
-                            return Core.Structure.Molecule.create(id, models, { experimentMethod: experimentMethod });
+                            return Core.Structure.Molecule.create(id, models, { experimentMethods: experimentMethods });
                         }
                         mmCIF.ofDataBlock = ofDataBlock;
                     })(mmCIF = Molecule.mmCIF || (Molecule.mmCIF = {}));
@@ -12375,7 +12585,7 @@ var __LiteMol_Core = function () {
                     var PDB;
                     (function (PDB) {
                         "use strict";
-                        var MoleculeData = (function () {
+                        var MoleculeData = /** @class */ (function () {
                             function MoleculeData(header, crystInfo, models, data) {
                                 this.header = header;
                                 this.crystInfo = crystInfo;
@@ -12428,14 +12638,14 @@ var __LiteMol_Core = function () {
                             return MoleculeData;
                         }());
                         PDB.MoleculeData = MoleculeData;
-                        var Header = (function () {
+                        var Header = /** @class */ (function () {
                             function Header(id) {
                                 this.id = id;
                             }
                             return Header;
                         }());
                         PDB.Header = Header;
-                        var CrystStructureInfo = (function () {
+                        var CrystStructureInfo = /** @class */ (function () {
                             function CrystStructureInfo(record) {
                                 this.record = record;
                             }
@@ -12486,7 +12696,7 @@ var __LiteMol_Core = function () {
                             return CrystStructureInfo;
                         }());
                         PDB.CrystStructureInfo = CrystStructureInfo;
-                        var SecondaryStructure = (function () {
+                        var SecondaryStructure = /** @class */ (function () {
                             function SecondaryStructure(helixTokens, sheetTokens) {
                                 this.helixTokens = helixTokens;
                                 this.sheetTokens = sheetTokens;
@@ -12497,7 +12707,7 @@ var __LiteMol_Core = function () {
                             return SecondaryStructure;
                         }());
                         PDB.SecondaryStructure = SecondaryStructure;
-                        var ModelData = (function () {
+                        var ModelData = /** @class */ (function () {
                             function ModelData(idToken, atomTokens, atomCount) {
                                 this.idToken = idToken;
                                 this.atomTokens = atomTokens;
@@ -12666,7 +12876,7 @@ var __LiteMol_Core = function () {
                             return ModelData;
                         }());
                         PDB.ModelData = ModelData;
-                        var ModelsData = (function () {
+                        var ModelsData = /** @class */ (function () {
                             function ModelsData(models) {
                                 this.models = models;
                             }
@@ -12706,7 +12916,7 @@ var __LiteMol_Core = function () {
                     var PDB;
                     (function (PDB) {
                         "use strict";
-                        var Tokenizer = (function () {
+                        var Tokenizer = /** @class */ (function () {
                             function Tokenizer(data) {
                                 this.data = data;
                                 this.trimmedToken = { start: 0, end: 0 };
@@ -12725,7 +12935,7 @@ var __LiteMol_Core = function () {
                             Tokenizer.prototype.moveToEndOfLine = function () {
                                 while (this.position < this.length) {
                                     var c = this.data.charCodeAt(this.position);
-                                    if (c === 10 || c === 13) {
+                                    if (c === 10 || c === 13) { //  /n | /r
                                         return this.position;
                                     }
                                     this.position++;
@@ -12770,7 +12980,7 @@ var __LiteMol_Core = function () {
                                 this.trim(start, start + 4);
                                 Formats.TokenIndexBuilder.addToken(tokens, this.trimmedToken.start, this.trimmedToken.end);
                                 //17             Character       Alternate location indicator. 
-                                if (this.data.charCodeAt(startPos + 16) === 32) {
+                                if (this.data.charCodeAt(startPos + 16) === 32) { // ' '
                                     Formats.TokenIndexBuilder.addToken(tokens, 0, 0);
                                 }
                                 else {
@@ -12787,7 +12997,7 @@ var __LiteMol_Core = function () {
                                 this.trim(start, start + 4);
                                 Formats.TokenIndexBuilder.addToken(tokens, this.trimmedToken.start, this.trimmedToken.end);
                                 //27             AChar           Code for insertion of residues.      
-                                if (this.data.charCodeAt(startPos + 26) === 32) {
+                                if (this.data.charCodeAt(startPos + 26) === 32) { // ' '
                                     Formats.TokenIndexBuilder.addToken(tokens, 0, 0);
                                 }
                                 else {
@@ -12840,7 +13050,7 @@ var __LiteMol_Core = function () {
                             };
                             return Tokenizer;
                         }());
-                        var Parser = (function () {
+                        var Parser = /** @class */ (function () {
                             function Parser() {
                             }
                             Parser.tokenizeAtom = function (tokens, tokenizer) {
@@ -13247,7 +13457,7 @@ var __LiteMol_Core = function () {
                     /**
                      * A field with the Z axis being the slowest and the X being the fastest.
                      */
-                    var Field3DZYX = (function () {
+                    var Field3DZYX = /** @class */ (function () {
                         function Field3DZYX(data, dimensions) {
                             this.data = data;
                             this.dimensions = dimensions;
@@ -13994,7 +14204,7 @@ var __LiteMol_Core = function () {
                             out[9] = a01 * b20 + a11 * b21 + a21 * b22;
                             out[10] = a02 * b20 + a12 * b21 + a22 * b22;
                             out[11] = a03 * b20 + a13 * b21 + a23 * b22;
-                            if (a !== out) {
+                            if (a !== out) { // If the source and destination differ, copy the unchanged last row
                                 out[12] = a[12];
                                 out[13] = a[13];
                                 out[14] = a[14];
@@ -14347,22 +14557,29 @@ var __LiteMol_Core = function () {
                 "use strict";
                 var Surface;
                 (function (Surface) {
+                    var Vec3 = Geometry.LinearAlgebra.Vector3;
                     function computeNormalsImmediate(surface) {
                         if (surface.normals)
                             return;
                         var normals = new Float32Array(surface.vertices.length), v = surface.vertices, triangles = surface.triangleIndices;
+                        var x = Vec3.zero(), y = Vec3.zero(), z = Vec3.zero(), d1 = Vec3.zero(), d2 = Vec3.zero(), n = Vec3.zero();
                         for (var i = 0; i < triangles.length; i += 3) {
                             var a = 3 * triangles[i], b = 3 * triangles[i + 1], c = 3 * triangles[i + 2];
-                            var nx = v[a + 2] * (v[b + 1] - v[c + 1]) + v[b + 2] * v[c + 1] - v[b + 1] * v[c + 2] + v[a + 1] * (-v[b + 2] + v[c + 2]), ny = -(v[b + 2] * v[c]) + v[a + 2] * (-v[b] + v[c]) + v[a] * (v[b + 2] - v[c + 2]) + v[b] * v[c + 2], nz = v[a + 1] * (v[b] - v[c]) + v[b + 1] * v[c] - v[b] * v[c + 1] + v[a] * (-v[b + 1] + v[b + 1]);
-                            normals[a] += nx;
-                            normals[a + 1] += ny;
-                            normals[a + 2] += nz;
-                            normals[b] += nx;
-                            normals[b + 1] += ny;
-                            normals[b + 2] += nz;
-                            normals[c] += nx;
-                            normals[c + 1] += ny;
-                            normals[c + 2] += nz;
+                            Vec3.set(x, v[a], v[a + 1], v[a + 2]);
+                            Vec3.set(y, v[b], v[b + 1], v[b + 2]);
+                            Vec3.set(z, v[c], v[c + 1], v[c + 2]);
+                            Vec3.sub(d1, z, y);
+                            Vec3.sub(d2, y, x);
+                            Vec3.cross(n, d1, d2);
+                            normals[a] += n[0];
+                            normals[a + 1] += n[1];
+                            normals[a + 2] += n[2];
+                            normals[b] += n[0];
+                            normals[b + 1] += n[1];
+                            normals[b + 2] += n[2];
+                            normals[c] += n[0];
+                            normals[c + 1] += n[1];
+                            normals[c + 2] += n[2];
                         }
                         for (var i = 0; i < normals.length; i += 3) {
                             var nx = normals[i];
@@ -14962,7 +15179,7 @@ var __LiteMol_Core = function () {
                         });
                     }
                     MarchingCubes.compute = compute;
-                    var MarchingCubesComputation = (function () {
+                    var MarchingCubesComputation = /** @class */ (function () {
                         function MarchingCubesComputation(parameters, ctx) {
                             this.ctx = ctx;
                             this.minX = 0;
@@ -15059,7 +15276,7 @@ var __LiteMol_Core = function () {
                         };
                         return MarchingCubesComputation;
                     }());
-                    var MarchingCubesState = (function () {
+                    var MarchingCubesState = /** @class */ (function () {
                         function MarchingCubesState(params) {
                             this.vertList = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
                             this.i = 0;
@@ -15184,7 +15401,7 @@ var __LiteMol_Core = function () {
             (function (Geometry) {
                 var MarchingCubes;
                 (function (MarchingCubes) {
-                    var Index = (function () {
+                    var Index = /** @class */ (function () {
                         function Index(i, j, k) {
                             this.i = i | 0;
                             this.j = j | 0;
@@ -15193,7 +15410,7 @@ var __LiteMol_Core = function () {
                         return Index;
                     }());
                     MarchingCubes.Index = Index;
-                    var IndexPair = (function () {
+                    var IndexPair = /** @class */ (function () {
                         function IndexPair(a, b) {
                             this.a = a;
                             this.b = b;
@@ -15616,7 +15833,7 @@ var __LiteMol_Core = function () {
                 var MolecularSurface;
                 (function (MolecularSurface) {
                     "use strict";
-                    var MolecularIsoSurfaceParametersWrapper = (function () {
+                    var MolecularIsoSurfaceParametersWrapper = /** @class */ (function () {
                         function MolecularIsoSurfaceParametersWrapper(params) {
                             Core.Utils.extend(this, params, {
                                 exactBoundary: false,
@@ -15634,7 +15851,7 @@ var __LiteMol_Core = function () {
                         }
                         return MolecularIsoSurfaceParametersWrapper;
                     }());
-                    var MolecularIsoFieldComputation = (function () {
+                    var MolecularIsoFieldComputation = /** @class */ (function () {
                         function MolecularIsoFieldComputation(inputParameters, ctx) {
                             this.inputParameters = inputParameters;
                             this.ctx = ctx;
@@ -15904,7 +16121,7 @@ var __LiteMol_Core = function () {
             (function (Structure) {
                 "use strict";
                 var DataTable = Core.Utils.DataTable;
-                var ComponentBondInfoEntry = (function () {
+                var ComponentBondInfoEntry = /** @class */ (function () {
                     function ComponentBondInfoEntry(id) {
                         this.id = id;
                         this.map = Core.Utils.FastMap.create();
@@ -15931,7 +16148,7 @@ var __LiteMol_Core = function () {
                     return ComponentBondInfoEntry;
                 }());
                 Structure.ComponentBondInfoEntry = ComponentBondInfoEntry;
-                var ComponentBondInfo = (function () {
+                var ComponentBondInfo = /** @class */ (function () {
                     function ComponentBondInfo() {
                         this.entries = Core.Utils.FastMap.create();
                     }
@@ -15946,7 +16163,7 @@ var __LiteMol_Core = function () {
                 /**
                  * Identifier for a reside that is a part of the polymer.
                  */
-                var PolyResidueIdentifier = (function () {
+                var PolyResidueIdentifier = /** @class */ (function () {
                     function PolyResidueIdentifier(asymId, seqNumber, insCode) {
                         this.asymId = asymId;
                         this.seqNumber = seqNumber;
@@ -15990,7 +16207,7 @@ var __LiteMol_Core = function () {
                     return PolyResidueIdentifier;
                 }());
                 Structure.PolyResidueIdentifier = PolyResidueIdentifier;
-                var SecondaryStructureElement = (function () {
+                var SecondaryStructureElement = /** @class */ (function () {
                     function SecondaryStructureElement(type, startResidueId, endResidueId, info) {
                         if (info === void 0) {
                             info = {};
@@ -16012,7 +16229,7 @@ var __LiteMol_Core = function () {
                     return SecondaryStructureElement;
                 }());
                 Structure.SecondaryStructureElement = SecondaryStructureElement;
-                var SymmetryInfo = (function () {
+                var SymmetryInfo = /** @class */ (function () {
                     function SymmetryInfo(spacegroupName, cellSize, cellAngles, toFracTransform, isNonStandardCrytalFrame) {
                         this.spacegroupName = spacegroupName;
                         this.cellSize = cellSize;
@@ -16026,7 +16243,7 @@ var __LiteMol_Core = function () {
                 /**
                  * Wraps _struct_conn mmCIF category.
                  */
-                var StructConn = (function () {
+                var StructConn = /** @class */ (function () {
                     function StructConn(entries) {
                         this.entries = entries;
                         this._residuePairIndex = void 0;
@@ -16091,7 +16308,7 @@ var __LiteMol_Core = function () {
                 /**
                  * Wraps an assembly operator.
                  */
-                var AssemblyOperator = (function () {
+                var AssemblyOperator = /** @class */ (function () {
                     function AssemblyOperator(id, name, operator) {
                         this.id = id;
                         this.name = name;
@@ -16103,7 +16320,7 @@ var __LiteMol_Core = function () {
                 /**
                  * Wraps a single assembly gen entry.
                  */
-                var AssemblyGenEntry = (function () {
+                var AssemblyGenEntry = /** @class */ (function () {
                     function AssemblyGenEntry(operators, asymIds) {
                         this.operators = operators;
                         this.asymIds = asymIds;
@@ -16114,7 +16331,7 @@ var __LiteMol_Core = function () {
                 /**
                  * Wraps an assembly generation template.
                  */
-                var AssemblyGen = (function () {
+                var AssemblyGen = /** @class */ (function () {
                     function AssemblyGen(name) {
                         this.name = name;
                         this.gens = [];
@@ -16125,7 +16342,7 @@ var __LiteMol_Core = function () {
                 /**
                  * Information about the assemblies.
                  */
-                var AssemblyInfo = (function () {
+                var AssemblyInfo = /** @class */ (function () {
                     function AssemblyInfo(operators, assemblies) {
                         this.operators = operators;
                         this.assemblies = assemblies;
@@ -16211,7 +16428,7 @@ var __LiteMol_Core = function () {
                         details: nullStr
                     };
                 })(Tables = Structure.Tables || (Structure.Tables = {}));
-                var Operator = (function () {
+                var Operator = /** @class */ (function () {
                     function Operator(matrix, id, isIdentity) {
                         this.matrix = matrix;
                         this.id = id;
@@ -16535,7 +16752,7 @@ var __LiteMol_Core = function () {
                 "use strict";
                 var Mat4 = Core.Geometry.LinearAlgebra.Matrix4;
                 var Vec4 = Core.Geometry.LinearAlgebra.Vector4;
-                var Spacegroup = (function () {
+                var Spacegroup = /** @class */ (function () {
                     function Spacegroup(info) {
                         this.info = info;
                         this.temp = Mat4.zero();
@@ -18580,6 +18797,7 @@ var __LiteMol_Core = function () {
                         state.entityCount += entityCount;
                     }
                     function buildAssemblyEntry(model, entry, state) {
+                        var _a;
                         var ops = [], currentOp = [];
                         for (var i_2 = 0; i_2 < entry.operators.length; i_2++)
                             currentOp[i_2] = '';
@@ -18596,7 +18814,6 @@ var __LiteMol_Core = function () {
                             mask[i] = asymIds.has(residueAsymIds[i]);
                         }
                         getAssemblyParts(model, mask, transforms, state, transformOffset);
-                        var _a;
                     }
                     SymmetryHelpers.buildAssemblyEntry = buildAssemblyEntry;
                     function buildAssembly(model, assembly) {
@@ -18663,7 +18880,7 @@ var __LiteMol_Core = function () {
                      * - the molecule itself.
                      *
                      */
-                    var Context = (function () {
+                    var Context = /** @class */ (function () {
                         function Context(structure, mask) {
                             this.mask = mask;
                             this.structure = structure;
@@ -18750,7 +18967,7 @@ var __LiteMol_Core = function () {
                      * The basic element of the query language.
                      * Everything is represented as a fragment.
                      */
-                    var Fragment = (function () {
+                    var Fragment = /** @class */ (function () {
                         /**
                          * Create a fragment from an integer set.
                          */
@@ -18971,7 +19188,7 @@ var __LiteMol_Core = function () {
                     /**
                      * A sequence of fragments the queries operate on.
                      */
-                    var FragmentSeq = (function () {
+                    var FragmentSeq = /** @class */ (function () {
                         function FragmentSeq(context, fragments) {
                             this.context = context;
                             this.fragments = fragments;
@@ -19030,7 +19247,7 @@ var __LiteMol_Core = function () {
                     /**
                      * A builder that includes all fragments.
                      */
-                    var FragmentSeqBuilder = (function () {
+                    var FragmentSeqBuilder = /** @class */ (function () {
                         function FragmentSeqBuilder(ctx) {
                             this.ctx = ctx;
                             this.fragments = [];
@@ -19047,7 +19264,7 @@ var __LiteMol_Core = function () {
                     /**
                      * A builder that includes only unique fragments.
                      */
-                    var HashFragmentSeqBuilder = (function () {
+                    var HashFragmentSeqBuilder = /** @class */ (function () {
                         function HashFragmentSeqBuilder(ctx) {
                             this.ctx = ctx;
                             this.fragments = [];
@@ -19287,7 +19504,7 @@ var __LiteMol_Core = function () {
                      */
                     var Compiler;
                     (function (Compiler) {
-                        var OptimizedId = (function () {
+                        var OptimizedId = /** @class */ (function () {
                             function OptimizedId(id, arrays) {
                                 this.columns = [];
                                 for (var _i = 0, _a = Object.keys(id); _i < _a.length; _i++) {
@@ -19423,27 +19640,35 @@ var __LiteMol_Core = function () {
                         Compiler.compileAtomRanges = compileAtomRanges;
                         function compileSequence(seqEntityId, seqAsymId, start, end) {
                             return function (ctx) {
-                                var _a = ctx.structure.data, residues = _a.residues, chains = _a.chains, seqNumber = residues.seqNumber, atomStartIndex = residues.atomStartIndex, atomEndIndex = residues.atomEndIndex, entityId = chains.entityId, count = chains.count, residueStartIndex = chains.residueStartIndex, residueEndIndex = chains.residueEndIndex, fragments = new Query.FragmentSeqBuilder(ctx);
+                                var _a = ctx.structure.data, residues = _a.residues, chains = _a.chains, seqNumber = residues.seqNumber, authSeqNumber = residues.authSeqNumber, insCode = residues.insCode, atomStartIndex = residues.atomStartIndex, atomEndIndex = residues.atomEndIndex, entityId = chains.entityId, count = chains.count, residueStartIndex = chains.residueStartIndex, residueEndIndex = chains.residueEndIndex, fragments = new Query.FragmentSeqBuilder(ctx);
                                 var parent = ctx.structure.parent, sourceChainIndex = chains.sourceChainIndex, isComputed = parent && sourceChainIndex;
                                 var targetAsymId = typeof seqAsymId === 'string' ? { asymId: seqAsymId } : seqAsymId;
                                 var optTargetAsymId = new OptimizedId(targetAsymId, isComputed ? parent.data.chains : chains);
+                                var isAuth = typeof targetAsymId.authAsymId === 'string';
+                                var seqSource = isAuth ? authSeqNumber : seqNumber;
+                                var startSeqNumber = isAuth ? start.authSeqNumber : start.seqNumber;
+                                var endSeqNumber = isAuth ? end.authSeqNumber : end.seqNumber;
                                 //optAsymId.isSatisfied();
                                 for (var cI = 0; cI < count; cI++) {
-                                    if (entityId[cI] !== seqEntityId
+                                    if ((!!seqEntityId && entityId[cI] !== seqEntityId)
                                         || !optTargetAsymId.isSatisfied(isComputed ? sourceChainIndex[cI] : cI)) {
                                         continue;
                                     }
                                     var i = residueStartIndex[cI], last = residueEndIndex[cI], startIndex = -1, endIndex = -1;
                                     for (; i < last; i++) {
-                                        if (seqNumber[i] >= start.seqNumber) {
+                                        if (seqSource[i] >= startSeqNumber && seqSource[i] <= endSeqNumber) {
+                                            if (!!start.insCode && insCode[i] !== start.insCode)
+                                                continue;
                                             startIndex = i;
                                             break;
                                         }
                                     }
-                                    if (i === last)
+                                    if (i < 0 || i === last)
                                         continue;
                                     for (i = startIndex; i < last; i++) {
-                                        if (seqNumber[i] >= end.seqNumber) {
+                                        if (seqSource[i] >= endSeqNumber) {
+                                            if (!!end.insCode && seqSource[i] === endSeqNumber && insCode[i] !== end.insCode)
+                                                continue;
                                             break;
                                         }
                                     }
@@ -19598,6 +19823,8 @@ var __LiteMol_Core = function () {
                         Compiler.compileComplement = compileComplement;
                         function compileOr(queries) {
                             var _qs = queries.map(function (q) { return Builder.toQuery(q); });
+                            if (_qs.length === 1)
+                                return _qs[0];
                             return function (ctx) {
                                 var fragments = new Query.HashFragmentSeqBuilder(ctx);
                                 for (var _i = 0, _qs_1 = _qs; _i < _qs_1.length; _i++) {
