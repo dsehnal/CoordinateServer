@@ -79,7 +79,7 @@ function mapQuery(app: express.Express, query: Queries.ApiQuery) {
         ApiState.pendingQueries++;
         
         let id = req.params.id;
-        let filename = ServerConfig.mapPdbIdToFilename(id);
+        let filename = ServerConfig.mapPdbIdToFilename(id, req.query && req.query.dataSource);
         let addToCache = ServerConfig.cacheParams.useCache;
         if (ServerConfig.cacheParams.useCache) {
             let molecule = WebApiCache.get(Molecule.Molecule.createKey(filename));

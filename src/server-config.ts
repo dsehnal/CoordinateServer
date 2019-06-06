@@ -24,7 +24,9 @@ const config = {
 
     appPrefix: '/CoordinateServer',
 
-    mapPdbIdToFilename(id: string) {
+    mapPdbIdToFilename(id: string, dataSource?: string) {
+        // if (dateSource === 'hydrogens') return ...;
+        // else return ...;
         //return `E:/databases/PDB/updated/${id}.cif`;
         return `e:/test/quick/${id}_updated.cif`;
         //return `f:/data/cs/${id}_updated.cif`;

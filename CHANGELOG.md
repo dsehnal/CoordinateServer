@@ -1,4 +1,7 @@
-﻿# 1.4.9
+﻿# 1.4.10
+* Support &dataSource query parameter in web API.
+
+# 1.4.9
 * Added _entity_poly_seq to output.
 * Added residueRange query.
 

@@ -124,7 +124,8 @@ export const CommonQueryParamsInfo: QueryParamInfo[] = [
     { name: "atomSitesOnly", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, only the '_atom_site' category is returned." },
     { name: "format", type: QueryParamType.String, defaultValue: 'mmCIF', description: "Determines the output format (Currently supported: 'mmCIF')." },
     { name: "encoding", type: QueryParamType.String, defaultValue: 'cif', description: "Determines the output encoding (text based 'CIF' or binary 'BCIF')." },
-    { name: "lowPrecisionCoords", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, stores coordinates with 1 digit instead of 3 digit precision (B-factors are stored with 1 digit precision instead of 2 when using the low precision)." }
+    { name: "lowPrecisionCoords", type: QueryParamType.Integer, defaultValue: 0, description: "If 1, stores coordinates with 1 digit instead of 3 digit precision (B-factors are stored with 1 digit precision instead of 2 when using the low precision)." },
+    { name: "dataSource", type: QueryParamType.String, defaultValue: '', description: "Allows to control how the provided data source ID maps to input file (as specified by the server instance config)." }
 ];
 
 export const CommonQueryParamsInfoMap = (function () {

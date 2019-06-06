@@ -66,7 +66,7 @@ function mapQuery(app, query) {
         logger_1.default.log("[server] Query '" + req.params.id + "/" + query.name + "'...");
         exports.ApiState.pendingQueries++;
         var id = req.params.id;
-        var filename = server_config_1.default.mapPdbIdToFilename(id);
+        var filename = server_config_1.default.mapPdbIdToFilename(id, req.query && req.query.dataSource);
         var addToCache = server_config_1.default.cacheParams.useCache;
         if (server_config_1.default.cacheParams.useCache) {
             var molecule = WebApiCache.get(Molecule.Molecule.createKey(filename));
